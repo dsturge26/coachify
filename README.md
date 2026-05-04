@@ -1,6 +1,6 @@
-# Flag Football Lineup Tool
+# Coachify
 
-Single-file web app for youth flag football lineup planning, shared coach access, touch tracking, and roster setup.
+Single-file web app for youth coaching: roster setup, lineup planning, shared coach access, touch tracking, and AI-assisted practice plans.
 
 ## Files
 
