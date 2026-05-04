@@ -541,7 +541,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.9.1";
+      const APP_VERSION = "v0.9.2";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -745,7 +745,8 @@
         deferredInstallPrompt: null,
         activePracticePlanId: null,
         practiceBuildTimer: null,
-        practiceBuildStartedAt: null
+        practiceBuildStartedAt: null,
+        resumingPracticePlanIds: new Set()
       };
 
       const els = {
@@ -1255,6 +1256,7 @@
         if (plan.status === "building") {
           els.copyPracticePlanBtn.classList.add("hidden");
           renderPracticePlanQueued(plan);
+          resumePendingPracticePlan(plan);
           return;
         }
 
@@ -2029,23 +2031,24 @@
       function renderPracticePlanQueued(plan) {
         const payload = plan.request || {};
         const createdAt = plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "";
+        const isResuming = state.resumingPracticePlanIds.has(plan.id);
         els.practicePlanResults.innerHTML = `
           <article class="overflow-hidden rounded-md border border-emerald-200 bg-white shadow-sm">
             <div class="bg-gradient-to-r from-emerald-700 to-slate-950 p-4 text-white">
-              <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Building in the background</p>
+              <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">${isResuming ? "Finishing now" : "Building in the background"}</p>
               <h2 class="mt-1 text-2xl font-black leading-tight">${escapeHtml(plan.title || "Practice playbook is building")}</h2>
-              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">You can leave this page. Coachify will save the plan to this team when it finishes.</p>
+              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">${isResuming ? "Coachify found this pending plan and is finishing it now." : "You can leave this page. Coachify will save the plan to this team when it finishes."}</p>
             </div>
             <div class="grid gap-4 p-4">
               <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <div class="flex items-center justify-between gap-3">
-                  <p class="text-sm font-black text-slate-950">Queued with Coachify</p>
+                  <p class="text-sm font-black text-slate-950">${isResuming ? "Resuming saved build" : "Queued with Coachify"}</p>
                   <p class="text-sm font-bold text-slate-500">${escapeHtml(createdAt)}</p>
                 </div>
                 <div class="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
                   <div class="h-full w-2/3 rounded-full bg-emerald-600"></div>
                 </div>
-                <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">Plans usually take 30-45 seconds. If you come back later, open Saved Practice Plans and it should be there.</p>
+                <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${isResuming ? "Keep this page open for this recovery pass. When it finishes, the saved plan will update automatically." : "Plans usually take 30-45 seconds. If this ever gets stuck, reopening the plan will resume the build."}</p>
               </div>
               <div class="grid gap-2 sm:grid-cols-3">
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
@@ -2083,6 +2086,47 @@
           state.practiceBuildTimer = null;
         }
         state.practiceBuildStartedAt = null;
+      }
+
+      async function resumePendingPracticePlan(plan) {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !plan?.id || plan.status !== "building" || !isHeadCoach(team)) return;
+        if (state.resumingPracticePlanIds.has(plan.id)) return;
+
+        const payload = plan.request || {};
+        if (!payload.focus || !payload.totalMinutes) return;
+
+        state.resumingPracticePlanIds.add(plan.id);
+        renderPracticePlanQueued(plan);
+        setPracticeStatus("Found a pending practice plan. Coachify is finishing it now.", "info");
+
+        try {
+          const session = await requireCloudSession();
+          if (!session) return;
+
+          const response = await fetch("/api/practice-plan", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              ...payload,
+              completeExisting: true,
+              planId: plan.id,
+              teamCloudId: team.cloudId
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Practice plan resume failed.");
+
+          await loadCloudTeams();
+          setPracticeStatus(data.warning || "Practice plan finished and saved.", data.warning ? "info" : "success");
+        } catch (error) {
+          setPracticeStatus(error.message || "Practice plan resume failed.", "error");
+        } finally {
+          state.resumingPracticePlanIds.delete(plan.id);
+        }
       }
 
       async function buildPracticePlan(event) {

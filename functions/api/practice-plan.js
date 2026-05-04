@@ -434,5 +434,30 @@ export async function onRequestPost({ request, env, waitUntil }) {
     return jsonResponse({ queued: true, planId: input.planId }, 202);
   }
 
+  if (input.completeExisting) {
+    const authHeader = request.headers.get("Authorization");
+    if (!input.planId || !input.teamCloudId || !authHeader) {
+      return jsonResponse({ error: "Practice plan resume needs a team, plan id, and signed-in coach." }, 400);
+    }
+
+    const result = await generatePracticePlan(input, env);
+    const now = new Date().toISOString();
+    await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
+      ...(result.plan || fallbackPlan(input)),
+      id: input.planId,
+      status: "ready",
+      createdAt: existingPlan?.createdAt || now,
+      updatedAt: now,
+      request: existingPlan?.request || cleanPracticeInput(input),
+      warning: result.warning || null
+    }));
+
+    return jsonResponse({
+      completed: true,
+      planId: input.planId,
+      warning: result.warning || null
+    });
+  }
+
   return jsonResponse(await generatePracticePlan(input, env));
 }
