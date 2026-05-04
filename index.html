@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Coachify</title>
+    <!-- deploy refresh: practice-plan-env -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -1099,7 +1100,7 @@
           renderPracticePlan(plan);
           renderPracticePlanHistory();
           await saveSelectedCloudTeam();
-          setPracticeStatus("Practice plan saved to this team.", "success");
+          setPracticeStatus(data.warning || "Practice plan saved to this team.", data.warning ? "info" : "success");
         } catch (error) {
           setPracticeStatus(error.message || "Practice plan failed.", "error");
         } finally {

@@ -18,6 +18,53 @@ function extractText(response) {
     .trim();
 }
 
+const practicePlanSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["title", "totalMinutes", "summary", "blocks"],
+  properties: {
+    title: { type: "string" },
+    totalMinutes: { type: "number" },
+    summary: { type: "string" },
+    blocks: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["minutes", "name", "setup", "instructions", "coachingPoints", "makeEasier", "makeHarder"],
+        properties: {
+          minutes: { type: "number" },
+          name: { type: "string" },
+          setup: { type: "string" },
+          instructions: { type: "string" },
+          coachingPoints: { type: "string" },
+          makeEasier: { type: "string" },
+          makeHarder: { type: "string" }
+        }
+      }
+    }
+  }
+};
+
+function parsePlanResponse(data, input) {
+  const text = extractText(data).replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
+  if (!text) {
+    return {
+      plan: fallbackPlan(input),
+      warning: "OpenAI returned an empty response, so Coachify used a built-in backup plan."
+    };
+  }
+
+  try {
+    return { plan: JSON.parse(text) };
+  } catch (error) {
+    return {
+      plan: fallbackPlan(input),
+      warning: "OpenAI returned a plan in an unexpected format, so Coachify used a built-in backup plan."
+    };
+  }
+}
+
 function fallbackPlan(input) {
   const total = Number(input.totalMinutes || 60);
   const blocks = [
@@ -129,9 +176,17 @@ Rules:
         Authorization: `Bearer ${env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: env.OPENAI_MODEL || "gpt-5.4-mini",
+        model: env.OPENAI_MODEL || "gpt-5-mini",
         input: prompt,
         max_output_tokens: 1800,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "practice_plan",
+            strict: true,
+            schema: practicePlanSchema
+          }
+        },
         store: false
       })
     });
@@ -141,13 +196,11 @@ Rules:
       return jsonResponse({ error: data.error?.message || "OpenAI request failed." }, 500);
     }
 
-    const text = extractText(data).replace(/^```json/i, "").replace(/^```/, "").replace(/```$/, "").trim();
-    const plan = JSON.parse(text);
-    return jsonResponse({ plan });
+    return jsonResponse(parsePlanResponse(data, input));
   } catch (error) {
     return jsonResponse({
-      error: "AI plan generation failed. Try again, or add a little more detail.",
-      plan: fallbackPlan(input)
-    }, 500);
+      plan: fallbackPlan(input),
+      warning: "AI plan generation hit a temporary issue, so Coachify used a built-in backup plan."
+    });
   }
 }
