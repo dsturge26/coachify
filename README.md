@@ -13,7 +13,7 @@ Production app: https://coachify-app.com/
 - `functions/api/practice-plan.js` - AI practice plan generation, including background saves
 - `functions/api/practice-drill-help.js` - per-drill AI questions and reframes
 - `supabase_setup.sql` - main Supabase schema and policies
-- `supabase_create_team_function.sql` - helper function for cloud team creation
+- `supabase_create_team_function.sql` - helper function for team creation
 - `supabase_role_lockdown.sql` - database guard for assistant coach permissions
 - `supabase_email_invites.sql` - email-based assistant coach invitations
 - `supabase_division_settings.sql` - per-team division and field-size settings

@@ -165,7 +165,7 @@
           <div class="brand-mark h-10 w-10 shrink-0" aria-hidden="true"></div>
           <div>
             <h2 id="cloudAccessTitle" class="text-2xl font-bold">Coach Login</h2>
-            <p id="cloudAccessSubtitle" class="text-sm text-slate-600">Sign in or create an account to view cloud teams, build lineups, or join as an assistant coach.</p>
+            <p id="cloudAccessSubtitle" class="text-sm text-slate-600">Sign in or create an account to view teams, build lineups, or join as an assistant coach.</p>
           </div>
         </div>
         <div id="cloudSignedOutControls" class="grid gap-3 sm:grid-cols-2">
@@ -181,7 +181,7 @@
         <div id="cloudSignedInControls" class="hidden space-y-3">
           <div class="flex flex-col gap-2 sm:flex-row">
             <button id="cloudRefreshBtn" class="min-h-11 rounded-md border border-slate-300 px-4 py-2 font-semibold active:bg-slate-100" type="button">
-              Refresh Cloud Teams
+              Refresh Teams
             </button>
             <button id="cloudSignOutBtn" class="min-h-11 rounded-md border border-red-200 px-4 py-2 font-semibold text-red-700 active:bg-red-50" type="button">
               Sign Out
@@ -192,7 +192,7 @@
             <div id="pendingInvitesList" class="mt-2 grid gap-2"></div>
           </div>
         </div>
-        <p id="cloudStatus" class="text-sm font-semibold text-slate-700">Cloud not signed in.</p>
+        <p id="cloudStatus" class="text-sm font-semibold text-slate-700">Not signed in.</p>
       </section>
 
       <section id="teamEditorView" class="hidden space-y-5">
@@ -546,7 +546,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.9.7";
+      const APP_VERSION = "v0.9.8";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -958,11 +958,11 @@
         els.headerSignedInLabel.textContent = signedIn ? `Signed in as ${state.user.email}` : "";
         els.cloudAccessTitle.textContent = signedIn ? "Coach Access" : "Coach Login";
         els.cloudAccessSubtitle.textContent = signedIn
-          ? "Create a cloud team, refresh your teams, or accept an assistant coach invitation."
-          : "Sign in or create an account to view cloud teams, build lineups, or join as an assistant coach.";
+          ? "Create a team, refresh your teams, or accept an assistant coach invitation."
+          : "Sign in or create an account to view teams, build lineups, or join as an assistant coach.";
         els.cloudStatus.textContent = signedIn
-          ? `Signed in as ${state.user.email}. Cloud teams loaded: ${state.memberships.length}.`
-          : "Cloud not signed in.";
+          ? `Signed in as ${state.user.email}. Teams loaded: ${state.memberships.length}.`
+          : "Not signed in.";
       }
 
       async function initCloud() {
@@ -2398,7 +2398,7 @@
       }
 
       function roleLabel(team = getSelectedTeam()) {
-        if (!team?.cloudId) return "Cloud only";
+        if (!team?.cloudId) return "Account required";
         if (team.createdBy && team.createdBy === state.user?.id) return "Head coach";
         const membership = state.memberships.find((item) => item.team_id === team.cloudId);
         if (membership?.role === "head") return "Head coach";
@@ -2407,13 +2407,13 @@
       }
 
       function teamStorageLabel(team) {
-        return team.cloudId ? "Cloud" : "Cloud required";
+        return team.cloudId ? "Shared" : "Account required";
       }
 
       function teamStorageBadgeHtml(team) {
         const isCloud = Boolean(team.cloudId);
         const classes = isCloud ? "bg-sky-100 text-sky-900 border-sky-200" : "bg-red-50 text-red-800 border-red-200";
-        const label = isCloud ? "Cloud" : "Cloud required";
+        const label = isCloud ? "Shared" : "Account required";
         return `<span class="inline-flex rounded-md border ${classes} px-2 py-1 text-xs font-bold uppercase tracking-wide">${label}</span>`;
       }
 
@@ -2955,7 +2955,7 @@
             <div class="app-card p-5 text-center">
               <div class="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-md bg-emerald-100 text-2xl font-black text-emerald-800">+</div>
               <h2 class="text-2xl font-bold">Build your first team</h2>
-              <p class="mx-auto mt-2 max-w-md text-sm text-slate-600">Create a cloud team, add the roster, then Coachify will keep the lineup, touch tracker, and practice plans together for your coaches.</p>
+              <p class="mx-auto mt-2 max-w-md text-sm text-slate-600">Create a team, add the roster, then Coachify will keep the lineup, touch tracker, and practice plans together for your coaches.</p>
               <button class="mt-4 min-h-12 rounded-md bg-emerald-700 px-5 py-3 font-bold text-white shadow-sm active:bg-emerald-800" data-action="new-team">
                 Create First Team
               </button>
@@ -3335,7 +3335,7 @@
         els.playersOnFieldInput.value = getTeamDivision(team).playersOnField;
         const headCoach = isHeadCoach(team);
         els.coachRoleBadge.textContent = `Role: ${roleLabel(team)}`;
-        els.teamStorageBadge.textContent = `Storage: ${teamStorageLabel(team)}`;
+        els.teamStorageBadge.textContent = `Team access: ${teamStorageLabel(team)}`;
         els.teamStorageBadge.className = team.cloudId
           ? "rounded-md bg-sky-100 px-3 py-2 text-sm font-bold text-sky-900"
           : "rounded-md bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800";
