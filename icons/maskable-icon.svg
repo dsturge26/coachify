@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Coachify app icon">
+  <rect width="512" height="512" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="214" fill="#0f766e"/>
+  <path d="M88 352c61 57 275 57 336 0" fill="none" stroke="#f8fafc" stroke-width="34" stroke-linecap="round"/>
+  <path d="M88 160c61-57 275-57 336 0" fill="none" stroke="#f59e0b" stroke-width="34" stroke-linecap="round"/>
+  <ellipse cx="256" cy="256" rx="132" ry="82" fill="#f8fafc"/>
+  <path d="M158 256h196" stroke="#0f172a" stroke-width="22" stroke-linecap="round"/>
+  <path d="M256 188v136" stroke="#0f172a" stroke-width="22" stroke-linecap="round"/>
+  <path d="M214 222v68M298 222v68" stroke="#0f766e" stroke-width="18" stroke-linecap="round"/>
+</svg>

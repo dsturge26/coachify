@@ -5,6 +5,9 @@ Single-file web app for youth coaching: roster setup, lineup planning, shared co
 ## Files
 
 - `index.html` - the hosted app
+- `manifest.webmanifest` - installable app settings
+- `sw.js` - service worker for the PWA app shell
+- `icons/` - Coachify home-screen icons
 - `supabase_setup.sql` - main Supabase schema and policies
 - `supabase_create_team_function.sql` - helper function for cloud team creation
 - `supabase_role_lockdown.sql` - database guard for assistant coach permissions
@@ -15,4 +18,4 @@ Single-file web app for youth coaching: roster setup, lineup planning, shared co
 
 ## Deploy
 
-This app is static. Host `index.html` with Netlify, GitHub Pages, Cloudflare Pages, or any static host.
+This app is static. Host the full folder with Cloudflare Pages or another static host so the PWA files deploy with `index.html`.
