@@ -639,6 +639,99 @@
         }
       ];
 
+      const practiceDrillLibrary = [
+        {
+          id: "flag-pull-alley",
+          name: "Flag Pull Alley",
+          category: "Defense",
+          description: "Simple lane drill for flag pulling, pursuit angle, and finishing with two hands.",
+          goal: "Help defenders close space under control and pull flags without reaching from too far away.",
+          setup: "Make a 5-yard wide alley with cones. Put one ball carrier at one end and one defender about 5 yards away inside the alley.",
+          instructions: "On go, the runner tries to cross the far cone line while staying in the alley. The defender shuffles, closes space, and pulls the flag. Rotate runner to defender, defender to line.",
+          coachScript: "Break down your feet, get close, eyes on the hips, then pull the flag with two hands.",
+          coachingPoints: "Praise defenders who slow down before the pull. Remind kids not to dive or swat from too far away.",
+          successLooksLike: "Defenders stay balanced, get near the runner, and pull flags without falling down.",
+          commonMistakes: "Defenders sprint past the runner, stare at the head fake, or reach while too far away.",
+          makeEasier: "Make the alley narrower and have runners jog.",
+          makeHarder: "Widen the alley or let runners use one cut."
+        },
+        {
+          id: "edge-contain",
+          name: "Keep the Edge",
+          category: "Defense",
+          description: "Teaches defenders to protect the sideline and force runners back inside.",
+          goal: "Teach outside defenders not to lose contain when the runner races to the edge.",
+          setup: "Use a sideline or cone line as the outside boundary. Put a runner, an outside defender, and a finish cone 8-10 yards away.",
+          instructions: "Runner tries to race outside. Defender starts slightly inside, stays between runner and sideline, and forces the runner back toward help.",
+          coachScript: "Do not chase behind. Beat them to the sideline, stay outside, and make them turn back in.",
+          coachingPoints: "Use plain language: your job is to guard the sideline. If they go outside you, they win.",
+          successLooksLike: "Defender keeps outside shoulder free and runner has to cut back inside.",
+          commonMistakes: "Defender runs straight at the runner and lets the runner bounce outside.",
+          makeEasier: "Walk through it first with no flag pull.",
+          makeHarder: "Add a second inside defender who finishes the flag pull."
+        },
+        {
+          id: "handoff-race",
+          name: "Handoff Race",
+          category: "Offense",
+          description: "Fast reps for clean handoffs while running toward the edge.",
+          goal: "Make handoffs cleaner at speed without slowing the runner down.",
+          setup: "Put a QB cone, RB cone, and edge finish cone. QB has the ball. RB starts beside or behind the QB based on your playbook.",
+          instructions: "RB runs across the QB's belly. QB opens, places the ball firmly, RB clamps it, then races to the finish cone. Reset quickly.",
+          coachScript: "Runner, pocket ready. QB, put the ball where the runner is going. Clamp it and race.",
+          coachingPoints: "Look for soft hands and clean exchanges. Start slow, then speed up only when exchanges are clean.",
+          successLooksLike: "The runner keeps moving, the ball exchange is clean, and nobody stops their feet.",
+          commonMistakes: "QB reaches late, runner looks down too long, or both players stop moving.",
+          makeEasier: "Start from a standing handoff and walk the path.",
+          makeHarder: "Add a defender chasing from behind after the exchange."
+        },
+        {
+          id: "route-landmarks",
+          name: "Route Landmarks",
+          category: "Passing",
+          description: "Cone-based routes so kids know where to run, turn, and look.",
+          goal: "Help receivers run to a spot instead of drifting around the field.",
+          setup: "Place cones for starting spot, break point, and catch spot. Use one QB or coach passer.",
+          instructions: "Receiver runs to the break cone, turns toward the QB, shows hands, catches, and finishes upfield. Rotate quickly.",
+          coachScript: "Run to the cone, snap your eyes back, show your hands, then finish forward.",
+          coachingPoints: "Keep the route simple. Correct one thing: path, eyes, or hands.",
+          successLooksLike: "Receivers hit the cone, turn around on time, and look ready for the ball.",
+          commonMistakes: "Kids round the route, look back too early, or stop before the catch.",
+          makeEasier: "Use shorter cones and toss underhand.",
+          makeHarder: "Add a defender or require a quick turn after the catch."
+        },
+        {
+          id: "snap-and-go",
+          name: "Snap and Go",
+          category: "Basics",
+          description: "Center/QB exchange reps that quickly turn into a play start.",
+          goal: "Clean up snaps and get everyone moving right after the snap.",
+          setup: "Set a line of scrimmage cone. Put center, QB, and one skill player in their normal starting spots.",
+          instructions: "Center snaps, QB secures it, then immediately hands or tosses to the skill player. Rotate center and QB after several clean reps.",
+          coachScript: "Clean snap first, then go. Secure it, move your feet, and finish the play start.",
+          coachingPoints: "Do not rush bad snaps. Build rhythm: set, snap, secure, go.",
+          successLooksLike: "The ball gets to the QB cleanly and the next action starts without a pause.",
+          commonMistakes: "QB pulls away early, center snaps before everyone is ready, or players freeze after the snap.",
+          makeEasier: "Use stationary snaps only.",
+          makeHarder: "Add a cadence and a defender who starts after the snap."
+        },
+        {
+          id: "everyone-gets-a-touch",
+          name: "Everyone Gets a Touch",
+          category: "Confidence",
+          description: "Quick confidence drill to involve quieter players and balance touches.",
+          goal: "Give every kid a successful ball touch in a low-pressure format.",
+          setup: "Make a short line with a coach or QB holding the ball. Put one finish cone 5-8 yards away.",
+          instructions: "Each player gets a handoff, quick pass, or pitch, then runs to the finish cone. Celebrate the finish and rotate fast.",
+          coachScript: "Your job is one clean touch and a strong finish. Catch or clamp it, then go score.",
+          coachingPoints: "Use this to build confidence. Make the rep easy enough that every player succeeds.",
+          successLooksLike: "Every player gets a clean touch and finishes with energy.",
+          commonMistakes: "Letting stronger players take extra reps or making the catch too difficult.",
+          makeEasier: "Use handoffs only.",
+          makeHarder: "Let the player choose handoff, pitch, or quick catch."
+        }
+      ];
+
       const state = {
         teams: [],
         selectedTeamId: null,
@@ -1154,6 +1247,7 @@
         const blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
         const drillCount = blocks.filter((block) => block.blockType !== "water").length;
         const waterCount = blocks.filter((block) => block.blockType === "water").length;
+        const canEditPlan = isHeadCoach(getSelectedTeam());
         const renderInfoTile = (label, value, tone = "slate") => {
           const toneClasses = {
             emerald: "border-emerald-200 bg-emerald-50 text-emerald-950",
@@ -1173,6 +1267,24 @@
           const isWater = block.blockType === "water";
           const stepNumber = blocks.slice(0, index + 1).filter((item) => item.blockType !== "water").length;
           const title = block.name || (isWater ? "Water Break" : "Drill");
+          const libraryHtml = practiceDrillLibrary
+            .map(
+              (drill) => `
+                <article class="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
+                  <div class="flex h-full flex-col gap-3">
+                    <div>
+                      <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">${escapeHtml(drill.category)}</p>
+                      <h5 class="text-base font-black text-slate-950">${escapeHtml(drill.name)}</h5>
+                      <p class="mt-1 text-sm leading-6 text-slate-600">${escapeHtml(drill.description)}</p>
+                    </div>
+                    <button class="mt-auto min-h-10 rounded-md bg-slate-900 px-3 py-2 text-sm font-bold text-white active:bg-slate-700" type="button" data-action="swap-drill-library" data-block-index="${index}" data-drill-id="${drill.id}">
+                      Use This Activity
+                    </button>
+                  </div>
+                </article>
+              `
+            )
+            .join("");
           const aiHistory = Array.isArray(block.aiCoach) ? block.aiCoach.slice(-4).reverse() : [];
           const aiHistoryHtml = aiHistory.length
             ? `
@@ -1256,6 +1368,49 @@
                   ${renderInfoTile("Make it easier", block.makeEasier, "amber")}
                   ${renderInfoTile("Make it harder", block.makeHarder, "slate")}
                 </div>
+                ${canEditPlan ? `
+                  <details class="rounded-md border border-amber-200 bg-amber-50 p-3">
+                    <summary class="cursor-pointer list-none">
+                      <div class="flex items-center justify-between gap-3">
+                        <div>
+                          <p class="text-[11px] font-black uppercase tracking-wide text-amber-700">Customize</p>
+                          <h4 class="text-lg font-black text-amber-950">Time or swap this activity</h4>
+                        </div>
+                        <span class="chevron text-2xl font-bold text-amber-800">&rsaquo;</span>
+                      </div>
+                    </summary>
+                    <div class="mt-3 grid gap-4">
+                      <div class="rounded-md border border-amber-200 bg-white p-3">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p class="text-sm font-black text-slate-950">Activity time: ${Number(block.minutes || 0)} minutes</p>
+                            <p class="text-sm leading-6 text-slate-600">Change by 5 minutes. Coachify adjusts the next available activity so the whole practice stays on schedule.</p>
+                          </div>
+                          <div class="grid grid-cols-2 gap-2 sm:w-56">
+                            <button class="min-h-11 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-black text-slate-800 active:bg-slate-100" type="button" data-action="adjust-drill-time" data-block-index="${index}" data-delta="-5">
+                              -5 min
+                            </button>
+                            <button class="min-h-11 rounded-md bg-emerald-700 px-3 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="adjust-drill-time" data-block-index="${index}" data-delta="5">
+                              +5 min
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <p class="mb-2 text-sm font-black uppercase tracking-wide text-slate-600">Swap from drill library</p>
+                        <div class="grid gap-3 lg:grid-cols-2">${libraryHtml}</div>
+                      </div>
+                      <div class="rounded-md border border-violet-200 bg-white p-3">
+                        <p class="text-[11px] font-black uppercase tracking-wide text-violet-700">AI swap</p>
+                        <h5 class="text-base font-black text-violet-950">Tell Coachify what you want instead</h5>
+                        <textarea class="mt-2 min-h-20 w-full rounded-md border border-violet-200 px-3 py-2 text-sm" data-ai-swap-input="${index}" placeholder="Example: Replace this with a no-contact drill for flag pulling in a small space."></textarea>
+                        <button class="mt-2 min-h-11 w-full rounded-md bg-violet-700 px-4 py-2 text-sm font-black text-white active:bg-violet-800 sm:w-auto" type="button" data-action="ai-swap-drill" data-block-index="${index}">
+                          Build Replacement
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                ` : ""}
                 <div class="rounded-md border border-violet-200 bg-violet-50 p-3">
                   <div class="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                     <div>
@@ -1310,6 +1465,10 @@
                 <p class="text-xl font-black text-slate-950">Phone-ready</p>
               </div>
             </div>
+            <div class="border-t border-emerald-100 bg-white p-3">
+              <p class="text-sm font-bold text-emerald-900">Saved automatically to this team${plan.updatedAt ? ` - updated ${escapeHtml(new Date(plan.updatedAt).toLocaleString())}` : ""}.</p>
+              <p class="mt-1 text-xs font-semibold text-slate-500">Time changes, activity swaps, and AI drill notes save as soon as they finish.</p>
+            </div>
           </article>
           <article class="rounded-md border border-slate-200 bg-white p-3 shadow-sm">
             <div class="flex flex-wrap gap-2">
@@ -1354,6 +1513,159 @@
         const team = getSelectedTeam();
         if (!team) return null;
         return (team.practicePlans || []).find((plan) => plan.id === state.activePracticePlanId) || team.practicePlans?.[0] || null;
+      }
+
+      async function savePracticePlanChange(plan, message = "Practice plan changes saved.") {
+        if (!plan) return;
+        plan.updatedAt = new Date().toISOString();
+        renderPracticePlan(plan);
+        renderPracticePlanHistory();
+        await saveSelectedCloudTeam();
+        setPracticeStatus(message, "success");
+      }
+
+      function practiceBlockTemplateFromLibrary(drill, minutes, existingBlock = {}) {
+        return {
+          ...existingBlock,
+          blockType: "drill",
+          minutes,
+          name: drill.name,
+          goal: drill.goal,
+          setup: drill.setup,
+          instructions: drill.instructions,
+          coachScript: drill.coachScript,
+          coachingPoints: drill.coachingPoints,
+          successLooksLike: drill.successLooksLike,
+          commonMistakes: drill.commonMistakes,
+          makeEasier: drill.makeEasier,
+          makeHarder: drill.makeHarder,
+          aiCoach: [
+            ...(existingBlock.aiCoach || []),
+            {
+              id: makeId("drill-ai"),
+              mode: "swap",
+              question: `Swapped activity to ${drill.name}`,
+              answer: drill.description,
+              createdAt: new Date().toISOString()
+            }
+          ].slice(-8)
+        };
+      }
+
+      async function adjustPracticeDrillTime(blockIndex, delta) {
+        const plan = getActivePracticePlan();
+        const block = plan?.blocks?.[blockIndex];
+        const change = Number(delta);
+        if (!plan || !block || block.blockType === "water" || !change) return;
+
+        if (change < 0 && Number(block.minutes || 0) <= 5) {
+          setPracticeStatus("That activity is already at the 5-minute minimum.", "error");
+          return;
+        }
+
+        const directionIndexes = [
+          ...plan.blocks.map((_, index) => index).filter((index) => index > blockIndex),
+          ...plan.blocks.map((_, index) => index).filter((index) => index < blockIndex).reverse()
+        ];
+        const partnerIndex = directionIndexes.find((index) => {
+          const partner = plan.blocks[index];
+          if (!partner || partner.blockType === "water") return false;
+          return change > 0 ? Number(partner.minutes || 0) > 5 : true;
+        });
+
+        if (partnerIndex == null) {
+          setPracticeStatus("Coachify needs another drill with extra time to keep the total balanced.", "error");
+          return;
+        }
+
+        plan.blocks[blockIndex].minutes = Number(plan.blocks[blockIndex].minutes || 0) + change;
+        plan.blocks[partnerIndex].minutes = Number(plan.blocks[partnerIndex].minutes || 0) - change;
+        await savePracticePlanChange(plan, `Time updated. ${Math.abs(change)} minutes moved ${change > 0 ? "into" : "out of"} this activity.`);
+      }
+
+      async function swapPracticeDrillFromLibrary(blockIndex, drillId) {
+        const plan = getActivePracticePlan();
+        const block = plan?.blocks?.[blockIndex];
+        const drill = practiceDrillLibrary.find((item) => item.id === drillId);
+        if (!plan || !block || !drill || block.blockType === "water") return;
+
+        plan.blocks[blockIndex] = practiceBlockTemplateFromLibrary(drill, block.minutes, block);
+        await savePracticePlanChange(plan, `${drill.name} swapped into the practice plan.`);
+      }
+
+      async function swapPracticeDrillWithAi(blockIndex) {
+        const team = getSelectedTeam();
+        const plan = getActivePracticePlan();
+        const block = plan?.blocks?.[blockIndex];
+        if (!team || !plan || !block || block.blockType === "water") return;
+
+        const input = els.practicePlanResults.querySelector(`[data-ai-swap-input="${blockIndex}"]`);
+        const request = input?.value.trim();
+        if (!request) {
+          setPracticeAiStatus(blockIndex, "Tell Coachify what kind of replacement you want first.", "error");
+          input?.focus();
+          return;
+        }
+
+        const buttons = els.practicePlanResults.querySelectorAll(`[data-block-index="${blockIndex}"]`);
+        buttons.forEach((button) => {
+          button.disabled = true;
+          button.classList.add("opacity-60");
+        });
+        setPracticeAiStatus(blockIndex, "Building a replacement activity...");
+
+        try {
+          const response = await fetch("/api/practice-drill-help", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mode: "reframe",
+              question: `Replace this activity with something else: ${request}`,
+              plan: {
+                title: plan.title,
+                summary: plan.summary,
+                totalMinutes: plan.totalMinutes
+              },
+              drill: block,
+              recentConversation: (block.aiCoach || []).slice(-4),
+              team: {
+                name: team.name,
+                divisionName: getTeamDivision(team).divisionName,
+                playersOnField: getTeamDivision(team).playersOnField,
+                rosterSize: team.roster.length
+              }
+            })
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || "Coachify could not build that replacement.");
+          if (!data.reframedBlock) throw new Error("Coachify answered, but did not return a replacement activity.");
+
+          plan.blocks[blockIndex] = {
+            ...block,
+            ...data.reframedBlock,
+            blockType: block.blockType,
+            minutes: block.minutes,
+            aiCoach: [
+              ...(block.aiCoach || []),
+              {
+                id: makeId("drill-ai"),
+                mode: "ai-swap",
+                question: request,
+                answer: data.answer || "Coachify replaced this activity.",
+                createdAt: new Date().toISOString()
+              }
+            ].slice(-8)
+          };
+          input.value = "";
+          await savePracticePlanChange(plan, "AI replacement activity saved.");
+        } catch (error) {
+          setPracticeAiStatus(blockIndex, error.message || "Coachify could not build that replacement.", "error");
+        } finally {
+          buttons.forEach((button) => {
+            button.disabled = false;
+            button.classList.remove("opacity-60");
+          });
+        }
       }
 
       function setPracticeAiStatus(blockIndex, message, kind = "info") {
@@ -1428,9 +1740,7 @@
             }
           ].slice(-8);
           questionInput.value = "";
-          renderPracticePlan(plan);
-          await saveSelectedCloudTeam();
-          setPracticeStatus(mode === "reframe" ? "Suggested drill reframe saved under that drill." : "Drill answer saved under that drill.", "success");
+          await savePracticePlanChange(plan, mode === "reframe" ? "Suggested drill reframe saved under that drill." : "Drill answer saved under that drill.");
         } catch (error) {
           setPracticeAiStatus(blockIndex, error.message || "Coachify could not answer that question.", "error");
         } finally {
@@ -1463,9 +1773,7 @@
             }
           ].slice(-8)
         };
-        renderPracticePlan(plan);
-        await saveSelectedCloudTeam();
-        setPracticeStatus("Drill updated with the reframed version.", "success");
+        await savePracticePlanChange(plan, "Drill updated with the reframed version.");
       }
 
       function renderPracticePlanHistory() {
@@ -1623,6 +1931,7 @@
             ...data.plan,
             id: makeId("practice"),
             createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
             request: payload
           };
           team.practicePlans = [plan, ...(team.practicePlans || [])].slice(0, 20);
@@ -2803,6 +3112,18 @@
 
           if (button.dataset.action === "apply-drill-reframe") {
             applyPracticeDrillReframe(Number(button.dataset.blockIndex), button.dataset.entryId);
+          }
+
+          if (button.dataset.action === "adjust-drill-time") {
+            adjustPracticeDrillTime(Number(button.dataset.blockIndex), Number(button.dataset.delta));
+          }
+
+          if (button.dataset.action === "swap-drill-library") {
+            swapPracticeDrillFromLibrary(Number(button.dataset.blockIndex), button.dataset.drillId);
+          }
+
+          if (button.dataset.action === "ai-swap-drill") {
+            swapPracticeDrillWithAi(Number(button.dataset.blockIndex));
           }
         });
 
