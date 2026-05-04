@@ -196,19 +196,6 @@
       </section>
 
       <section id="teamEditorView" class="hidden space-y-5">
-        <div class="team-tabbar grid grid-cols-3 gap-2 rounded-md border border-slate-200 bg-white/95 p-1 backdrop-blur">
-          <button id="gameDayTabBtn" class="min-h-12 rounded-md bg-slate-900 px-4 py-2 text-base font-bold text-white" type="button">
-            Game Day
-          </button>
-          <button id="practicePlanTabBtn" class="min-h-12 rounded-md px-4 py-2 text-base font-bold text-slate-700" type="button">
-            Practice
-          </button>
-          <button id="setupTabBtn" class="min-h-12 rounded-md px-4 py-2 text-base font-bold text-slate-700" type="button">
-            Setup
-          </button>
-        </div>
-
-        <section id="gameDayPanel" class="space-y-5">
         <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
           <div class="grid gap-3">
             <label class="block">
@@ -236,6 +223,19 @@
           </div>
         </section>
 
+        <div class="team-tabbar grid grid-cols-3 gap-2 rounded-md border border-slate-200 bg-white/95 p-1 backdrop-blur">
+          <button id="gameDayTabBtn" class="min-h-12 rounded-md bg-slate-900 px-4 py-2 text-base font-bold text-white" type="button">
+            Game Day
+          </button>
+          <button id="practicePlanTabBtn" class="min-h-12 rounded-md px-4 py-2 text-base font-bold text-slate-700" type="button">
+            Practice
+          </button>
+          <button id="setupTabBtn" class="min-h-12 rounded-md px-4 py-2 text-base font-bold text-slate-700" type="button">
+            Setup
+          </button>
+        </div>
+
+        <section id="gameDayPanel" class="space-y-5">
         <details id="lineupPlannerSection" class="rounded-md border border-slate-200 bg-white p-4 shadow-sm" open>
           <summary class="cursor-pointer list-none">
             <div class="flex items-center justify-between gap-3">
@@ -546,7 +546,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.9.5";
+      const APP_VERSION = "v0.9.7";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1308,10 +1308,13 @@
         const managementControls = canEditPlan
           ? `
             <div class="border-t border-emerald-100 bg-white p-3">
-              <div class="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+              <div class="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
                 <input id="activePracticeNameInput" class="min-h-11 rounded-md border border-slate-300 px-3 text-base font-bold" value="${escapeHtml(plan.title || "Practice Plan")}" aria-label="Practice name" />
                 <button class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="rename-practice-plan">
                   Rename
+                </button>
+                <button class="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-black text-slate-800 active:bg-slate-100" type="button" data-action="close-practice-plan">
+                  Close
                 </button>
                 <button class="min-h-11 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="delete-practice-plan">
                   Delete
@@ -1464,7 +1467,7 @@
                   <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">Drill picture</p>
                   <p class="text-sm font-bold text-slate-900">Simple field diagram</p>
                 </div>
-                <span class="rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-black text-emerald-800">No AI cost</span>
+                <span class="rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-black text-emerald-800">Quick visual</span>
               </div>
               <svg class="block h-auto w-full" viewBox="0 0 360 220" role="img" aria-label="${escapeHtml(block.name || "Drill diagram")}">
                 ${common}
@@ -1525,7 +1528,7 @@
                   .join("")}
               </div>
             `
-            : `<p class="rounded-md bg-white/70 p-3 text-sm font-semibold text-slate-600">Ask a question when something is unclear. Coachify will answer only for this drill, which helps keep AI usage focused.</p>`;
+            : `<p class="rounded-md bg-white/70 p-3 text-sm font-semibold text-slate-600">Ask a question when something is unclear. Coachify will answer only for this drill so the help stays focused.</p>`;
 
           if (isWater) {
             return `
@@ -1723,7 +1726,8 @@
       function getActivePracticePlan() {
         const team = getSelectedTeam();
         if (!team) return null;
-        return (team.practicePlans || []).find((plan) => plan.id === state.activePracticePlanId) || team.practicePlans?.[0] || null;
+        if (!state.activePracticePlanId) return null;
+        return (team.practicePlans || []).find((plan) => plan.id === state.activePracticePlanId) || null;
       }
 
       async function savePracticePlanChange(plan, message = "Practice plan changes saved.") {
@@ -2283,7 +2287,11 @@
           pendingPlan.updatedAt = new Date().toISOString();
           renderPracticePlan(pendingPlan);
           renderPracticePlanHistory();
-          await saveSelectedCloudTeam();
+          try {
+            await saveSelectedCloudTeam();
+          } catch (saveError) {
+            console.warn("Could not save failed practice plan state", saveError);
+          }
           setPracticeStatus(error.message || "Practice plan failed.", "error");
         } finally {
           stopPracticeBuildLoading();
@@ -2361,6 +2369,19 @@
 
       function getSelectedTeam() {
         return state.teams.find((team) => team.id === state.selectedTeamId) || null;
+      }
+
+      function selectTeam(teamId, tab = state.activeTeamTab || "game") {
+        const changedTeam = state.selectedTeamId !== teamId;
+        state.selectedTeamId = teamId;
+        state.activeTeamTab = tab;
+        if (changedTeam) {
+          state.activePracticePlanId = null;
+          stopPracticeBuildLoading();
+        }
+        saveState();
+        render();
+        subscribeToSelectedCloudTeam();
       }
 
       function getSelectedMembership() {
@@ -2451,8 +2472,11 @@
           ? "min-h-12 rounded-md bg-slate-900 px-4 py-2 text-base font-bold text-white"
           : "min-h-12 rounded-md px-4 py-2 text-base font-bold text-slate-700";
         if (isPractice) {
+          const plans = getSelectedTeam()?.practicePlans || [];
+          const activePlan = state.activePracticePlanId ? plans.find((plan) => plan.id === state.activePracticePlanId) : null;
+          const pendingPlan = plans.find((plan) => plan.status === "building");
           renderPracticePlanHistory();
-          renderPracticePlan((getSelectedTeam()?.practicePlans || [])[0] || null);
+          renderPracticePlan(activePlan || pendingPlan || null);
         }
       }
 
@@ -3466,6 +3490,10 @@
             deleteActivePracticePlan();
           }
 
+          if (button.dataset.action === "close-practice-plan") {
+            renderPracticePlan(null);
+          }
+
           if (button.dataset.action === "adjust-drill-time") {
             adjustPracticeDrillTime(Number(button.dataset.blockIndex), Number(button.dataset.delta));
           }
@@ -3480,11 +3508,7 @@
         });
 
         els.gameDayTeamSelect.addEventListener("change", () => {
-          state.selectedTeamId = els.gameDayTeamSelect.value;
-          state.activeTeamTab = "game";
-          saveState();
-          render();
-          subscribeToSelectedCloudTeam();
+          selectTeam(els.gameDayTeamSelect.value, state.activeTeamTab || "game");
         });
 
         els.teamListView.addEventListener("click", (event) => {
@@ -3496,11 +3520,7 @@
           }
 
           if (button.dataset.action === "open-team") {
-            state.selectedTeamId = button.dataset.teamId;
-            state.activeTeamTab = "game";
-            saveState();
-            render();
-            subscribeToSelectedCloudTeam();
+            selectTeam(button.dataset.teamId, "game");
           }
         });
 
