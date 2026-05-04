@@ -225,6 +225,14 @@ function fallbackPlan(input) {
 function buildPracticePrompt(input) {
   const drillMix = input.drillMix || "mix";
   const recentPlans = Array.isArray(input.recentPlans) ? input.recentPlans.slice(0, 4) : [];
+  const rosterSize = Number(input.team?.roster?.totalPlayers || input.team?.rosterSize || 0);
+  const fullRosterSize = Number(input.team?.roster?.fullRosterSize || input.team?.fullRosterSize || rosterSize || 0);
+  const playerNames = Array.isArray(input.team?.roster?.names) ? input.team.roster.names.filter(Boolean) : [];
+  const playerCountText = rosterSize > 0 ? `${rosterSize}` : "unknown";
+  const groupHint =
+    rosterSize > 0
+      ? `Design every drill for exactly ${rosterSize} players total. If the drill uses lines, stations, partners, or offense/defense groups, specify how to split ${rosterSize} players so no one is left unassigned.`
+      : "If exact roster size is unknown, give a flexible setup that works for small youth teams and says how to adjust for fewer players.";
   const recentDrillLines = recentPlans
     .flatMap((plan) =>
       (plan.drills || []).map((drill) => `- ${drill.name}: ${drill.goal || "No goal listed"} (${plan.title || "recent plan"})`)
@@ -244,9 +252,9 @@ Create a youth sports practice plan as JSON only.
 Sport: ${input.sport}
 Practice length: ${input.totalMinutes} minutes
 Include 2-minute water breaks between drills: ${input.includeWaterBreaks ? "yes" : "no"}
-Team: ${input.team?.name || "Team"} (${input.team?.divisionName || "division unknown"}, ${input.team?.playersOnField || "unknown"} on field, ${input.team?.rosterSize || "unknown"} players)
+Team: ${input.team?.name || "Team"} (${input.team?.divisionName || "division unknown"}, ${input.team?.playersOnField || "unknown"} on field, ${fullRosterSize || "unknown"} on full roster)
+Expected kids at this practice: ${playerCountText} players${fullRosterSize && rosterSize && fullRosterSize !== rosterSize ? ` out of ${fullRosterSize} rostered` : ""}${playerNames.length ? ` (${playerNames.join(", ")})` : ""}
 Coach focus: ${input.focus}
-Team energy/level: ${input.energy || "mixed"}
 Drill mix preference: ${drillMix}
 Space/equipment: ${input.equipment || "not specified"}
 Recent drills for this team:
@@ -283,6 +291,10 @@ Rules:
 - If the requested practice length cannot be matched exactly with 5-minute drill blocks plus 2-minute water breaks, use the closest total below the requested time and mention the early wrap in the summary.
 - Use 4-6 drill blocks, plus water breaks if requested.
 - Follow the drill mix preference: ${mixInstruction}
+- Player-count rule: ${groupHint}
+- Treat the expected practice count as the real number for today's drills. Do not design around the full roster if fewer kids are expected.
+- Do not recommend drill formats that require more players than the roster has. Avoid phrases like "split into four teams of four" unless the roster size supports it.
+- If a drill needs offense vs defense, design it for the actual roster count; examples: with 10 players use 5v5, two 5-player stations, or one group active while one group rotates in. With 8 players use 4v4 or two groups of 4.
 - For each drill, explain exactly where players stand, what the coach says, how reps flow, how to rotate lines/groups, and what success looks like.
 - Avoid unexplained coaching jargon. If you use a term like leverage, contain, route, or pursuit angle, explain what the coach should tell the kids to do.
 - Use big-energy, age-appropriate language.

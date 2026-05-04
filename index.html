@@ -354,21 +354,16 @@
                   <input id="customPracticeLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="15" max="180" step="5" placeholder="55" />
                 </label>
                 <label class="block">
-                  <span class="text-sm font-bold text-slate-700">Team energy</span>
-                  <select id="practiceEnergyInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
-                    <option value="mixed energy">Mixed energy</option>
-                    <option value="high energy">High energy</option>
-                    <option value="needs basics">Needs basics</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
-                </label>
-                <label class="block">
                   <span class="text-sm font-bold text-slate-700">Drill mix</span>
                   <select id="practiceDrillMixInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
                     <option value="mix" selected>Mix old and new</option>
                     <option value="new">Mostly new drills</option>
                     <option value="repeat">Repeat past drills</option>
                   </select>
+                </label>
+                <label class="block">
+                  <span class="text-sm font-bold text-slate-700">Kids expected</span>
+                  <input id="practiceExpectedKidsInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="1" max="40" placeholder="Roster" />
                 </label>
               </div>
 
@@ -554,7 +549,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.10.2";
+      const APP_VERSION = "v0.10.5";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -805,8 +800,8 @@
         practiceLengthInput: document.querySelector("#practiceLengthInput"),
         customPracticeLengthLabel: document.querySelector("#customPracticeLengthLabel"),
         customPracticeLengthInput: document.querySelector("#customPracticeLengthInput"),
-        practiceEnergyInput: document.querySelector("#practiceEnergyInput"),
         practiceDrillMixInput: document.querySelector("#practiceDrillMixInput"),
+        practiceExpectedKidsInput: document.querySelector("#practiceExpectedKidsInput"),
         practiceFocusInput: document.querySelector("#practiceFocusInput"),
         practiceFocusChips: document.querySelector("#practiceFocusChips"),
         practiceEquipmentInput: document.querySelector("#practiceEquipmentInput"),
@@ -1273,6 +1268,13 @@
           return Math.round(customMinutes / 5) * 5;
         }
         return Number(els.practiceLengthInput.value);
+      }
+
+      function getExpectedPracticeKids(team) {
+        const rosterSize = Math.max(1, team?.roster?.length || 1);
+        const entered = Number(els.practiceExpectedKidsInput.value);
+        if (!entered) return rosterSize;
+        return Math.max(1, Math.min(rosterSize, Math.round(entered)));
       }
 
       function renderPracticeLengthInput() {
@@ -2126,8 +2128,8 @@
         els.practiceLengthInput.value = option ? String(totalMinutes) : "custom";
         els.customPracticeLengthInput.value = String(totalMinutes);
         renderPracticeLengthInput();
-        els.practiceEnergyInput.value = request.energy || "mixed energy";
         els.practiceDrillMixInput.value = request.drillMix || "mix";
+        els.practiceExpectedKidsInput.value = request.expectedKids || "";
         els.practiceFocusInput.value = request.focus || "";
         els.practiceEquipmentInput.value = request.equipment || "";
         els.practiceWaterBreaksInput.checked = Boolean(request.includeWaterBreaks);
@@ -2150,6 +2152,25 @@
               }))
               .slice(0, 6)
           }));
+      }
+
+      function practiceRosterContext(team, expectedKids = null) {
+        const players = [...(team.roster || [])].sort(comparePlayers);
+        const rosterSize = players.length;
+        const attendingEstimate = Math.max(1, Math.min(rosterSize || 1, Number(expectedKids || rosterSize || 1)));
+        return {
+          totalPlayers: attendingEstimate,
+          fullRosterSize: rosterSize,
+          names: players.map((player) => player.name).filter(Boolean).slice(0, 16),
+          skillCounts: players.reduce(
+            (counts, player) => {
+              const skill = Number(player.skill || 3);
+              counts[skill] = (counts[skill] || 0) + 1;
+              return counts;
+            },
+            {}
+          )
+        };
       }
 
       async function resumePendingPracticePlan(plan) {
@@ -2222,13 +2243,14 @@
         const session = await requireCloudSession();
         if (!session) return;
 
+        const expectedKids = getExpectedPracticeKids(team);
         const payload = {
           practiceName: els.practiceNameInput.value.trim(),
           sport: els.practiceSportInput.value,
           totalMinutes: getPracticeLengthMinutes(),
           focus,
-          energy: els.practiceEnergyInput.value,
           drillMix: els.practiceDrillMixInput.value,
+          expectedKids,
           equipment: els.practiceEquipmentInput.value.trim(),
           includeWaterBreaks: els.practiceWaterBreaksInput.checked,
           recentPlans: recentPracticeContext(team),
@@ -2236,8 +2258,10 @@
             name: team.name,
             divisionName: getTeamDivision(team).divisionName,
             playersOnField: getTeamDivision(team).playersOnField,
-            rosterSize: team.roster.length,
-            skillMix: team.roster.map((player) => Number(player.skill || 3))
+            rosterSize: expectedKids,
+            fullRosterSize: team.roster.length,
+            skillMix: team.roster.map((player) => Number(player.skill || 3)),
+            roster: practiceRosterContext(team, expectedKids)
           }
         };
         els.buildPracticePlanBtn.disabled = true;
@@ -2245,13 +2269,17 @@
         setPracticeStatus("Coachify is building your plan now. Keep this page open until it saves.");
         startPracticeBuildLoading(payload);
 
+        let timeoutId = null;
         try {
+          const controller = new AbortController();
+          timeoutId = window.setTimeout(() => controller.abort(), 120000);
           const response = await fetch("/api/practice-plan", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`
             },
+            signal: controller.signal,
             body: JSON.stringify(payload)
           });
           const data = await readCoachifyApiJson(response, "Practice plan did not finish.");
@@ -2274,8 +2302,13 @@
           setPracticeStatus(data.warning || "Practice plan saved to this team.", data.warning ? "info" : "success");
         } catch (error) {
           renderPracticePlan(null);
-          setPracticeStatus(error.message || "Practice plan did not finish. Try again with a little more detail.", "error");
+          const message =
+            error.name === "AbortError"
+              ? "Coachify needed more time than expected. Try again, or make the focus a little more specific."
+              : error.message || "Practice plan did not finish. Try again with a little more detail.";
+          setPracticeStatus(message, "error");
         } finally {
+          if (timeoutId) window.clearTimeout(timeoutId);
           stopPracticeBuildLoading();
           els.buildPracticePlanBtn.disabled = false;
           els.buildPracticePlanBtn.textContent = "Build Practice Plan";
@@ -3315,6 +3348,9 @@
         els.teamNameInput.value = team.name;
         els.divisionInput.value = team.divisionId;
         els.playersOnFieldInput.value = getTeamDivision(team).playersOnField;
+        if (!els.practiceExpectedKidsInput.value) {
+          els.practiceExpectedKidsInput.placeholder = `${team.roster.length || 0}`;
+        }
         const headCoach = isHeadCoach(team);
         els.coachRoleBadge.textContent = `Role: ${roleLabel(team)}`;
         els.teamStorageBadge.textContent = `Team access: ${teamStorageLabel(team)}`;
