@@ -1244,6 +1244,24 @@
         }
 
         state.activePracticePlanId = plan.id || null;
+        if (plan.status === "building") {
+          els.copyPracticePlanBtn.classList.add("hidden");
+          renderPracticePlanQueued(plan);
+          return;
+        }
+
+        if (plan.status === "failed") {
+          els.copyPracticePlanBtn.classList.add("hidden");
+          els.practicePlanResults.innerHTML = `
+            <article class="rounded-md border border-red-200 bg-red-50 p-4">
+              <p class="text-[11px] font-black uppercase tracking-wide text-red-700">Practice build failed</p>
+              <h2 class="mt-1 text-2xl font-black text-red-950">${escapeHtml(plan.title || "Practice Plan")}</h2>
+              <p class="mt-2 text-sm font-semibold leading-6 text-red-900">${escapeHtml(plan.error || "Coachify could not finish this plan. Try building it again.")}</p>
+            </article>
+          `;
+          return;
+        }
+
         const blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
         const drillCount = blocks.filter((block) => block.blockType !== "water").length;
         const waterCount = blocks.filter((block) => block.blockType === "water").length;
@@ -1862,6 +1880,46 @@
         `;
       }
 
+      function renderPracticePlanQueued(plan) {
+        const payload = plan.request || {};
+        const createdAt = plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "";
+        els.practicePlanResults.innerHTML = `
+          <article class="overflow-hidden rounded-md border border-emerald-200 bg-white shadow-sm">
+            <div class="bg-gradient-to-r from-emerald-700 to-slate-950 p-4 text-white">
+              <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Building in the background</p>
+              <h2 class="mt-1 text-2xl font-black leading-tight">${escapeHtml(plan.title || "Practice playbook is building")}</h2>
+              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">You can leave this page. Coachify will save the plan to this team when it finishes.</p>
+            </div>
+            <div class="grid gap-4 p-4">
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div class="flex items-center justify-between gap-3">
+                  <p class="text-sm font-black text-slate-950">Queued with Coachify</p>
+                  <p class="text-sm font-bold text-slate-500">${escapeHtml(createdAt)}</p>
+                </div>
+                <div class="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
+                  <div class="h-full w-2/3 rounded-full bg-emerald-600"></div>
+                </div>
+                <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">Plans usually take 30-45 seconds. If you come back later, open Saved Practice Plans and it should be there.</p>
+              </div>
+              <div class="grid gap-2 sm:grid-cols-3">
+                <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Practice</p>
+                  <p class="mt-1 text-lg font-black text-emerald-950">${Number(payload.totalMinutes || 0)} min</p>
+                </div>
+                <div class="rounded-md border border-sky-200 bg-sky-50 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-sky-700">Water breaks</p>
+                  <p class="mt-1 text-lg font-black text-sky-950">${payload.includeWaterBreaks ? "Included" : "Off"}</p>
+                </div>
+                <div class="rounded-md border border-amber-200 bg-amber-50 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-amber-700">Focus</p>
+                  <p class="mt-1 line-clamp-2 text-sm font-bold leading-5 text-amber-950">${escapeHtml(payload.focus || "")}</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        `;
+      }
+
       function startPracticeBuildLoading(payload) {
         stopPracticeBuildLoading();
         state.practiceBuildStartedAt = Date.now();
@@ -1897,6 +1955,9 @@
           return;
         }
 
+        const session = await requireCloudSession();
+        if (!session) return;
+
         const payload = {
           sport: els.practiceSportInput.value,
           totalMinutes: getPracticeLengthMinutes(),
@@ -1912,34 +1973,55 @@
             skillMix: team.roster.map((player) => Number(player.skill || 3))
           }
         };
+        const planId = makeId("practice");
+        const pendingPlan = {
+          id: planId,
+          title: `${payload.sport || "Team"} Practice Plan`,
+          totalMinutes: payload.totalMinutes,
+          summary: `Building a plan focused on ${payload.focus}.`,
+          status: "building",
+          blocks: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          request: payload
+        };
+        team.practicePlans = [pendingPlan, ...(team.practicePlans || [])].slice(0, 20);
+        renderPracticePlan(pendingPlan);
+        renderPracticePlanHistory();
 
         els.buildPracticePlanBtn.disabled = true;
-        els.buildPracticePlanBtn.textContent = "Building Playbook...";
-        setPracticeStatus("Building your practice playbook. Detailed plans usually take 30-45 seconds.");
+        els.buildPracticePlanBtn.textContent = "Starting Build...";
+        setPracticeStatus("Starting the background build. You can leave this page once it is queued.");
         startPracticeBuildLoading(payload);
 
         try {
+          await saveSelectedCloudTeam();
           const response = await fetch("/api/practice-plan", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              ...payload,
+              async: true,
+              planId,
+              teamCloudId: team.cloudId
+            })
           });
           const data = await response.json();
           if (!response.ok) throw new Error(data.error || "Practice plan failed.");
 
-          const plan = {
-            ...data.plan,
-            id: makeId("practice"),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            request: payload
-          };
-          team.practicePlans = [plan, ...(team.practicePlans || [])].slice(0, 20);
-          renderPracticePlan(plan);
+          renderPracticePlan(pendingPlan);
+          renderPracticePlanHistory();
+          setPracticeStatus(data.queued ? "Practice plan is building in the background and will save automatically." : "Practice plan saved to this team.", "success");
+        } catch (error) {
+          pendingPlan.status = "failed";
+          pendingPlan.error = error.message || "Practice plan failed.";
+          pendingPlan.updatedAt = new Date().toISOString();
+          renderPracticePlan(pendingPlan);
           renderPracticePlanHistory();
           await saveSelectedCloudTeam();
-          setPracticeStatus(data.warning || "Practice plan saved to this team.", data.warning ? "info" : "success");
-        } catch (error) {
           setPracticeStatus(error.message || "Practice plan failed.", "error");
         } finally {
           stopPracticeBuildLoading();

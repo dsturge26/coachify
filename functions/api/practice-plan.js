@@ -222,25 +222,8 @@ function fallbackPlan(input) {
   };
 }
 
-export async function onRequestPost({ request, env }) {
-  let input;
-  try {
-    input = await request.json();
-  } catch (error) {
-    return jsonResponse({ error: "Could not read practice plan request." }, 400);
-  }
-
-  if (!input.focus || !input.totalMinutes) {
-    return jsonResponse({ error: "Practice length and focus are required." }, 400);
-  }
-
-  if (!env.OPENAI_API_KEY) {
-    return jsonResponse({
-      error: "AI is not connected yet. Add OPENAI_API_KEY in Cloudflare Pages environment variables."
-    }, 500);
-  }
-
-  const prompt = `
+function buildPracticePrompt(input) {
+  return `
 Create a youth sports practice plan as JSON only.
 
 Sport: ${input.sport}
@@ -286,6 +269,10 @@ Rules:
 - Use big-energy, age-appropriate language.
 - Make it practical for a field, cones, flags, and footballs.
 `;
+}
+
+async function generatePracticePlan(input, env) {
+  const prompt = buildPracticePrompt(input);
 
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
@@ -312,14 +299,140 @@ Rules:
 
     const data = await response.json();
     if (!response.ok) {
-      return jsonResponse({ error: data.error?.message || "OpenAI request failed." }, 500);
+      throw new Error(data.error?.message || "OpenAI request failed.");
     }
 
-    return jsonResponse(parsePlanResponse(data, input));
+    return parsePlanResponse(data, input);
   } catch (error) {
-    return jsonResponse({
+    return {
       plan: fallbackPlan(input),
       warning: "AI plan generation hit a temporary issue, so Coachify used a built-in backup plan."
-    });
+    };
   }
+}
+
+function supabaseConfig(env) {
+  return {
+    url: env.SUPABASE_URL || "https://uyquscyllwfykylbypzs.supabase.co",
+    key: env.SUPABASE_ANON_KEY || env.SUPABASE_KEY || "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0"
+  };
+}
+
+function cleanPracticeInput(input) {
+  const rest = { ...input };
+  delete rest.async;
+  delete rest.planId;
+  delete rest.teamCloudId;
+  return rest;
+}
+
+async function mutatePracticePlans(input, env, authHeader, mutatePlan) {
+  const { url, key } = supabaseConfig(env);
+  const teamId = encodeURIComponent(input.teamCloudId);
+  const headers = {
+    apikey: key,
+    Authorization: authHeader,
+    "Content-Type": "application/json"
+  };
+
+  const readResponse = await fetch(`${url}/rest/v1/teams?id=eq.${teamId}&select=practice_plans`, {
+    headers
+  });
+  if (!readResponse.ok) {
+    throw new Error("Could not load team practice plans.");
+  }
+
+  const rows = await readResponse.json();
+  const currentPlans = Array.isArray(rows?.[0]?.practice_plans) ? rows[0].practice_plans : [];
+  const existingIndex = currentPlans.findIndex((plan) => plan.id === input.planId);
+  const existingPlan = existingIndex >= 0 ? currentPlans[existingIndex] : null;
+  const nextPlan = mutatePlan(existingPlan);
+  const nextPlans =
+    existingIndex >= 0
+      ? currentPlans.map((plan, index) => (index === existingIndex ? nextPlan : plan))
+      : [nextPlan, ...currentPlans];
+
+  const updateResponse = await fetch(`${url}/rest/v1/teams?id=eq.${teamId}`, {
+    method: "PATCH",
+    headers: {
+      ...headers,
+      Prefer: "return=minimal"
+    },
+    body: JSON.stringify({
+      practice_plans: nextPlans.slice(0, 20)
+    })
+  });
+
+  if (!updateResponse.ok) {
+    throw new Error("Could not save completed practice plan.");
+  }
+}
+
+async function completePracticePlanInBackground(input, env, authHeader) {
+  try {
+    const result = await generatePracticePlan(input, env);
+    const now = new Date().toISOString();
+    await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
+      ...(result.plan || fallbackPlan(input)),
+      id: input.planId,
+      status: "ready",
+      createdAt: existingPlan?.createdAt || now,
+      updatedAt: now,
+      request: existingPlan?.request || cleanPracticeInput(input),
+      warning: result.warning || null
+    }));
+  } catch (error) {
+    const now = new Date().toISOString();
+    await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
+      ...(existingPlan || {
+        id: input.planId,
+        title: `${input.sport || "Team"} Practice Plan`,
+        totalMinutes: Number(input.totalMinutes || 0),
+        summary: `Building a plan focused on ${input.focus || "team fundamentals"}.`,
+        blocks: [],
+        request: cleanPracticeInput(input),
+        createdAt: now
+      }),
+      status: "failed",
+      error: error.message || "Coachify could not finish this plan.",
+      updatedAt: now
+    }));
+  }
+}
+
+export async function onRequestPost({ request, env, waitUntil }) {
+  let input;
+  try {
+    input = await request.json();
+  } catch (error) {
+    return jsonResponse({ error: "Could not read practice plan request." }, 400);
+  }
+
+  if (!input.focus || !input.totalMinutes) {
+    return jsonResponse({ error: "Practice length and focus are required." }, 400);
+  }
+
+  if (!env.OPENAI_API_KEY) {
+    return jsonResponse({
+      error: "AI is not connected yet. Add OPENAI_API_KEY in Cloudflare Pages environment variables."
+    }, 500);
+  }
+
+  if (input.async) {
+    const authHeader = request.headers.get("Authorization");
+    if (!input.planId || !input.teamCloudId || !authHeader) {
+      return jsonResponse({ error: "Background practice plans need a team, plan id, and signed-in coach." }, 400);
+    }
+
+    const backgroundTask = completePracticePlanInBackground(input, env, authHeader);
+    if (waitUntil) {
+      waitUntil(backgroundTask);
+    } else {
+      backgroundTask.catch(() => {});
+    }
+
+    return jsonResponse({ queued: true, planId: input.planId }, 202);
+  }
+
+  return jsonResponse(await generatePracticePlan(input, env));
 }
