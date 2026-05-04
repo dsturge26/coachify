@@ -10,6 +10,8 @@ Production app: https://coachify-app.com/
 - `manifest.webmanifest` - installable app settings
 - `sw.js` - service worker for the PWA app shell
 - `icons/` - Coachify home-screen icons
+- `functions/api/practice-plan.js` - AI practice plan generation
+- `functions/api/practice-drill-help.js` - per-drill AI questions and reframes
 - `supabase_setup.sql` - main Supabase schema and policies
 - `supabase_create_team_function.sql` - helper function for cloud team creation
 - `supabase_role_lockdown.sql` - database guard for assistant coach permissions
