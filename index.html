@@ -549,7 +549,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.10.5";
+      const APP_VERSION = "v0.10.10";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -742,6 +742,110 @@
         }
       ];
 
+      const practiceBlueprints = [
+        "station circuit with fast small-group rotations",
+        "challenge ladder where each drill gets slightly harder",
+        "game-situation progression from walk-through to live reps",
+        "whole-part-whole: short game snapshot, focused skill reps, then game snapshot again",
+        "small-group coach checkpoints with quick teach-rep-reset cycles",
+        "competitive constraints where players earn points for the practice focus",
+        "confidence-builder practice that gives quieter players repeated successful reps",
+        "sideline-to-sideline movement practice with short bursts and fast resets"
+      ];
+
+      const coachingProfiles = [
+        {
+          id: "redbirds-boys-6u",
+          teamNameIncludes: "redbirds",
+          divisionId: "boys-6u",
+          summary: "Redbirds Boys 6U flag football team with 10 mixed-skill players. Practices should be fast-paced, high-rep, station-friendly for up to 4 coaches, and practical for 6-year-olds.",
+          rosterNotes: [
+            "Players: Alton, Bryson, Greyson, Jack, Jameson, Luca M., Luca T., Markus, Max, Messiah.",
+            "Mixed skill group: Bryson and Jack are high-IQ/athletic; Jameson and Max have pure speed; Markus is raw and aggressive; Luca T. and Alton are developing and can get distracted.",
+            "Attendance can vary, so drills and rotations must work with missing kids and odd numbers."
+          ],
+          coachPreferences: [
+            "Use 50-minute progressions when possible, with multiple stations and very little standing in line.",
+            "Prefer live-action drills that mimic game geometry and use the sideline as a real boundary.",
+            "End with true game-speed simulation.",
+            "Give clear assistant coach jobs, especially for Jesse or any helper coach.",
+            "Use compact coaching cues and direct, pragmatic guidance."
+          ],
+          avoid: [
+            "Avoid static straight-line drills where kids can cheat the mechanics.",
+            "Avoid collisions, pile-ups, and drills that invite kids to dive forward.",
+            "Avoid complex open-space reads for 6-year-olds.",
+            "Do not put the slowest or most distracted players in open-space linebacker/safety jobs in examples."
+          ],
+          cues: [
+            "Laser eyes on belly button.",
+            "Loud feet.",
+            "Grab the top.",
+            "Do not let them outside.",
+            "Stand over the center.",
+            "Got it!"
+          ],
+          favoriteConcepts: [
+            "Double Barrel Crash Drill: two defenders jump to the line on the snap, freeze, then pinch inward on handoff to pull flags safely.",
+            "Hip Tap: flags are dead first; defender squares up and two-hand taps belly button/hips before progressing to live flag pulls.",
+            "Wolfpack Swarm: first defender pulls and yells Got it, other defenders two-hand tap the runner to prove pursuit without pile-ups.",
+            "10-Second Shot Clock Simulation: ball carrier sprints to sideline, hands off scrunchy, sub sprints into huddle before coach counts down from 10.",
+            "Touch and Out: ball carrier comes out after touch to keep touches and substitutions moving."
+          ],
+          guardrails: [
+            "Give 6U players single-step rules, not layered reads.",
+            "Protect defensive geometry: fast kids on edges, developing kids in middle traffic, high-IQ kids at linebacker, pure speed as final net.",
+            "Use next-man-up language for missing players rather than rigid scripts.",
+            "Use pods or buckets for sideline management when helpful."
+          ]
+        },
+        {
+          id: "utes-girls-10u",
+          teamNameIncludes: "utes",
+          divisionId: "girls-10u",
+          summary: "10U Utes girls flag football team with 8 recreational/developmental players. Practices should be organized, visual, active, and built around basic execution, pre-snap alignment, flag pulling, and confidence with position colors.",
+          rosterNotes: [
+            "Players: Amina, Anna, Emery, Ensley, Greyson, Harmony, Jada, Karlee.",
+            "Frequently works with 1-3 missing players, so practice and game plans need quick restructuring for 8, 7, 6, or 5 players.",
+            "Skill level is developmental, with emphasis on clean execution, flag pulling, alignment, and simple read-and-react habits."
+          ],
+          coachPreferences: [
+            "Prefer 60-minute practices split cleanly, often 30 minutes offense and 30 minutes defense.",
+            "Use concise one-page printable cheat-sheet style output for clipboard use.",
+            "Prefer rapid-fire execution drills, simple visual read-and-react drills, and isolated sideline contain grids.",
+            "Keep explanations brief and action-oriented with clear Setup, Action, and Coaching Focus/Rule.",
+            "Use color-coded position language: Purple QB, Light Blue Center, Pink Running Back, Orange Right WR, Green Left/Inside WR."
+          ],
+          avoid: [
+            "Avoid overly complex drills or long talking sections.",
+            "Avoid standing in lines or anything that slows the practice tempo.",
+            "Avoid overcomplicated substitution math.",
+            "Do not use HTML color tags for text; use normal text and position emojis instead."
+          ],
+          cues: [
+            "Beat the clock.",
+            "Find your color.",
+            "Deny outside.",
+            "Force her back inside.",
+            "Run or pass?",
+            "Eyes in the backfield."
+          ],
+          favoriteConcepts: [
+            "10-Second Drill on Air: no defense; coach calls play, hands out color-coded scrunchies, starts a 10-second stopwatch, and the offense races to align and run the play.",
+            "Run/Pass Shout Drill: defense reads coach in the backfield, yells RUN and attacks the line or yells PASS and backpedals 5 yards.",
+            "1v1 Sideline Contain: cones along the sideline with one runner vs one defender; defender denies the outside and funnels runner back inside.",
+            "Color-Coded Scrunchie Substitutions: position colors remove sideline thinking and support fair rotation.",
+            "Live Execution vs Dummy Defense: 3-4 girls act as stationary or half-speed obstacles so offense sees bodies without full scrimmage chaos."
+          ],
+          guardrails: [
+            "Always use positional emojis when referencing lineup spots: 🟣 QB, 🩵 Center, 🩷 RB, 🟠 Right WR, 🟢 Left/Inside WR.",
+            "For missing players, adapt quickly: 8 players = 2 anchors plus two groups of 3 rotating; 7 players = 3 anchors plus two groups of 2 rotating; 5 players = ironwoman with no subs, rotate colors by drive.",
+            "Build toward huddle speed, pre-snap alignment, clean handoffs, outside contain, and aggressive flag pulling in tight spaces.",
+            "Include touch-tracker or quick checkoff thinking when the plan touches game-day execution."
+          ]
+        }
+      ];
+
       const state = {
         teams: [],
         selectedTeamId: null,
@@ -854,6 +958,31 @@
 
       function makeId(prefix) {
         return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      function pickPracticeBlueprint() {
+        return practiceBlueprints[Math.floor(Math.random() * practiceBlueprints.length)];
+      }
+
+      function getTeamCoachingProfile(team) {
+        if (!team) return null;
+        const normalizedName = String(team.name || "").toLowerCase();
+        return coachingProfiles.find((profile) => normalizedName.includes(profile.teamNameIncludes)) || null;
+      }
+
+      function getCoachingReferenceLibrary(team) {
+        const sport = els.practiceSportInput?.value || "Flag Football";
+        if (!String(sport).toLowerCase().includes("flag")) return [];
+        return coachingProfiles.map((profile) => ({
+          id: profile.id,
+          sourceTeam: profile.summary?.split(" team ")[0] || profile.id,
+          summary: profile.summary,
+          coachPreferences: profile.coachPreferences,
+          avoid: profile.avoid,
+          cues: profile.cues,
+          favoriteConcepts: profile.favoriteConcepts,
+          guardrails: profile.guardrails
+        }));
       }
 
       function escapeHtml(value) {
@@ -2244,16 +2373,21 @@
         if (!session) return;
 
         const expectedKids = getExpectedPracticeKids(team);
+        const variationSeed = makeId("practice-seed");
         const payload = {
           practiceName: els.practiceNameInput.value.trim(),
           sport: els.practiceSportInput.value,
           totalMinutes: getPracticeLengthMinutes(),
           focus,
           drillMix: els.practiceDrillMixInput.value,
+          practiceBlueprint: pickPracticeBlueprint(),
+          variationSeed,
           expectedKids,
           equipment: els.practiceEquipmentInput.value.trim(),
           includeWaterBreaks: els.practiceWaterBreaksInput.checked,
           recentPlans: recentPracticeContext(team),
+          coachingProfile: getTeamCoachingProfile(team),
+          coachingReferences: getCoachingReferenceLibrary(team),
           team: {
             name: team.name,
             divisionName: getTeamDivision(team).divisionName,

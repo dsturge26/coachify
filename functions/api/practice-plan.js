@@ -133,33 +133,149 @@ function parsePlanResponse(data, input) {
   }
 }
 
+function seededIndex(seed, length, offset = 0) {
+  const text = String(seed || "coachify");
+  let hash = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = (hash * 31 + text.charCodeAt(index) + offset) >>> 0;
+  }
+  return length ? hash % length : 0;
+}
+
+function pickSeeded(items, seed, offset = 0) {
+  return items[seededIndex(seed, items.length, offset)];
+}
+
+function focusLabel(focus) {
+  const cleaned = String(focus || "team fundamentals").trim();
+  return cleaned.length > 46 ? `${cleaned.slice(0, 43)}...` : cleaned;
+}
+
+function listLines(items) {
+  return Array.isArray(items) && items.length ? items.map((item) => `- ${item}`).join("\n") : "- None";
+}
+
+function coachingProfilePrompt(profile) {
+  if (!profile) return "No saved team coaching profile.";
+
+  return `
+Profile summary: ${profile.summary || "No summary"}
+Roster notes:
+${listLines(profile.rosterNotes)}
+Coach preferences:
+${listLines(profile.coachPreferences)}
+Avoid:
+${listLines(profile.avoid)}
+Favorite cues:
+${listLines(profile.cues)}
+Useful drills and concepts:
+${listLines(profile.favoriteConcepts)}
+Guardrails:
+${listLines(profile.guardrails)}
+`;
+}
+
+function coachingReferencesPrompt(profiles) {
+  if (!Array.isArray(profiles) || !profiles.length) return "No saved coaching references.";
+
+  return profiles
+    .slice(0, 4)
+    .map(
+      (profile) => `
+Reference: ${profile.sourceTeam || profile.id || "Coachify example"}
+Summary: ${profile.summary || "No summary"}
+Helpful patterns:
+${listLines(profile.favoriteConcepts)}
+Cues:
+${listLines(profile.cues)}
+Guardrails:
+${listLines(profile.guardrails)}
+Avoid:
+${listLines(profile.avoid)}
+`
+    )
+    .join("\n");
+}
+
 function fallbackPlan(input) {
   const total = Number(input.totalMinutes || 60);
   const includeWaterBreaks = Boolean(input.includeWaterBreaks);
   const drillCount = total >= 75 ? 5 : 4;
   const waterTotal = includeWaterBreaks ? (drillCount - 1) * 2 : 0;
-  const drillMinutes = distributeFiveMinuteBlocks(Math.max(15, total - waterTotal), drillCount);
+  const warmupMinutes = 5;
+  const drillMinutes = [warmupMinutes, ...distributeFiveMinuteBlocks(Math.max(15, total - waterTotal - warmupMinutes), drillCount - 1)];
   const focus = input.focus || "team fundamentals";
+  const seed = input.variationSeed || `${focus}-${Date.now()}`;
+  const shortFocus = focusLabel(focus);
+  const blueprint = input.practiceBlueprint || "small-group coach checkpoints";
+  const warmupName = pickSeeded(
+    [
+      "Traffic Light Movement Prep",
+      "Cone Color Reaction Warmup",
+      "Sideline Sprint-Shuffle Reset",
+      "Freeze-Go Athletic Prep",
+      "Mirror Feet Warmup",
+      "Coach Call Movement Prep"
+    ],
+    seed,
+    1
+  );
+  const focusDrillName = pickSeeded(
+    [
+      `${shortFocus} Rep Ladder`,
+      `${shortFocus} Station Circuit`,
+      `${shortFocus} Challenge Alley`,
+      `${shortFocus} Coach Checkpoint Drill`,
+      `${shortFocus} Fast-Reset Reps`,
+      `${shortFocus} Game Job Lab`
+    ],
+    seed,
+    2
+  );
+  const gameDrillName = pickSeeded(
+    [
+      "Saturday Snapshot Reps",
+      "Two-Minute Situation Builder",
+      "Line Up, Run It, Reset",
+      "Mini-Drive Focus Game",
+      "Game Job Scrimmage",
+      "Scenario Sprint Reps"
+    ],
+    seed,
+    3
+  );
+  const finishName = pickSeeded(
+    [
+      "Beat the Coach Challenge",
+      "Focus Points Finish",
+      "Clean Rep Championship",
+      "Last Drive Challenge",
+      "Team Goal Finish",
+      "Pressure Rep Finale"
+    ],
+    seed,
+    4
+  );
   const drills = [
     makeDrill(
       drillMinutes[0],
-      "Warmup, movement, and clean ball starts",
-      "Get players moving, listening, and touching the football before skill work starts.",
-      "Make a rectangle with cones about 10 yards by 15 yards. Put players on one sideline with flags on. Keep one football with the coach.",
-      "Players jog across, backpedal back, shuffle across, then finish with quick handoff or toss reps. Keep lines short by sending the next player as soon as the first player is halfway across.",
-      "Eyes on me, fast feet, then freeze when I say freeze. We are warming up like we are about to play, not standing around.",
-      "Praise effort first. Correct one thing at a time: eyes up, soft hands, or staying under control.",
-      "Kids are moving most of the time, nobody waits more than a few seconds, and the group responds quickly to your voice.",
-      "Lines get too long, players sprint out of control, or the coach gives too many corrections at once.",
+      warmupName,
+      "Get players moving, listening, and ready before the real drill work starts.",
+      "Make a small rectangle with cones. Put every player on one sideline with flags on. No footballs are needed for this block.",
+      "Players jog across, backpedal back, shuffle across, and finish with two quick freeze-and-go reactions. Keep it fast and simple.",
+      "Eyes on me, fast feet, freeze on my voice, then go again.",
+      "This is only a warmup. Do not teach the main skill here. Use it to get bodies moving and attention locked in.",
+      "Kids are warm, listening, and ready for the first real drill.",
+      "Letting the warmup turn into a long drill or adding too many coaching points.",
       "Shrink the cone box and use walk-through speed.",
       "Call a color, direction, or ball command so players have to react."
     ),
     makeDrill(
       drillMinutes[1],
-      "Main skill stations",
-      `Build simple reps around ${focus}.`,
-      "Create two or three small stations using cones. Put 3-4 players at each station if possible. Give each station one simple job.",
-      "Run 45-60 second rounds. After each round, rotate groups clockwise. Demonstrate each station once before starting, then keep the reps moving.",
+      focusDrillName,
+      `Teach the main practice focus with a drill built around ${focus}.`,
+      `Use a ${blueprint} structure. Create small working groups based on the number of kids at practice, and give each group one clear job tied to the focus.`,
+      "Run short rounds, then reset fast. Demonstrate one rep before starting. Rotate players through the important role so the same kid is not always first or last.",
       "Watch me once, then we are going to get a lot of tries. Mistakes are fine. Standing around is what we are avoiding.",
       "Use short corrections: pull the flag at the hip, keep outside leverage, take the handoff belly-to-belly, or finish to the cone.",
       "Players understand where to stand, get repeated turns, and improve one visible detail by the end of the station.",
@@ -169,7 +285,7 @@ function fallbackPlan(input) {
     ),
     makeDrill(
       drillMinutes[2],
-      "Game-like team reps",
+      gameDrillName,
       "Connect the skill focus to what players will actually see in a game.",
       "Use a small field or half field. Put cones for the line of scrimmage and first-down target. Start with the exact player count you expect in games if you can.",
       "Walk through the first rep slowly. Then run short live reps, reset quickly, and repeat. Stop only when the whole group needs the same correction.",
@@ -182,7 +298,7 @@ function fallbackPlan(input) {
     ),
     makeDrill(
       drillMinutes[3],
-      "Competitive finish",
+      finishName,
       "End with energy while reinforcing the same practice focus.",
       "Make two balanced teams. Use a small field, short end zones, and simple rules tied to the focus.",
       "Play short rounds. Rotate players quickly. Award points for the focus skill, not just touchdowns.",
@@ -195,7 +311,18 @@ function fallbackPlan(input) {
     ),
     makeDrill(
       drillMinutes[4] || 10,
-      "Final situation challenge",
+      pickSeeded(
+        [
+          "One Last Stop Scenario",
+          "Score or Stop Team Challenge",
+          "Final Clean Assignment Rep",
+          "End-of-Game Snapshot",
+          "Win the Moment Challenge",
+          "Last Whistle Team Test"
+        ],
+        seed,
+        5
+      ),
       "Give the team one last realistic challenge so the coach can see what stuck.",
       "Set up the field exactly like a game situation: line of scrimmage, sideline boundaries, and one clear goal such as score, get a stop, or execute the focus skill.",
       "Run one short scenario at a time. Before each rep, tell players the situation. After each rep, reset quickly and swap a few players so more kids get the important role.",
@@ -224,6 +351,10 @@ function fallbackPlan(input) {
 
 function buildPracticePrompt(input) {
   const drillMix = input.drillMix || "mix";
+  const practiceBlueprint = input.practiceBlueprint || "small-group coach checkpoints with quick teach-rep-reset cycles";
+  const variationSeed = input.variationSeed || `${Date.now()}`;
+  const coachingProfile = input.coachingProfile || input.team?.coachingProfile || null;
+  const coachingReferences = Array.isArray(input.coachingReferences) ? input.coachingReferences : [];
   const recentPlans = Array.isArray(input.recentPlans) ? input.recentPlans.slice(0, 4) : [];
   const rosterSize = Number(input.team?.roster?.totalPlayers || input.team?.rosterSize || 0);
   const fullRosterSize = Number(input.team?.roster?.fullRosterSize || input.team?.fullRosterSize || rosterSize || 0);
@@ -238,6 +369,15 @@ function buildPracticePrompt(input) {
       (plan.drills || []).map((drill) => `- ${drill.name}: ${drill.goal || "No goal listed"} (${plan.title || "recent plan"})`)
     )
     .slice(0, 18)
+    .join("\n");
+  const recentDrillNames = recentPlans
+    .flatMap((plan) => (plan.drills || []).map((drill) => drill.name).filter(Boolean))
+    .slice(0, 18)
+    .join(", ");
+  const recentPlanShapes = recentPlans
+    .map((plan) => (plan.drills || []).map((drill) => drill.name).filter(Boolean).slice(0, 5).join(" > "))
+    .filter(Boolean)
+    .slice(0, 4)
     .join("\n");
   const mixInstruction =
     drillMix === "repeat"
@@ -256,9 +396,19 @@ Team: ${input.team?.name || "Team"} (${input.team?.divisionName || "division unk
 Expected kids at this practice: ${playerCountText} players${fullRosterSize && rosterSize && fullRosterSize !== rosterSize ? ` out of ${fullRosterSize} rostered` : ""}${playerNames.length ? ` (${playerNames.join(", ")})` : ""}
 Coach focus: ${input.focus}
 Drill mix preference: ${drillMix}
+Practice blueprint for this request: ${practiceBlueprint}
+Variation seed for novelty: ${variationSeed}
 Space/equipment: ${input.equipment || "not specified"}
 Recent drills for this team:
 ${recentDrillLines || "- No recent drills saved yet."}
+Recent drill names to consider:
+${recentDrillNames || "None"}
+Recent practice shapes:
+${recentPlanShapes || "None"}
+Team coaching profile:
+${coachingProfilePrompt(coachingProfile)}
+Coachify coaching reference library:
+${coachingReferencesPrompt(coachingReferences)}
 
 Return exactly this JSON shape:
 {
@@ -285,12 +435,31 @@ Return exactly this JSON shape:
 
 Rules:
 - Assume the coach is a brand-new volunteer who has never run these drills before.
+- If a team coaching profile is provided, treat it as the strongest source of context. The plan should feel like it was written for that team, not a generic team.
+- Use the Coachify coaching reference library for all flag football teams, even when the selected team is a different age group or division. Borrow patterns, cues, constraints, and drill concepts when they fit the roster count, age, and focus.
+- Do not copy a reference blindly. Adapt it to the selected team's age, player count, practice length, and requested focus.
+- This must feel customized to today's exact focus, roster count, equipment, and practice blueprint. Do not give a generic practice template.
+- The whole practice should visibly follow this blueprint: ${practiceBlueprint}.
+- Use the variation seed to choose different drill names, setups, scoring rules, and progressions than another request with the same focus.
 - Drill blocks must use 5-minute increments only.
 - If water breaks are requested, insert a separate {"blockType":"water"} 2-minute block between drill blocks only. Do not put water before the first drill or after the last drill.
 - Count water breaks in totalMinutes.
 - If the requested practice length cannot be matched exactly with 5-minute drill blocks plus 2-minute water breaks, use the closest total below the requested time and mention the early wrap in the summary.
 - Use 4-6 drill blocks, plus water breaks if requested.
+- The first drill block must be a standalone 5-minute warmup-only block with a specific name. Do not name it "Dynamic warmup" unless no other name fits.
+- Do not bundle the warmup with catching, handoffs, routes, flag pulling, ball touches, or the coach's main focus. The warmup should only prepare bodies and attention.
+- Vary the warmup setup from plan to plan. It can be reaction movement, mirror feet, cone colors, freeze-go, short shuffles, or coach-call movement, but it may not become the main skill drill.
+- The second drill block must be a unique focused skill drill for the coach's main focus. It should not be named "warmup" and should not repeat the warmup setup.
+- No warmup block may be longer than 5 minutes unless the total practice length is 90 minutes or more, and even then it may not exceed 10 minutes.
 - Follow the drill mix preference: ${mixInstruction}
+- Avoid generic block names like "Main skill focus", "Game-like team reps", "Competitive finish", "Focused skill drill", "Skill stations", or "Scrimmage". Use specific, coach-friendly drill names.
+- If drill mix is "new", do not reuse names from the recent drill list. If drill mix is "mix", repeat at most one recent drill name and make the rest clearly new. If drill mix is "repeat", repeat familiar drills but change the progression, scoring, or constraint so the plan is not a copy.
+- Do not reuse an entire recent practice shape. If recent plans used warmup > stations > game reps > finish, choose a different flow such as challenge ladder, coach checkpoints, scenario progression, or small-sided games.
+- Every drill must have a clear unique purpose. Do not create multiple drills that are just "practice the focus with cones" using different wording.
+- When the team profile includes favorite cues or concepts, use them naturally when they fit the requested focus. Do not force every favorite drill into every plan.
+- For 6U teams, prefer single-step jobs, short cues, fast reps, and assistant-coach stations. Push back inside the plan if an idea would create collisions, long lines, or too much thinking.
+- If the team profile asks for printable cheat-sheet style, color-coded positions, or position emojis, reflect that inside drill names, setup, coachScript, or coachingPoints where useful.
+- Include assistant-coach delegation inside setup or instructions when stations are useful.
 - Player-count rule: ${groupHint}
 - Treat the expected practice count as the real number for today's drills. Do not design around the full roster if fewer kids are expected.
 - Do not recommend drill formats that require more players than the roster has. Avoid phrases like "split into four teams of four" unless the roster size supports it.
