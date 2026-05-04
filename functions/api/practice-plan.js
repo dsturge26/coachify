@@ -124,7 +124,7 @@ function parsePlanResponse(data, input) {
   }
 
   try {
-    return { plan: JSON.parse(text) };
+    return { plan: ensurePracticePlanQuality(JSON.parse(text), input) };
   } catch (error) {
     return {
       plan: fallbackPlan(input),
@@ -149,6 +149,181 @@ function pickSeeded(items, seed, offset = 0) {
 function focusLabel(focus) {
   const cleaned = String(focus || "team fundamentals").trim();
   return cleaned.length > 46 ? `${cleaned.slice(0, 43)}...` : cleaned;
+}
+
+function normalizedFocusText(input) {
+  return String(input?.focus || "").toLowerCase();
+}
+
+function practicePlayerCount(input) {
+  return Math.max(
+    1,
+    Number(
+      input?.team?.roster?.totalPlayers ||
+        input?.expectedKids ||
+        input?.team?.rosterSize ||
+        input?.team?.fullRosterSize ||
+        input?.team?.roster?.fullRosterSize ||
+        8
+    )
+  );
+}
+
+function stationPlan(count) {
+  if (count >= 10) return `Split ${count} players into two stations of ${Math.floor(count / 2)} and ${Math.ceil(count / 2)}. Put one assistant at each station if available.`;
+  if (count === 9) return "Split 9 players into one station of 5 and one station of 4. The group of 5 has the extra player as the next runner.";
+  if (count === 8) return "Split 8 players into two stations of 4. Each station has one active runner, one active defender/helper, and two waiting with toes on the start cone.";
+  if (count === 7) return "Split 7 players into one station of 4 and one station of 3. The group of 3 rotates runner, defender, and next-up.";
+  if (count === 6) return "Use one station of 6 with two active players and four waiting on a knee behind the start cone.";
+  if (count === 5) return "Use one station of 5 with two active players, two next-up players, and one quick helper who rotates every rep.";
+  return `Use one small station for all ${count} players. Keep two active and rotate every rep so no one stands for long.`;
+}
+
+function focusThemes(input) {
+  const focus = normalizedFocusText(input);
+  const themes = [];
+  const add = (theme) => {
+    if (!themes.includes(theme)) themes.push(theme);
+  };
+
+  if (/flag|pull|tackle|hip|swipe/.test(focus)) add("flagPulling");
+  if (/handoff|exchange|fake|mesh|alligator|belly/.test(focus)) add("handoffs");
+  if (/snap|center|qb|quarterback/.test(focus)) add("snaps");
+  if (/catch|route|receiver|wr|pass/.test(focus)) add("catching");
+  if (/contain|edge|sideline|defense|spacing|pursuit|outside/.test(focus)) add("contain");
+  if (/confidence|shy|touch|involve|nervous/.test(focus)) add("confidence");
+  if (!themes.length) themes.push("flagPulling", "handoffs", "contain");
+  return themes;
+}
+
+function concreteThemeDrill(theme, minutes, input, seed, offset) {
+  const count = practicePlayerCount(input);
+  const stations = stationPlan(count);
+  const focus = input.focus || "today's focus";
+  const names = {
+    flagPulling: ["Hip Tap to Live Pull Alley", "Belly Button Breakdown Alley", "Two-Hand Flag Finish"],
+    handoffs: ["Belly Pocket Edge Race", "Clamp and Go Handoff Alley", "No-Crash Handoff Lane"],
+    snaps: ["Snap-Set-Go Relay", "Clean Snap Launch Lines", "Center-QB Start Circuit"],
+    catching: ["Cone Break Catch-and-Go", "Hands-Ready Finish Routes", "Turn, Catch, Score Lines"],
+    contain: ["Sideline Fence Contain", "Outside Shoulder Funnel", "Edge Wall 1v1"],
+    confidence: ["Every Kid Finish Line", "One Touch Score Parade", "Confidence Touch Gauntlet"]
+  };
+  const name = pickSeeded(names[theme] || names.flagPulling, seed, offset);
+
+  const templates = {
+    flagPulling: makeDrill(
+      minutes,
+      name,
+      "Teach defenders to get their body in front, aim at the hips, and pull with two hands instead of swiping from the side.",
+      `${stations} At each station, make a 5-yard wide by 8-yard long alley with cones. Runner starts with a football on one end line. Defender starts 3 yards away in the middle of the alley. Waiting players stand behind the runner cone so they can see the rep.`,
+      "First 3 reps are hip taps: flags are dead and the defender must shuffle into position and touch both hands to the runner's hips. After that, go live: runner tries to cross the far cone line, defender pulls one flag. Rotate runner to defender, defender to the back of the line, next player becomes runner.",
+      "Laser eyes on the belly button. Loud feet. Two hands on the hips, then grab the top of the flag.",
+      "Stop the first rep and show the body position: chest in front, knees bent, hands near hips. Praise feet before the pull. If kids swipe, go back to hip taps for two reps.",
+      "Defenders square up, get close enough to touch hips, and pull flags without diving or crashing.",
+      "Kids chase from behind, reach with one arm, or look at the flag instead of the runner's hips.",
+      "Make the alley narrower and keep flags dead with hip taps only.",
+      "Give the runner one cut inside the alley or award a point only for a clean two-hand pull."
+    ),
+    handoffs: makeDrill(
+      minutes,
+      name,
+      "Build clean handoffs at full speed without backfield collisions.",
+      `${stations} At each station, place a QB cone, a runner cone 2 yards beside the QB, and a finish cone 8-10 yards outside. One player is QB, one is runner, one is next QB, and the rest wait behind the runner cone.`,
+      "Runner starts on the coach's clap and runs across the QB's belly. QB opens the belly button toward the runner and places the ball into the pocket. Runner clamps the ball with two hands and races to the finish cone. Rotate QB to runner, runner to the back, next player to QB.",
+      "Pocket ready. Belly to belly. Clamp it, then race.",
+      "Stand behind the QB cone so you can see the exchange. Correct only one thing at a time: runner path, QB ball placement, or clamp. Reset immediately after each rep.",
+      "The runner stays on path, the QB does not chase, and the ball is secure before the sprint.",
+      "Runner curves too deep, QB reaches late, or both kids stop and bump into each other.",
+      "Walk the runner path once with no ball, then add the ball at half speed.",
+      "Add a coach or cone defender at the edge so the runner must secure the handoff and race outside."
+    ),
+    snaps: makeDrill(
+      minutes,
+      name,
+      "Make the center-QB exchange clean enough that the play can start fast.",
+      `${stations} Use one line-of-scrimmage cone at each station. Put center on the cone, QB 2 yards behind, and a finish cone 5 yards away. Waiting players make a short line behind center.`,
+      "Center snaps to QB. QB freezes the ball to chest for one count, then runs to the finish cone or hands to the next player. After each rep: center becomes QB, QB goes to the back, next player becomes center.",
+      "Quiet ball, strong hands, eyes up, go.",
+      "Coach the start only. If the snap is low, tell center to aim for the QB's hands. If QB bobbles, tell QB to show a big target and clamp the ball.",
+      "The ball gets from center to QB without hitting the ground, and the next action starts within two seconds.",
+      "Centers rush the snap, QBs look away early, or the line gets long and slow.",
+      "Use underhand toss snaps from closer distance for two clean reps.",
+      "Add a 5-second play clock: snap, secure, and finish before the count ends."
+    ),
+    catching: makeDrill(
+      minutes,
+      name,
+      "Help receivers know where to run, when to turn, and how to finish after the catch.",
+      `${stations} At each station, set a start cone, break cone 5 yards away, and catch cone 3 yards past the break. Coach or QB stands inside with the ball. Waiting players stand at the start cone.`,
+      "Receiver runs to the break cone, turns chest and eyes back to the passer, shows hands, catches, then sprints through the catch cone. Rotate quickly: receiver retrieves ball, hands it back, and joins the line.",
+      "Run to the cone. Snap eyes back. Show hands. Finish forward.",
+      "Do not overcoach route names. Teach the body picture: run, turn, hands, finish. For younger kids, make every route a simple cone job.",
+      "Players turn around on time, show hands, and run after the catch instead of stopping.",
+      "Receivers drift, turn too early, or catch and freeze.",
+      "Shorten the route and use soft coach tosses.",
+      "Add a defender cone they must run past after the catch or require two catches in a row before rotating."
+    ),
+    contain: makeDrill(
+      minutes,
+      name,
+      "Teach outside defenders to protect the sideline and force runners back inside.",
+      `${stations} Use the actual sideline as one boundary. Make an 8-yard lane with cones. Runner starts inside the lane with the ball. Defender starts 3 yards inside and slightly ahead, with outside shoulder toward the sideline.`,
+      "Runner tries to win the sideline. Defender must beat the runner to the outside cone, stay between runner and sideline, and force the runner back inside before pulling the flag. Rotate runner to defender, defender to line.",
+      "Sideline is ours. Stay outside. Make them turn in.",
+      "Stand at the sideline and point to the boundary before every rep. Praise the angle even if the flag pull is missed. The first win is denying the outside.",
+      "Defenders keep outside leverage, runners get funneled inward, and flag pulls happen after the runner turns back.",
+      "Defenders chase from behind, cross inside too early, or give up the sideline.",
+      "Start the defender one step closer to the sideline and slow the runner down.",
+      "Let the runner make one cut or add a second helper inside so the defense learns funnel and finish."
+    ),
+    confidence: makeDrill(
+      minutes,
+      name,
+      "Get every player a simple successful touch and a clear finish.",
+      `${stations} Set one start cone and one score cone 8 yards away at each station. Coach or QB has the ball. Waiting players line up at the start cone with flags on.`,
+      "Each player gets one clean touch: handoff, short toss, or quick pass based on what they can handle. After the touch, they sprint through the score cone and high-five the next player. Rotate fast so every kid gets multiple finishes.",
+      "One clean touch. Clamp it. Go score.",
+      "Start with the easiest touch for nervous players. Make success loud and specific: name the kid and the thing they did well. Keep the line moving.",
+      "Every player gets touches, finishes forward, and looks more comfortable by the end of the block.",
+      "The strongest players take extra turns, nervous kids hide, or the coach makes the touch too hard too soon.",
+      "Use handoffs only and shorten the finish cone.",
+      "Let players choose catch or handoff, then add a coach defender who jogs behind them."
+    )
+  };
+
+  return templates[theme] || templates.flagPulling;
+}
+
+function vaguePracticeBlock(block) {
+  if (!block || block.blockType === "water") return false;
+  const text = [block.name, block.goal, block.setup, block.instructions, block.coachingPoints, block.successLooksLike, block.commonMistakes].join(" ").toLowerCase();
+  const vaguePhrases = [
+    "small-group coach checkpoints",
+    "teach-rep-reset",
+    "create small working groups",
+    "one clear job tied to the focus",
+    "run short rounds",
+    "players understand where to stand",
+    "main practice focus",
+    "game job lab",
+    "station circuit",
+    "coach checkpoint drill",
+    "fast-reset reps",
+    "add a defender, a time limit",
+    "practice the focus"
+  ];
+  const hasVaguePhrase = vaguePhrases.some((phrase) => text.includes(phrase));
+  const hasFieldDetail = /\b(\d+|yard|cone|sideline|line of scrimmage|qb|center|runner|defender|station)\b/.test(text);
+  const hasRotation = /\b(rotate|rotation|next|switch|becomes|back of the line|line)\b/.test(text);
+  return hasVaguePhrase || !hasFieldDetail || !hasRotation || String(block.setup || "").length < 70 || String(block.instructions || "").length < 70;
+}
+
+function ensurePracticePlanQuality(plan, input) {
+  if (!plan || !Array.isArray(plan.blocks) || !plan.blocks.length) return fallbackPlan(input);
+  const drillBlocks = plan.blocks.filter((block) => block.blockType !== "water");
+  const weakBlocks = drillBlocks.filter(vaguePracticeBlock);
+  if (weakBlocks.length) return fallbackPlan(input);
+  return plan;
 }
 
 function listLines(items) {
@@ -206,8 +381,7 @@ function fallbackPlan(input) {
   const drillMinutes = [warmupMinutes, ...distributeFiveMinuteBlocks(Math.max(15, total - waterTotal - warmupMinutes), drillCount - 1)];
   const focus = input.focus || "team fundamentals";
   const seed = input.variationSeed || `${focus}-${Date.now()}`;
-  const shortFocus = focusLabel(focus);
-  const blueprint = input.practiceBlueprint || "small-group coach checkpoints";
+  const themes = focusThemes(input);
   const warmupName = pickSeeded(
     [
       "Traffic Light Movement Prep",
@@ -219,42 +393,6 @@ function fallbackPlan(input) {
     ],
     seed,
     1
-  );
-  const focusDrillName = pickSeeded(
-    [
-      `${shortFocus} Rep Ladder`,
-      `${shortFocus} Station Circuit`,
-      `${shortFocus} Challenge Alley`,
-      `${shortFocus} Coach Checkpoint Drill`,
-      `${shortFocus} Fast-Reset Reps`,
-      `${shortFocus} Game Job Lab`
-    ],
-    seed,
-    2
-  );
-  const gameDrillName = pickSeeded(
-    [
-      "Saturday Snapshot Reps",
-      "Two-Minute Situation Builder",
-      "Line Up, Run It, Reset",
-      "Mini-Drive Focus Game",
-      "Game Job Scrimmage",
-      "Scenario Sprint Reps"
-    ],
-    seed,
-    3
-  );
-  const finishName = pickSeeded(
-    [
-      "Beat the Coach Challenge",
-      "Focus Points Finish",
-      "Clean Rep Championship",
-      "Last Drive Challenge",
-      "Team Goal Finish",
-      "Pressure Rep Finale"
-    ],
-    seed,
-    4
   );
   const drills = [
     makeDrill(
@@ -270,68 +408,8 @@ function fallbackPlan(input) {
       "Shrink the cone box and use walk-through speed.",
       "Call a color, direction, or ball command so players have to react."
     ),
-    makeDrill(
-      drillMinutes[1],
-      focusDrillName,
-      `Teach the main practice focus with a drill built around ${focus}.`,
-      `Use a ${blueprint} structure. Create small working groups based on the number of kids at practice, and give each group one clear job tied to the focus.`,
-      "Run short rounds, then reset fast. Demonstrate one rep before starting. Rotate players through the important role so the same kid is not always first or last.",
-      "Watch me once, then we are going to get a lot of tries. Mistakes are fine. Standing around is what we are avoiding.",
-      "Use short corrections: pull the flag at the hip, keep outside leverage, take the handoff belly-to-belly, or finish to the cone.",
-      "Players understand where to stand, get repeated turns, and improve one visible detail by the end of the station.",
-      "One station becomes confusing, kids wait in lines, or the drill is too hard before they understand the movement.",
-      "Remove defenders and let players rehearse the path slowly.",
-      "Add a defender, a time limit, or a scoring point for doing the skill correctly."
-    ),
-    makeDrill(
-      drillMinutes[2],
-      gameDrillName,
-      "Connect the skill focus to what players will actually see in a game.",
-      "Use a small field or half field. Put cones for the line of scrimmage and first-down target. Start with the exact player count you expect in games if you can.",
-      "Walk through the first rep slowly. Then run short live reps, reset quickly, and repeat. Stop only when the whole group needs the same correction.",
-      "We are practicing the game now. Know where you line up, do your job, then reset fast so everyone gets more turns.",
-      "Coach the team shape more than the result. Look for spacing, angles, effort, and whether players understand their job.",
-      "Players can line up faster, the focus skill shows up naturally, and reps look more like Saturday morning.",
-      "The coach turns every rep into a long speech, players forget where to line up, or one player dominates every touch.",
-      "Freeze before the snap and ask each player to point to their job.",
-      "Keep score or require the offense/defense to execute the focus twice in a row."
-    ),
-    makeDrill(
-      drillMinutes[3],
-      finishName,
-      "End with energy while reinforcing the same practice focus.",
-      "Make two balanced teams. Use a small field, short end zones, and simple rules tied to the focus.",
-      "Play short rounds. Rotate players quickly. Award points for the focus skill, not just touchdowns.",
-      "This is the fun finish, but the same thing still matters. Show me the skill we practiced.",
-      "Keep the game moving and end on a positive rep if possible. Call out specific improvements by name.",
-      "Kids compete, use the practiced skill without being reminded every play, and leave practice feeling successful.",
-      "The game gets too chaotic, the focus disappears, or only the strongest players are involved.",
-      "Use smaller teams and walk through the first round.",
-      "Add a bonus point for a clean flag pull, clean handoff, good spacing, or a new player getting involved."
-    ),
-    makeDrill(
-      drillMinutes[4] || 10,
-      pickSeeded(
-        [
-          "One Last Stop Scenario",
-          "Score or Stop Team Challenge",
-          "Final Clean Assignment Rep",
-          "End-of-Game Snapshot",
-          "Win the Moment Challenge",
-          "Last Whistle Team Test"
-        ],
-        seed,
-        5
-      ),
-      "Give the team one last realistic challenge so the coach can see what stuck.",
-      "Set up the field exactly like a game situation: line of scrimmage, sideline boundaries, and one clear goal such as score, get a stop, or execute the focus skill.",
-      "Run one short scenario at a time. Before each rep, tell players the situation. After each rep, reset quickly and swap a few players so more kids get the important role.",
-      "Here is the situation. Know your spot, do your job, and then we reset fast for the next group.",
-      "Look for understanding more than perfection. If the same mistake happens twice, freeze the group, show the fix, and immediately run it again.",
-      "Players know the situation, line up with less help, and show the focus skill while moving at game speed.",
-      "The scenario has too many rules, kids wait too long for their turn, or the coach corrects every small mistake.",
-      "Make it a walk-through and remove the defense or pressure.",
-      "Add a scoreboard, a clock, or one consequence such as the group must repeat the rep until the focus skill is clean."
+    ...Array.from({ length: drillCount - 1 }, (_, index) =>
+      concreteThemeDrill(themes[index % themes.length], drillMinutes[index + 1] || 10, input, seed, index + 2)
     )
   ].slice(0, drillCount);
 
@@ -439,6 +517,13 @@ Rules:
 - Use the Coachify coaching reference library for all flag football teams, even when the selected team is a different age group or division. Borrow patterns, cues, constraints, and drill concepts when they fit the roster count, age, and focus.
 - Do not copy a reference blindly. Adapt it to the selected team's age, player count, practice length, and requested focus.
 - This must feel customized to today's exact focus, roster count, equipment, and practice blueprint. Do not give a generic practice template.
+- A coach should be able to walk onto the field and run the drill from the card without inventing missing details.
+- Each drill setup must include: cone layout or field landmark, approximate distance/size, exact starting spots, and how to split the expected player count.
+- Each drill instructions field must include: what happens on the coach's command, what one rep looks like, and exactly how players rotate after the rep.
+- Each coachScript must be a real sentence the coach can say out loud to kids. Do not write strategy notes there.
+- Each coachingPoints field must tell the coach what to watch with their eyes and what single correction to make first.
+- Ban vague filler. Do not use phrases like "use small-group coach checkpoints", "quick teach-rep-reset cycles", "create small working groups", "one clear job tied to the focus", "run short rounds", "practice the focus", "game-like reps", or "players understand where to stand".
+- If you cannot picture where every player is standing before the rep starts, the drill is not specific enough. Rewrite it before returning JSON.
 - The whole practice should visibly follow this blueprint: ${practiceBlueprint}.
 - Use the variation seed to choose different drill names, setups, scoring rules, and progressions than another request with the same focus.
 - Drill blocks must use 5-minute increments only.
@@ -484,7 +569,7 @@ async function generatePracticePlan(input, env) {
       body: JSON.stringify({
         model: env.OPENAI_MODEL || "gpt-5-mini",
         input: prompt,
-        max_output_tokens: 3200,
+        max_output_tokens: 4200,
         text: {
           format: {
             type: "json_schema",
