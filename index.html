@@ -546,7 +546,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.9.8";
+      const APP_VERSION = "v0.9.9";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -751,7 +751,8 @@
         activePracticePlanId: null,
         practiceBuildTimer: null,
         practiceBuildStartedAt: null,
-        resumingPracticePlanIds: new Set()
+        resumingPracticePlanIds: new Set(),
+        practiceResumeStartedAt: {}
       };
 
       const els = {
@@ -1273,6 +1274,16 @@
         }
       }
 
+      function practicePlanAgeSeconds(plan) {
+        const createdMs = plan?.createdAt ? new Date(plan.createdAt).getTime() : Date.now();
+        return Number.isFinite(createdMs) ? Math.max(0, Math.round((Date.now() - createdMs) / 1000)) : 0;
+      }
+
+      function shouldAutoResumePracticePlan(plan) {
+        const ageSeconds = practicePlanAgeSeconds(plan);
+        return plan?.status === "building" && ageSeconds >= 20 && ageSeconds < 120 && !state.resumingPracticePlanIds.has(plan.id);
+      }
+
       function renderPracticePlan(plan) {
         if (!plan) {
           els.practicePlanResults.innerHTML = "";
@@ -1285,7 +1296,9 @@
         if (plan.status === "building") {
           els.copyPracticePlanBtn.classList.add("hidden");
           renderPracticePlanQueued(plan);
-          resumePendingPracticePlan(plan);
+          if (shouldAutoResumePracticePlan(plan)) {
+            resumePendingPracticePlan(plan);
+          }
           return;
         }
 
@@ -2109,23 +2122,39 @@
         const payload = plan.request || {};
         const createdAt = plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "";
         const isResuming = state.resumingPracticePlanIds.has(plan.id);
+        const ageSeconds = practicePlanAgeSeconds(plan);
+        const ageLabel = ageSeconds >= 60 ? `${Math.floor(ageSeconds / 60)}m ${ageSeconds % 60}s` : `${ageSeconds}s`;
+        const isStale = ageSeconds >= 120;
+        const statusTitle = isResuming ? "Finishing now" : isStale ? "Needs attention" : "Building in the background";
+        const statusCopy = isResuming
+          ? "Coachify is making one recovery attempt now."
+          : isStale
+            ? "This has taken longer than expected. You can retry once or mark it failed and build a fresh plan."
+            : "You can leave this page. Coachify will save the plan to this team when it finishes.";
+        const progressLabel = isResuming ? "Recovery attempt in progress" : isStale ? "Still not finished" : "Queued with Coachify";
+        const helpCopy = isResuming
+          ? "This attempt has a 90-second limit. If it cannot finish, Coachify will show a clear error instead of staying stuck."
+          : isStale
+            ? "If this keeps happening, build a fresh plan and delete this stuck one after practice."
+            : "Plans usually take 30-45 seconds. If this ever gets stuck, reopening the plan will resume the build.";
         els.practicePlanResults.innerHTML = `
           <article class="overflow-hidden rounded-md border border-emerald-200 bg-white shadow-sm">
             <div class="bg-gradient-to-r from-emerald-700 to-slate-950 p-4 text-white">
-              <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">${isResuming ? "Finishing now" : "Building in the background"}</p>
+              <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">${statusTitle}</p>
               <h2 class="mt-1 text-2xl font-black leading-tight">${escapeHtml(plan.title || "Practice playbook is building")}</h2>
-              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">${isResuming ? "Coachify found this pending plan and is finishing it now." : "You can leave this page. Coachify will save the plan to this team when it finishes."}</p>
+              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">${statusCopy}</p>
             </div>
             <div class="grid gap-4 p-4">
               <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
                 <div class="flex items-center justify-between gap-3">
-                  <p class="text-sm font-black text-slate-950">${isResuming ? "Resuming saved build" : "Queued with Coachify"}</p>
-                  <p class="text-sm font-bold text-slate-500">${escapeHtml(createdAt)}</p>
+                  <p class="text-sm font-black text-slate-950">${progressLabel}</p>
+                  <p class="text-sm font-bold text-slate-500">${escapeHtml(ageLabel)} elapsed</p>
                 </div>
                 <div class="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
                   <div class="h-full w-2/3 rounded-full bg-emerald-600"></div>
                 </div>
-                <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${isResuming ? "Keep this page open for this recovery pass. When it finishes, the saved plan will update automatically." : "Plans usually take 30-45 seconds. If this ever gets stuck, reopening the plan will resume the build."}</p>
+                <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${helpCopy}</p>
+                <p class="mt-1 text-xs font-bold text-slate-400">Started ${escapeHtml(createdAt)}</p>
               </div>
               <div class="grid gap-2 sm:grid-cols-3">
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
@@ -2140,6 +2169,14 @@
                   <p class="text-[11px] font-black uppercase tracking-wide text-amber-700">Focus</p>
                   <p class="mt-1 line-clamp-2 text-sm font-bold leading-5 text-amber-950">${escapeHtml(payload.focus || "")}</p>
                 </div>
+              </div>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <button class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800 disabled:opacity-50" type="button" data-action="retry-practice-build" data-plan-id="${plan.id}" ${isResuming ? "disabled" : ""}>
+                  Retry Finish
+                </button>
+                <button class="min-h-11 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="mark-practice-build-failed" data-plan-id="${plan.id}">
+                  Mark Failed
+                </button>
               </div>
             </div>
           </article>
@@ -2165,6 +2202,26 @@
         state.practiceBuildStartedAt = null;
       }
 
+      async function markPracticePlanFailed(planId, message = "Coachify could not finish this plan. Try building a fresh one.") {
+        const team = getSelectedTeam();
+        const plan = (team?.practicePlans || []).find((item) => item.id === planId);
+        if (!team || !plan) return;
+
+        state.resumingPracticePlanIds.delete(plan.id);
+        delete state.practiceResumeStartedAt[plan.id];
+        plan.status = "failed";
+        plan.error = message;
+        plan.updatedAt = new Date().toISOString();
+        renderPracticePlan(plan);
+        renderPracticePlanHistory();
+        try {
+          await saveSelectedCloudTeam();
+        } catch (error) {
+          console.warn("Could not save failed practice plan state", error);
+        }
+        setPracticeStatus(message, "error");
+      }
+
       async function resumePendingPracticePlan(plan) {
         const team = getSelectedTeam();
         if (!team?.cloudId || !plan?.id || plan.status !== "building" || !isHeadCoach(team)) return;
@@ -2174,19 +2231,24 @@
         if (!payload.focus || !payload.totalMinutes) return;
 
         state.resumingPracticePlanIds.add(plan.id);
+        state.practiceResumeStartedAt[plan.id] = Date.now();
         renderPracticePlanQueued(plan);
         setPracticeStatus("Found a pending practice plan. Coachify is finishing it now.", "info");
 
+        let timeoutId = null;
         try {
           const session = await requireCloudSession();
           if (!session) return;
 
+          const controller = new AbortController();
+          timeoutId = window.setTimeout(() => controller.abort(), 90000);
           const response = await fetch("/api/practice-plan", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`
             },
+            signal: controller.signal,
             body: JSON.stringify({
               ...payload,
               completeExisting: true,
@@ -2199,9 +2261,15 @@
           await loadCloudTeams();
           setPracticeStatus(data.warning || "Practice plan finished and saved.", data.warning ? "info" : "success");
         } catch (error) {
-          setPracticeStatus(error.message || "Practice plan resume failed.", "error");
+          const message =
+            error.name === "AbortError"
+              ? "Coachify tried to finish this plan, but it took too long. Marking it failed so you can build a fresh one."
+              : error.message || "Practice plan resume failed.";
+          await markPracticePlanFailed(plan.id, message);
         } finally {
+          if (timeoutId) window.clearTimeout(timeoutId);
           state.resumingPracticePlanIds.delete(plan.id);
+          delete state.practiceResumeStartedAt[plan.id];
         }
       }
 
@@ -3492,6 +3560,15 @@
 
           if (button.dataset.action === "close-practice-plan") {
             renderPracticePlan(null);
+          }
+
+          if (button.dataset.action === "retry-practice-build") {
+            const plan = (getSelectedTeam()?.practicePlans || []).find((item) => item.id === button.dataset.planId);
+            if (plan) resumePendingPracticePlan(plan);
+          }
+
+          if (button.dataset.action === "mark-practice-build-failed") {
+            markPracticePlanFailed(button.dataset.planId, "Practice plan marked failed. Build a fresh plan when you are ready.");
           }
 
           if (button.dataset.action === "adjust-drill-time") {
