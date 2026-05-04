@@ -2,6 +2,8 @@
 
 Single-file web app for youth coaching: roster setup, lineup planning, shared coach access, touch tracking, and AI-assisted practice plans.
 
+Production app: https://coachify-app.com/
+
 ## Files
 
 - `index.html` - the hosted app
@@ -18,4 +20,11 @@ Single-file web app for youth coaching: roster setup, lineup planning, shared co
 
 ## Deploy
 
-This app is static. Host the full folder with Cloudflare Pages or another static host so the PWA files deploy with `index.html`.
+This app is static. Host the full folder with Cloudflare Pages so the PWA files deploy with `index.html`.
+
+Production domain:
+
+- `coachify-app.com`
+- Cloudflare Pages custom domain should point this domain at the Pages project.
+- Supabase Auth URL Configuration should use `https://coachify-app.com` as the Site URL.
+- Supabase Redirect URLs should include `https://coachify-app.com/*`.

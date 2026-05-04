@@ -8,7 +8,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Coachify" />
     <meta name="description" content="Coachify helps youth coaches build lineups, track touches, and create practice plans from the field." />
+    <meta property="og:title" content="Coachify" />
+    <meta property="og:description" content="Youth coaching tools for lineups, touch tracking, and AI practice plans." />
+    <meta property="og:url" content="https://coachify-app.com/" />
+    <meta property="og:type" content="website" />
     <title>Coachify</title>
+    <link rel="canonical" href="https://coachify-app.com/" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/app-icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/app-icon-192.png" />
@@ -535,6 +540,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
+      const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
       const cloud = window.supabase?.createClient(SUPABASE_URL, SUPABASE_KEY) || null;
@@ -782,6 +788,11 @@
       }
 
       function initPwa() {
+        if (window.location.hostname.endsWith(".pages.dev") && window.location.protocol === "https:") {
+          window.location.replace(`${CANONICAL_ORIGIN}${window.location.pathname}${window.location.search}${window.location.hash}`);
+          return;
+        }
+
         if ("serviceWorker" in navigator) {
           window.addEventListener("load", () => {
             navigator.serviceWorker.register("/sw.js").catch(() => {
