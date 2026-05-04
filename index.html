@@ -223,10 +223,16 @@
                   <span class="text-sm font-bold text-slate-700">Practice length</span>
                   <select id="practiceLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
                     <option value="45">45 minutes</option>
+                    <option value="55">55 minutes</option>
                     <option value="60" selected>60 minutes</option>
                     <option value="75">75 minutes</option>
                     <option value="90">90 minutes</option>
+                    <option value="custom">Custom</option>
                   </select>
+                </label>
+                <label id="customPracticeLengthLabel" class="hidden">
+                  <span class="text-sm font-bold text-slate-700">Custom minutes</span>
+                  <input id="customPracticeLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="15" max="180" placeholder="55" />
                 </label>
                 <label class="block">
                   <span class="text-sm font-bold text-slate-700">Team energy</span>
@@ -558,6 +564,8 @@
         practicePlanForm: document.querySelector("#practicePlanForm"),
         practiceSportInput: document.querySelector("#practiceSportInput"),
         practiceLengthInput: document.querySelector("#practiceLengthInput"),
+        customPracticeLengthLabel: document.querySelector("#customPracticeLengthLabel"),
+        customPracticeLengthInput: document.querySelector("#customPracticeLengthInput"),
         practiceEnergyInput: document.querySelector("#practiceEnergyInput"),
         practiceFocusInput: document.querySelector("#practiceFocusInput"),
         practiceFocusChips: document.querySelector("#practiceFocusChips"),
@@ -951,6 +959,21 @@
         els.practiceFocusInput.value = current ? `${current}, ${text}` : text;
       }
 
+      function getPracticeLengthMinutes() {
+        if (els.practiceLengthInput.value === "custom") {
+          return Math.max(15, Math.min(180, Number(els.customPracticeLengthInput.value) || 60));
+        }
+        return Number(els.practiceLengthInput.value);
+      }
+
+      function renderPracticeLengthInput() {
+        const isCustom = els.practiceLengthInput.value === "custom";
+        els.customPracticeLengthLabel.classList.toggle("hidden", !isCustom);
+        if (isCustom && !els.customPracticeLengthInput.value) {
+          els.customPracticeLengthInput.value = "55";
+        }
+      }
+
       function renderPracticePlan(plan) {
         if (!plan) {
           els.practicePlanResults.innerHTML = "";
@@ -1064,7 +1087,7 @@
 
         const payload = {
           sport: els.practiceSportInput.value,
-          totalMinutes: Number(els.practiceLengthInput.value),
+          totalMinutes: getPracticeLengthMinutes(),
           focus,
           energy: els.practiceEnergyInput.value,
           equipment: els.practiceEquipmentInput.value.trim(),
@@ -2213,6 +2236,9 @@
           if (!button) return;
           addPracticeFocus(button.dataset.focus);
         });
+
+        els.practiceLengthInput.addEventListener("change", renderPracticeLengthInput);
+        renderPracticeLengthInput();
 
         els.practicePlanForm.addEventListener("submit", buildPracticePlan);
 
