@@ -323,7 +323,21 @@ function cleanPracticeInput(input) {
   delete rest.async;
   delete rest.planId;
   delete rest.teamCloudId;
+  delete rest.completeExisting;
   return rest;
+}
+
+async function responseErrorMessage(response, fallback) {
+  const text = await response.text().catch(() => "");
+  if (!text) return fallback;
+
+  try {
+    const data = JSON.parse(text);
+    return data.error?.message || data.message || data.error || fallback;
+  } catch (error) {
+    const preview = text.replace(/\s+/g, " ").slice(0, 240);
+    return preview ? `${fallback} ${preview}` : fallback;
+  }
 }
 
 async function mutatePracticePlans(input, env, authHeader, mutatePlan) {
@@ -339,7 +353,7 @@ async function mutatePracticePlans(input, env, authHeader, mutatePlan) {
     headers
   });
   if (!readResponse.ok) {
-    throw new Error("Could not load team practice plans.");
+    throw new Error(await responseErrorMessage(readResponse, "Could not load team practice plans."));
   }
 
   const rows = await readResponse.json();
@@ -364,7 +378,7 @@ async function mutatePracticePlans(input, env, authHeader, mutatePlan) {
   });
 
   if (!updateResponse.ok) {
-    throw new Error("Could not save completed practice plan.");
+    throw new Error(await responseErrorMessage(updateResponse, "Could not save completed practice plan."));
   }
 }
 
@@ -375,6 +389,7 @@ async function completePracticePlanInBackground(input, env, authHeader) {
     await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
       ...(result.plan || fallbackPlan(input)),
       id: input.planId,
+      title: existingPlan?.title || input.practiceName || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
       status: "ready",
       createdAt: existingPlan?.createdAt || now,
       updatedAt: now,
@@ -383,20 +398,24 @@ async function completePracticePlanInBackground(input, env, authHeader) {
     }));
   } catch (error) {
     const now = new Date().toISOString();
-    await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
-      ...(existingPlan || {
-        id: input.planId,
-        title: `${input.sport || "Team"} Practice Plan`,
-        totalMinutes: Number(input.totalMinutes || 0),
-        summary: `Building a plan focused on ${input.focus || "team fundamentals"}.`,
-        blocks: [],
-        request: cleanPracticeInput(input),
-        createdAt: now
-      }),
-      status: "failed",
-      error: error.message || "Coachify could not finish this plan.",
-      updatedAt: now
-    }));
+    try {
+      await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
+        ...(existingPlan || {
+          id: input.planId,
+          title: `${input.sport || "Team"} Practice Plan`,
+          totalMinutes: Number(input.totalMinutes || 0),
+          summary: `Building a plan focused on ${input.focus || "team fundamentals"}.`,
+          blocks: [],
+          request: cleanPracticeInput(input),
+          createdAt: now
+        }),
+        status: "failed",
+        error: error.message || "Coachify could not finish this plan.",
+        updatedAt: now
+      }));
+    } catch (saveError) {
+      console.error("Could not mark background practice plan as failed", saveError);
+    }
   }
 }
 
@@ -440,23 +459,50 @@ export async function onRequestPost({ request, env, waitUntil }) {
       return jsonResponse({ error: "Practice plan resume needs a team, plan id, and signed-in coach." }, 400);
     }
 
-    const result = await generatePracticePlan(input, env);
-    const now = new Date().toISOString();
-    await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
-      ...(result.plan || fallbackPlan(input)),
-      id: input.planId,
-      status: "ready",
-      createdAt: existingPlan?.createdAt || now,
-      updatedAt: now,
-      request: existingPlan?.request || cleanPracticeInput(input),
-      warning: result.warning || null
-    }));
+    try {
+      const result = await generatePracticePlan(input, env);
+      const now = new Date().toISOString();
+      await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
+        ...(result.plan || fallbackPlan(input)),
+        id: input.planId,
+        title: existingPlan?.title || input.practiceName || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
+        status: "ready",
+        createdAt: existingPlan?.createdAt || now,
+        updatedAt: now,
+        request: existingPlan?.request || cleanPracticeInput(input),
+        warning: result.warning || null
+      }));
 
-    return jsonResponse({
-      completed: true,
-      planId: input.planId,
-      warning: result.warning || null
-    });
+      return jsonResponse({
+        completed: true,
+        planId: input.planId,
+        warning: result.warning || null
+      });
+    } catch (error) {
+      const now = new Date().toISOString();
+      try {
+        await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
+          ...(existingPlan || {
+            id: input.planId,
+            title: `${input.sport || "Team"} Practice Plan`,
+            totalMinutes: Number(input.totalMinutes || 0),
+            summary: `Building a plan focused on ${input.focus || "team fundamentals"}.`,
+            blocks: [],
+            request: cleanPracticeInput(input),
+            createdAt: now
+          }),
+          status: "failed",
+          error: error.message || "Coachify could not resume this practice plan.",
+          updatedAt: now
+        }));
+      } catch (saveError) {
+        console.error("Could not mark resumed practice plan as failed", saveError);
+      }
+
+      return jsonResponse({
+        error: error.message || "Coachify could not resume this practice plan."
+      }, 500);
+    }
   }
 
   return jsonResponse(await generatePracticePlan(input, env));
