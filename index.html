@@ -360,134 +360,167 @@
         </details>
         </section>
 
-        <section id="practicePlanPanel" class="hidden space-y-5">
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <section id="practicePlanPanel" class="hidden space-y-4">
+          <section class="overflow-hidden rounded-md border border-slate-900 bg-slate-950 text-white shadow-sm">
+            <div class="grid gap-4 p-4 lg:grid-cols-[1.15fr_0.85fr]">
               <div>
-                <h2 class="text-2xl font-bold">Practice Plan Builder</h2>
-                <p class="text-sm text-slate-600">Tell the app what your team needs, then generate a timed practice plan.</p>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-300">Practice studio</p>
+                <h2 class="mt-1 text-3xl font-black leading-tight">Build a coach-ready plan</h2>
+                <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">Start with what the team needs. Coachify turns it into a timed plan with setup, cues, adjustments, and saved drill help.</p>
               </div>
-              <button id="copyPracticePlanBtn" class="hidden min-h-11 rounded-md border border-slate-300 px-4 py-2 font-semibold active:bg-slate-100" type="button">
-                Copy Plan
+              <div id="practicePlanStudioStats" class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"></div>
+            </div>
+            <div class="border-t border-white/10 bg-white/5 p-3">
+              <button id="copyPracticePlanBtn" class="hidden min-h-11 rounded-md bg-white px-4 py-2 text-sm font-black text-slate-950 active:bg-slate-100" type="button">
+                Copy Open Plan
               </button>
             </div>
+          </section>
 
-            <form id="practicePlanForm" class="mt-4 space-y-4">
-              <label class="block">
-                <span class="text-sm font-bold text-slate-700">Practice name</span>
-                <input id="practiceNameInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Example: Redbirds - Flag Pulling and Handoffs" />
-              </label>
-
-              <div class="grid gap-4 sm:grid-cols-4">
-                <label class="block">
-                  <span class="text-sm font-bold text-slate-700">Sport</span>
-                  <select id="practiceSportInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
-                    <option value="Flag Football">Flag Football</option>
-                  </select>
-                </label>
-                <label class="block">
-                  <span class="text-sm font-bold text-slate-700">Practice length</span>
-                  <select id="practiceLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
-                    <option value="45">45 minutes</option>
-                    <option value="55">55 minutes</option>
-                    <option value="60" selected>60 minutes</option>
-                    <option value="75">75 minutes</option>
-                    <option value="90">90 minutes</option>
-                    <option value="custom">Custom</option>
-                  </select>
-                </label>
-                <label id="customPracticeLengthLabel" class="hidden">
-                  <span class="text-sm font-bold text-slate-700">Custom minutes</span>
-                  <input id="customPracticeLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="15" max="180" step="5" placeholder="55" />
-                </label>
-                <label class="block">
-                  <span class="text-sm font-bold text-slate-700">Drill mix</span>
-                  <select id="practiceDrillMixInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
-                    <option value="mix" selected>Mix old and new</option>
-                    <option value="new">Mostly new drills</option>
-                    <option value="repeat">Repeat past drills</option>
-                  </select>
-                </label>
-                <label class="block">
-                  <span class="text-sm font-bold text-slate-700">Kids expected</span>
-                  <input id="practiceExpectedKidsInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="1" max="40" placeholder="Roster" />
-                </label>
-              </div>
-
-              <label class="block">
-                <span class="text-sm font-bold text-slate-700">What does this team need to work on?</span>
-                <textarea id="practiceFocusInput" class="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-base" placeholder="Example: flag pulling, staying spread out on defense, cleaner snaps, getting shy kids involved"></textarea>
-              </label>
-
+          <section class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+            <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
               <div>
-                <h3 class="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Quick focus</h3>
-                <div id="practiceFocusChips" class="flex flex-wrap gap-2">
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="flag pulling">Flag pulling</button>
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="routes">Routes</button>
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="snaps">Snaps</button>
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="handoffs">Handoffs</button>
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="defensive spacing">Defensive spacing</button>
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="catching">Catching</button>
-                  <button class="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold active:bg-slate-100" type="button" data-focus="confidence">Confidence</button>
-                </div>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Guided builder</p>
+                <h2 class="text-2xl font-black">New Practice Plan</h2>
+                <p class="text-sm text-slate-600">Three quick steps: time, focus, field reality.</p>
               </div>
 
-              <label class="block">
-                <span class="text-sm font-bold text-slate-700">Space and equipment</span>
-                <input id="practiceEquipmentInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Example: half field, 12 cones, 2 footballs, flags" />
-              </label>
+              <form id="practicePlanForm" class="mt-4 space-y-4">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p class="text-xs font-black uppercase tracking-wide text-slate-500">Step 1</p>
+                  <h3 class="text-lg font-black">Name and time</h3>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label class="block sm:col-span-2">
+                      <span class="text-sm font-bold text-slate-700">Practice name</span>
+                      <input id="practiceNameInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Example: Redbirds - Flag Pulling and Handoffs" />
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Sport</span>
+                      <select id="practiceSportInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                        <option value="Flag Football">Flag Football</option>
+                      </select>
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Practice length</span>
+                      <select id="practiceLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                        <option value="45">45 minutes</option>
+                        <option value="55">55 minutes</option>
+                        <option value="60" selected>60 minutes</option>
+                        <option value="75">75 minutes</option>
+                        <option value="90">90 minutes</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </label>
+                    <label id="customPracticeLengthLabel" class="hidden">
+                      <span class="text-sm font-bold text-slate-700">Custom minutes</span>
+                      <input id="customPracticeLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="15" max="180" step="5" placeholder="55" />
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Kids expected</span>
+                      <input id="practiceExpectedKidsInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="1" max="40" placeholder="Roster" />
+                    </label>
+                  </div>
+                </div>
 
-              <label class="flex items-start gap-3 rounded-md border border-sky-200 bg-sky-50 p-3">
-                <input id="practiceWaterBreaksInput" class="mt-1 h-5 w-5 rounded border-slate-300" type="checkbox" />
-                <span>
-                  <span class="block text-sm font-bold text-slate-800">Include water breaks</span>
-                  <span class="block text-sm text-slate-600">Adds 2-minute water breaks between drills and keeps drill time in 5-minute chunks.</span>
-                </span>
-              </label>
+                <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Step 2</p>
+                  <h3 class="text-lg font-black text-emerald-950">What needs work?</h3>
+                  <label class="mt-3 block">
+                    <span class="text-sm font-bold text-emerald-950">Team focus</span>
+                    <textarea id="practiceFocusInput" class="mt-1 min-h-32 w-full rounded-md border border-emerald-200 bg-white px-3 py-2 text-base" placeholder="Example: flag pulling, staying spread out on defense, cleaner snaps, getting shy kids involved"></textarea>
+                  </label>
+                  <div class="mt-3">
+                    <h4 class="mb-2 text-sm font-black uppercase tracking-wide text-emerald-700">Tap to add</h4>
+                    <div id="practiceFocusChips" class="flex flex-wrap gap-2">
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="flag pulling">Flag pulling</button>
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="routes">Routes</button>
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="snaps">Snaps</button>
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="handoffs">Handoffs</button>
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="defensive spacing">Defensive spacing</button>
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="catching">Catching</button>
+                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="confidence">Confidence</button>
+                    </div>
+                  </div>
+                </div>
 
-              <button id="buildPracticePlanBtn" class="min-h-12 w-full rounded-md bg-emerald-700 px-5 py-3 text-base font-bold text-white active:bg-emerald-800 sm:w-auto" type="submit">
-                Build Practice Plan
-              </button>
-            </form>
+                <div class="rounded-md border border-sky-200 bg-sky-50 p-3">
+                  <p class="text-xs font-black uppercase tracking-wide text-sky-700">Step 3</p>
+                  <h3 class="text-lg font-black text-sky-950">Field reality</h3>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Drill mix</span>
+                      <select id="practiceDrillMixInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                        <option value="mix" selected>Mix old and new</option>
+                        <option value="new">Mostly new drills</option>
+                        <option value="repeat">Repeat past drills</option>
+                      </select>
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Space and equipment</span>
+                      <input id="practiceEquipmentInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base" placeholder="Half field, cones, footballs, flags" />
+                    </label>
+                  </div>
+                  <label class="mt-3 flex items-start gap-3 rounded-md border border-sky-200 bg-white p-3">
+                    <input id="practiceWaterBreaksInput" class="mt-1 h-5 w-5 rounded border-slate-300" type="checkbox" />
+                    <span>
+                      <span class="block text-sm font-black text-slate-800">Include water breaks</span>
+                      <span class="block text-sm text-slate-600">Adds 2-minute breaks between drills and keeps drill time in 5-minute chunks.</span>
+                    </span>
+                  </label>
+                </div>
+
+                <button id="buildPracticePlanBtn" class="min-h-14 w-full rounded-md bg-emerald-700 px-5 py-3 text-base font-black text-white active:bg-emerald-800" type="submit">
+                  Build Practice Plan
+                </button>
+              </form>
+            </section>
+
+            <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Library</p>
+                <h2 class="text-2xl font-black">Saved Plans</h2>
+                <p class="text-sm text-slate-600">Open, rename, copy, or reuse a plan.</p>
+              </div>
+              <div id="practicePlanHistory" class="mt-3 grid gap-3"></div>
+            </section>
           </section>
 
           <section id="practicePlanStatus" class="hidden rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"></section>
           <section id="practicePlanResults" class="space-y-3"></section>
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 class="text-2xl font-bold">Saved Practice Plans</h2>
-            <div id="practicePlanHistory" class="mt-3 grid gap-3"></div>
-          </section>
         </section>
 
-        <section id="setupPanel" class="hidden space-y-5">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div class="flex flex-col gap-2 sm:flex-row">
-            <button id="backToTeamsBtn" class="min-h-11 rounded-md border border-slate-300 bg-white px-4 py-2 text-left font-semibold text-slate-800 active:bg-slate-100">
+        <section id="setupPanel" class="hidden space-y-4">
+        <section class="overflow-hidden rounded-md border border-slate-900 bg-slate-950 text-white shadow-sm">
+          <div class="grid gap-4 p-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <p class="text-xs font-black uppercase tracking-wide text-emerald-300">Team control center</p>
+              <h2 class="mt-1 text-3xl font-black leading-tight">Roster, rules, and coaches</h2>
+              <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">Keep the setup work tucked away, but easy to reach when the roster or division changes.</p>
+            </div>
+            <div id="teamSetupSummary" class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"></div>
+          </div>
+          <div class="grid gap-2 border-t border-white/10 bg-white/5 p-3 sm:grid-cols-[auto_auto_1fr]">
+            <button id="backToTeamsBtn" class="min-h-11 rounded-md bg-white px-4 py-2 text-left font-black text-slate-950 active:bg-slate-100">
               Back to Teams
             </button>
-            <button id="newTeamBtn" class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white active:bg-emerald-800">
+            <button id="newTeamBtn" class="min-h-11 rounded-md border border-white/20 px-4 py-2 font-black text-white active:bg-white/10">
               New Team
             </button>
-          </div>
-          <button id="deleteTeamBtn" class="min-h-11 rounded-md border border-red-200 bg-white px-4 py-2 font-semibold text-red-700 active:bg-red-50">
-            Delete Team
-          </button>
-        </div>
-
-        <section id="inviteCodePanel" class="hidden space-y-2 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-          <h2 class="text-xl font-bold text-emerald-950">Invite Assistant Coach</h2>
-          <p class="text-sm text-emerald-900">Send an app invitation by email. The coach can accept it after signing in.</p>
-          <div class="grid gap-2 sm:grid-cols-[1fr_auto]">
-            <input id="setupInviteEmailInput" class="min-h-11 rounded-md border border-emerald-300 bg-white px-3 text-base" type="email" placeholder="assistant@email.com" />
-            <button id="sendSetupInviteBtn" class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white active:bg-emerald-800" type="button">
-              Send Invite
+            <button id="deleteTeamBtn" class="min-h-11 rounded-md border border-red-300/60 px-4 py-2 font-black text-red-100 active:bg-red-500/20 sm:justify-self-end">
+              Delete Team
             </button>
           </div>
         </section>
 
-        <form id="teamForm" class="space-y-4 rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <label class="block">
+        <section class="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+        <form id="teamForm" class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+          <div>
+            <p class="text-xs font-black uppercase tracking-wide text-slate-500">Rules engine</p>
+            <h2 class="text-2xl font-black">Team Settings</h2>
+            <p class="text-sm text-slate-600">These choices drive lineup colors, positions, and how many kids play at once.</p>
+          </div>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <label class="block sm:col-span-2">
               <span class="text-sm font-bold text-slate-700">Team name</span>
               <input id="teamNameInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Boys 6U Tigers" required />
             </label>
@@ -500,16 +533,33 @@
               <input id="playersOnFieldInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="4" max="8" value="6" required />
             </label>
           </div>
-          <button class="min-h-12 w-full rounded-md bg-slate-900 px-5 py-3 text-base font-bold text-white active:bg-slate-700 sm:w-auto" type="submit">
+          <button class="mt-4 min-h-12 w-full rounded-md bg-slate-900 px-5 py-3 text-base font-bold text-white active:bg-slate-700 sm:w-auto" type="submit">
             Save Team
           </button>
         </form>
+
+        <section id="inviteCodePanel" class="hidden rounded-md border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
+          <div>
+            <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Assistant access</p>
+            <h2 class="text-2xl font-black text-emerald-950">Invite a Coach</h2>
+            <p class="mt-1 text-sm font-semibold leading-6 text-emerald-900">Send an app invitation by email. The coach can accept it after signing in and help track game-day touches.</p>
+          </div>
+          <div class="mt-4 grid gap-2">
+            <input id="setupInviteEmailInput" class="min-h-12 rounded-md border border-emerald-300 bg-white px-3 text-base" type="email" placeholder="assistant@email.com" />
+            <button id="sendSetupInviteBtn" class="min-h-12 rounded-md bg-emerald-700 px-4 py-2 font-black text-white active:bg-emerald-800" type="button">
+              Send Invite
+            </button>
+          </div>
+          <p class="mt-3 rounded-md bg-white/70 p-3 text-sm font-semibold leading-6 text-emerald-950">Assistants can view the shared lineup and update game-day tracking. Head coach setup tools stay private.</p>
+        </section>
+        </section>
 
         <details class="rounded-md border border-slate-200 bg-white p-4 shadow-sm" open>
           <summary class="cursor-pointer list-none">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h2 class="text-2xl font-bold">Roster</h2>
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Player builder</p>
+                <h2 class="text-2xl font-black">Roster</h2>
                 <p id="rosterCount" class="text-sm text-slate-600"></p>
               </div>
               <span class="chevron text-2xl font-bold text-slate-600">&rsaquo;</span>
@@ -598,7 +648,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.11.0";
+      const APP_VERSION = "v0.12.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -964,6 +1014,7 @@
         practiceWaterBreaksInput: document.querySelector("#practiceWaterBreaksInput"),
         buildPracticePlanBtn: document.querySelector("#buildPracticePlanBtn"),
         copyPracticePlanBtn: document.querySelector("#copyPracticePlanBtn"),
+        practicePlanStudioStats: document.querySelector("#practicePlanStudioStats"),
         practicePlanStatus: document.querySelector("#practicePlanStatus"),
         practicePlanResults: document.querySelector("#practicePlanResults"),
         practicePlanHistory: document.querySelector("#practicePlanHistory"),
@@ -977,6 +1028,7 @@
         newTeamBtn: document.querySelector("#newTeamBtn"),
         backToTeamsBtn: document.querySelector("#backToTeamsBtn"),
         deleteTeamBtn: document.querySelector("#deleteTeamBtn"),
+        teamSetupSummary: document.querySelector("#teamSetupSummary"),
         teamForm: document.querySelector("#teamForm"),
         teamNameInput: document.querySelector("#teamNameInput"),
         divisionInput: document.querySelector("#divisionInput"),
@@ -2096,20 +2148,43 @@
       function renderPracticePlanHistory() {
         const team = getSelectedTeam();
         const plans = team?.practicePlans || [];
+        renderPracticeStudioStats();
         if (!plans.length) {
-          els.practicePlanHistory.innerHTML = `<p class="rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-600">No saved practice plans yet.</p>`;
+          els.practicePlanHistory.innerHTML = `
+            <div class="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-600">
+              No saved practice plans yet. Build one here and it will stay attached to this team.
+            </div>
+          `;
           return;
         }
 
         els.practicePlanHistory.innerHTML = plans
           .slice(0, 6)
           .map(
-            (plan) => `
-              <button class="rounded-md border border-slate-200 bg-slate-50 p-3 text-left active:bg-slate-100" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
-                <span class="block text-base font-bold">${escapeHtml(plan.title || "Practice Plan")}</span>
-                <span class="block text-sm text-slate-600">${escapeHtml(plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "")} - ${Number(plan.totalMinutes || 0)} minutes${plan.status === "building" ? " - building" : ""}</span>
-              </button>
-            `
+            (plan) => {
+              const isActive = state.activePracticePlanId === plan.id;
+              const created = plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "";
+              const statusLabel = plan.status === "building" ? "Building" : plan.status === "ready" ? "Ready" : "Draft";
+              const statusClasses =
+                plan.status === "building"
+                  ? "bg-amber-100 text-amber-900"
+                  : plan.status === "ready"
+                    ? "bg-emerald-100 text-emerald-900"
+                    : "bg-slate-100 text-slate-700";
+              const focus = plan.request?.focus || plan.summary || "Open this saved plan.";
+              return `
+                <button class="rounded-md border ${isActive ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50"} p-3 text-left active:bg-slate-100" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
+                  <span class="flex items-start justify-between gap-3">
+                    <span>
+                      <span class="block text-base font-black text-slate-950">${escapeHtml(plan.title || "Practice Plan")}</span>
+                      <span class="mt-1 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(created)} - ${Number(plan.totalMinutes || plan.request?.totalMinutes || 0)} minutes</span>
+                    </span>
+                    <span class="shrink-0 rounded-md px-2 py-1 text-[11px] font-black uppercase tracking-wide ${statusClasses}">${statusLabel}</span>
+                  </span>
+                  <span class="mt-2 line-clamp-2 block text-sm font-semibold leading-5 text-slate-700">${escapeHtml(focus)}</span>
+                </button>
+              `;
+            }
           )
           .join("");
       }
@@ -3581,6 +3656,64 @@
           .join("");
       }
 
+      function renderPracticeStudioStats() {
+        const team = getSelectedTeam();
+        if (!team || !els.practicePlanStudioStats) return;
+
+        const plans = team.practicePlans || [];
+        const readyPlans = plans.filter((plan) => plan.status === "ready" && Array.isArray(plan.blocks));
+        const buildingPlans = plans.filter((plan) => plan.status === "building");
+        const latestPlan = readyPlans[0];
+        const expectedKids = team.roster.length ? getExpectedPracticeKids(team) : 0;
+        const lastBuilt = latestPlan?.createdAt ? new Date(latestPlan.createdAt).toLocaleDateString() : "Not yet";
+        const focus = latestPlan?.request?.focus || latestPlan?.summary || "Build the first plan";
+        const cards = [
+          { label: "Saved plans", value: `${readyPlans.length}`, sub: buildingPlans.length ? `${buildingPlans.length} building` : "Ready to reuse" },
+          { label: "Kids expected", value: `${expectedKids}`, sub: `${team.roster.length} on roster` },
+          { label: "Last built", value: lastBuilt, sub: focus }
+        ];
+
+        els.practicePlanStudioStats.innerHTML = cards
+          .map(
+            (card) => `
+              <div class="rounded-md bg-white/10 p-3">
+                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">${card.label}</p>
+                <p class="mt-1 text-xl font-black text-white">${escapeHtml(card.value)}</p>
+                <p class="mt-1 line-clamp-2 text-xs font-bold leading-5 text-slate-300">${escapeHtml(card.sub)}</p>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      function renderTeamSetupSummary() {
+        const team = getSelectedTeam();
+        if (!team || !els.teamSetupSummary) return;
+
+        const division = getTeamDivision(team);
+        const rosterCount = team.roster.length;
+        const offenseCount = division.offensePositions?.length || 0;
+        const defenseCount = division.defensePositions?.length || 0;
+        const cards = [
+          { label: "Roster", value: `${rosterCount}`, sub: `${rosterCount === 1 ? "kid" : "kids"} entered` },
+          { label: "Game format", value: `${division.playersOnField} on field`, sub: division.divisionName },
+          { label: "Positions", value: `${offenseCount}/${defenseCount}`, sub: "offense/defense spots" },
+          { label: "Access", value: roleLabel(team), sub: team.cloudId ? "Shared with coaches" : "Sign in required" }
+        ];
+
+        els.teamSetupSummary.innerHTML = cards
+          .map(
+            (card) => `
+              <div class="rounded-md bg-white/10 p-3">
+                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">${card.label}</p>
+                <p class="mt-1 text-lg font-black text-white">${escapeHtml(card.value)}</p>
+                <p class="mt-1 text-xs font-bold leading-5 text-slate-300">${escapeHtml(card.sub)}</p>
+              </div>
+            `
+          )
+          .join("");
+      }
+
       function renderHomePanel() {
         const team = getSelectedTeam();
         if (!team) return;
@@ -3663,6 +3796,7 @@
         if (!els.practiceExpectedKidsInput.value) {
           els.practiceExpectedKidsInput.placeholder = `${team.roster.length || 0}`;
         }
+        renderTeamSetupSummary();
         const headCoach = isHeadCoach(team);
         els.coachRoleBadge.textContent = `Role: ${roleLabel(team)}`;
         els.teamStorageBadge.textContent = `Team access: ${teamStorageLabel(team)}`;
@@ -3785,7 +3919,12 @@
           addPracticeFocus(button.dataset.focus);
         });
 
-        els.practiceLengthInput.addEventListener("change", renderPracticeLengthInput);
+        els.practiceLengthInput.addEventListener("change", () => {
+          renderPracticeLengthInput();
+          renderPracticeStudioStats();
+        });
+        els.customPracticeLengthInput.addEventListener("input", renderPracticeStudioStats);
+        els.practiceExpectedKidsInput.addEventListener("input", renderPracticeStudioStats);
         renderPracticeLengthInput();
 
         els.practicePlanForm.addEventListener("submit", buildPracticePlan);
@@ -3806,6 +3945,7 @@
           if (!button) return;
           const plan = (getSelectedTeam()?.practicePlans || []).find((item) => item.id === button.dataset.planId);
           renderPracticePlan(plan);
+          renderPracticePlanHistory();
         });
 
         els.practicePlanResults.addEventListener("click", (event) => {
