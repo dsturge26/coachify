@@ -541,7 +541,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.9.0";
+      const APP_VERSION = "v0.9.1";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1289,6 +1289,144 @@
             </div>
           `;
         };
+        const drillDiagramType = (block) => {
+          const text = `${block.name || ""} ${block.goal || ""} ${block.setup || ""} ${block.instructions || ""}`.toLowerCase();
+          if (text.includes("flag") || text.includes("pull")) return "flag";
+          if (text.includes("edge") || text.includes("contain") || text.includes("sideline")) return "edge";
+          if (text.includes("handoff") || text.includes("rb") || text.includes("belly")) return "handoff";
+          if (text.includes("route") || text.includes("receiver") || text.includes("catch")) return "route";
+          if (text.includes("snap") || text.includes("center")) return "snap";
+          if (text.includes("touch") || text.includes("confidence")) return "touch";
+          if (text.includes("station")) return "stations";
+          if (text.includes("game") || text.includes("scrimmage") || text.includes("situation")) return "game";
+          return "default";
+        };
+        const renderDrillDiagram = (block) => {
+          const type = drillDiagramType(block);
+          const common = `
+            <defs>
+              <marker id="arrow-${type}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f766e"></path>
+              </marker>
+              <pattern id="field-lines-${type}" width="36" height="36" patternUnits="userSpaceOnUse">
+                <path d="M 36 0 L 0 0 0 36" fill="none" stroke="#d1fae5" stroke-width="1"></path>
+              </pattern>
+            </defs>
+            <rect x="10" y="10" width="340" height="200" rx="8" fill="#ecfdf5"></rect>
+            <rect x="10" y="10" width="340" height="200" rx="8" fill="url(#field-lines-${type})"></rect>
+            <line x1="40" y1="35" x2="40" y2="185" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"></line>
+            <line x1="320" y1="35" x2="320" y2="185" stroke="#94a3b8" stroke-width="2" stroke-dasharray="6 6"></line>
+          `;
+          const cone = (x, y) => `<path d="M ${x} ${y - 8} L ${x - 7} ${y + 7} L ${x + 7} ${y + 7} Z" fill="#f97316" stroke="#9a3412" stroke-width="1"></path>`;
+          const player = (x, y, label, fill = "#0f766e") => `
+            <g>
+              <circle cx="${x}" cy="${y}" r="15" fill="${fill}" stroke="#ffffff" stroke-width="3"></circle>
+              <text x="${x}" y="${y + 4}" text-anchor="middle" font-size="11" font-weight="800" fill="#ffffff">${label}</text>
+            </g>
+          `;
+          const label = (x, y, text, fill = "#0f172a") => `<text x="${x}" y="${y}" text-anchor="middle" font-size="12" font-weight="800" fill="${fill}">${text}</text>`;
+          const arrow = (d) => `<path d="${d}" fill="none" stroke="#0f766e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-${type})"></path>`;
+          const dashed = (d) => `<path d="${d}" fill="none" stroke="#0369a1" stroke-width="4" stroke-dasharray="8 7" stroke-linecap="round" marker-end="url(#arrow-${type})"></path>`;
+          const templates = {
+            flag: `
+              ${cone(105, 60)}${cone(255, 60)}${cone(105, 165)}${cone(255, 165)}
+              <rect x="105" y="60" width="150" height="105" rx="6" fill="#ffffff" opacity="0.55" stroke="#f97316" stroke-width="2"></rect>
+              ${player(145, 112, "R", "#2563eb")}
+              ${player(215, 112, "D", "#dc2626")}
+              ${arrow("M 145 112 C 175 85, 200 142, 240 112")}
+              ${label(180, 195, "Runner stays in alley. Defender breaks down and pulls flag.")}
+            `,
+            edge: `
+              <line x1="300" y1="25" x2="300" y2="195" stroke="#0f172a" stroke-width="5"></line>
+              ${label(312, 34, "Sideline", "#0f172a")}
+              ${player(125, 145, "R", "#2563eb")}
+              ${player(205, 115, "D", "#dc2626")}
+              ${arrow("M 125 145 C 175 145, 235 135, 286 105")}
+              ${dashed("M 205 115 C 245 112, 275 104, 292 92")}
+              ${cone(285, 92)}${cone(285, 158)}
+              ${label(180, 195, "Defender keeps outside leverage and forces runner back in.")}
+            `,
+            handoff: `
+              ${player(115, 112, "QB", "#7c3aed")}
+              ${player(85, 155, "RB", "#64748b")}
+              ${player(230, 112, "F", "#16a34a")}
+              ${arrow("M 85 155 C 105 132, 112 118, 132 112")}
+              ${arrow("M 132 112 C 170 105, 210 103, 258 90")}
+              ${cone(270, 88)}
+              <circle cx="126" cy="112" r="7" fill="#92400e"></circle>
+              ${label(185, 195, "Meet at handoff point, clamp ball, race to edge.")}
+            `,
+            route: `
+              ${player(92, 150, "WR", "#16a34a")}
+              ${player(85, 95, "QB", "#7c3aed")}
+              ${cone(180, 150)}${cone(260, 95)}
+              ${arrow("M 92 150 L 180 150 L 260 95")}
+              ${dashed("M 95 95 C 145 80, 210 75, 260 95")}
+              <circle cx="260" cy="95" r="7" fill="#92400e"></circle>
+              ${label(180, 195, "Run to landmark, turn eyes back, show hands.")}
+            `,
+            snap: `
+              <line x1="60" y1="118" x2="300" y2="118" stroke="#94a3b8" stroke-width="3" stroke-dasharray="7 7"></line>
+              ${player(160, 118, "C", "#2563eb")}
+              ${player(205, 118, "QB", "#7c3aed")}
+              ${player(260, 80, "WR", "#16a34a")}
+              ${dashed("M 166 118 L 198 118")}
+              <circle cx="184" cy="118" r="6" fill="#92400e"></circle>
+              ${arrow("M 205 118 C 225 100, 240 88, 260 80")}
+              ${label(180, 195, "Clean snap, secure ball, start the play fast.")}
+            `,
+            touch: `
+              ${player(85, 118, "C", "#7c3aed")}
+              ${player(140, 118, "1", "#16a34a")}
+              ${player(140, 155, "2", "#16a34a")}
+              ${player(140, 81, "3", "#16a34a")}
+              ${cone(280, 118)}
+              ${dashed("M 92 118 L 133 118")}
+              ${arrow("M 140 118 C 185 115, 235 115, 278 118")}
+              ${label(180, 195, "Each player gets one clean touch and finishes through cone.")}
+            `,
+            stations: `
+              <rect x="35" y="55" width="80" height="85" rx="6" fill="#ffffff" stroke="#10b981" stroke-width="3"></rect>
+              <rect x="140" y="55" width="80" height="85" rx="6" fill="#ffffff" stroke="#0ea5e9" stroke-width="3"></rect>
+              <rect x="245" y="55" width="80" height="85" rx="6" fill="#ffffff" stroke="#f59e0b" stroke-width="3"></rect>
+              ${label(75, 100, "Station 1")}${label(180, 100, "Station 2")}${label(285, 100, "Station 3")}
+              ${arrow("M 112 150 C 128 168, 148 168, 162 150")}
+              ${arrow("M 218 150 C 232 168, 252 168, 268 150")}
+              ${label(180, 195, "Small groups rotate station to station for fast reps.")}
+            `,
+            game: `
+              <line x1="85" y1="45" x2="85" y2="175" stroke="#0f766e" stroke-width="4"></line>
+              <line x1="275" y1="45" x2="275" y2="175" stroke="#0f766e" stroke-width="4"></line>
+              ${player(120, 92, "O", "#16a34a")}${player(120, 132, "O", "#16a34a")}${player(160, 112, "QB", "#7c3aed")}
+              ${player(235, 92, "D", "#dc2626")}${player(235, 132, "D", "#dc2626")}
+              ${arrow("M 160 112 C 185 95, 205 92, 225 92")}
+              ${dashed("M 120 132 C 170 150, 218 148, 255 132")}
+              ${label(180, 195, "Run short game-like reps, reset fast, rotate players.")}
+            `,
+            default: `
+              ${cone(85, 70)}${cone(275, 70)}${cone(85, 160)}${cone(275, 160)}
+              ${player(105, 130, "1", "#16a34a")}${player(150, 95, "2", "#2563eb")}${player(205, 130, "3", "#7c3aed")}
+              ${arrow("M 105 130 C 135 85, 185 85, 225 130")}
+              ${label(180, 195, "Use cones, short lines, and quick rotations.")}
+            `
+          };
+
+          return `
+            <section class="overflow-hidden rounded-md border border-slate-200 bg-white">
+              <div class="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2">
+                <div>
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">Drill picture</p>
+                  <p class="text-sm font-bold text-slate-900">Simple field diagram</p>
+                </div>
+                <span class="rounded-md bg-emerald-100 px-2 py-1 text-[11px] font-black text-emerald-800">No AI cost</span>
+              </div>
+              <svg class="block h-auto w-full" viewBox="0 0 360 220" role="img" aria-label="${escapeHtml(block.name || "Drill diagram")}">
+                ${common}
+                ${templates[type] || templates.default}
+              </svg>
+            </section>
+          `;
+        };
         const renderBlock = (block, index) => {
           const isWater = block.blockType === "water";
           const stepNumber = blocks.slice(0, index + 1).filter((item) => item.blockType !== "water").length;
@@ -1381,6 +1519,7 @@
                     <p class="mt-1 text-base font-bold leading-7 text-emerald-950">"${escapeHtml(block.coachScript)}"</p>
                   </div>
                 ` : ""}
+                ${renderDrillDiagram(block)}
                 <div class="grid gap-3 lg:grid-cols-3">
                   ${renderInfoTile("Setup", block.setup, "slate")}
                   ${renderInfoTile("Run it", block.instructions, "sky")}
