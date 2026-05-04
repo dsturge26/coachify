@@ -331,7 +331,7 @@
                 <input id="practiceNameInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Example: Redbirds - Flag Pulling and Handoffs" />
               </label>
 
-              <div class="grid gap-4 sm:grid-cols-3">
+              <div class="grid gap-4 sm:grid-cols-4">
                 <label class="block">
                   <span class="text-sm font-bold text-slate-700">Sport</span>
                   <select id="practiceSportInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
@@ -360,6 +360,14 @@
                     <option value="high energy">High energy</option>
                     <option value="needs basics">Needs basics</option>
                     <option value="advanced">Advanced</option>
+                  </select>
+                </label>
+                <label class="block">
+                  <span class="text-sm font-bold text-slate-700">Drill mix</span>
+                  <select id="practiceDrillMixInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                    <option value="mix" selected>Mix old and new</option>
+                    <option value="new">Mostly new drills</option>
+                    <option value="repeat">Repeat past drills</option>
                   </select>
                 </label>
               </div>
@@ -546,7 +554,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.10.0";
+      const APP_VERSION = "v0.10.1";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -798,6 +806,7 @@
         customPracticeLengthLabel: document.querySelector("#customPracticeLengthLabel"),
         customPracticeLengthInput: document.querySelector("#customPracticeLengthInput"),
         practiceEnergyInput: document.querySelector("#practiceEnergyInput"),
+        practiceDrillMixInput: document.querySelector("#practiceDrillMixInput"),
         practiceFocusInput: document.querySelector("#practiceFocusInput"),
         practiceFocusChips: document.querySelector("#practiceFocusChips"),
         practiceEquipmentInput: document.querySelector("#practiceEquipmentInput"),
@@ -2257,10 +2266,29 @@
         els.customPracticeLengthInput.value = String(totalMinutes);
         renderPracticeLengthInput();
         els.practiceEnergyInput.value = request.energy || "mixed energy";
+        els.practiceDrillMixInput.value = request.drillMix || "mix";
         els.practiceFocusInput.value = request.focus || "";
         els.practiceEquipmentInput.value = request.equipment || "";
         els.practiceWaterBreaksInput.checked = Boolean(request.includeWaterBreaks);
         els.practiceFocusInput.focus();
+      }
+
+      function recentPracticeContext(team) {
+        return (team.practicePlans || [])
+          .filter((plan) => plan.status !== "building" && Array.isArray(plan.blocks))
+          .slice(0, 4)
+          .map((plan) => ({
+            title: plan.title || "Practice Plan",
+            focus: plan.request?.focus || plan.summary || "",
+            drills: plan.blocks
+              .filter((block) => block.blockType !== "water")
+              .map((block) => ({
+                name: block.name || "Drill",
+                goal: block.goal || "",
+                minutes: Number(block.minutes || 0)
+              }))
+              .slice(0, 6)
+          }));
       }
 
       async function resumePendingPracticePlan(plan) {
@@ -2339,8 +2367,10 @@
           totalMinutes: getPracticeLengthMinutes(),
           focus,
           energy: els.practiceEnergyInput.value,
+          drillMix: els.practiceDrillMixInput.value,
           equipment: els.practiceEquipmentInput.value.trim(),
           includeWaterBreaks: els.practiceWaterBreaksInput.checked,
+          recentPlans: recentPracticeContext(team),
           team: {
             name: team.name,
             divisionName: getTeamDivision(team).divisionName,

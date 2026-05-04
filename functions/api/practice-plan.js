@@ -223,6 +223,21 @@ function fallbackPlan(input) {
 }
 
 function buildPracticePrompt(input) {
+  const drillMix = input.drillMix || "mix";
+  const recentPlans = Array.isArray(input.recentPlans) ? input.recentPlans.slice(0, 4) : [];
+  const recentDrillLines = recentPlans
+    .flatMap((plan) =>
+      (plan.drills || []).map((drill) => `- ${drill.name}: ${drill.goal || "No goal listed"} (${plan.title || "recent plan"})`)
+    )
+    .slice(0, 18)
+    .join("\n");
+  const mixInstruction =
+    drillMix === "repeat"
+      ? "Prioritize repeating 2-4 useful drills from the recent drill list, but adjust coaching points, difficulty, or progression to match today's focus. Do not copy an entire old practice plan."
+      : drillMix === "new"
+        ? "Prioritize new drill names, setups, and progressions. Avoid reusing drills from the recent drill list unless one is clearly essential."
+        : "Use a healthy mix: repeat 1-2 useful familiar drills from the recent drill list and introduce 2-4 fresh drills or fresh progressions.";
+
   return `
 Create a youth sports practice plan as JSON only.
 
@@ -232,7 +247,10 @@ Include 2-minute water breaks between drills: ${input.includeWaterBreaks ? "yes"
 Team: ${input.team?.name || "Team"} (${input.team?.divisionName || "division unknown"}, ${input.team?.playersOnField || "unknown"} on field, ${input.team?.rosterSize || "unknown"} players)
 Coach focus: ${input.focus}
 Team energy/level: ${input.energy || "mixed"}
+Drill mix preference: ${drillMix}
 Space/equipment: ${input.equipment || "not specified"}
+Recent drills for this team:
+${recentDrillLines || "- No recent drills saved yet."}
 
 Return exactly this JSON shape:
 {
@@ -264,6 +282,7 @@ Rules:
 - Count water breaks in totalMinutes.
 - If the requested practice length cannot be matched exactly with 5-minute drill blocks plus 2-minute water breaks, use the closest total below the requested time and mention the early wrap in the summary.
 - Use 4-6 drill blocks, plus water breaks if requested.
+- Follow the drill mix preference: ${mixInstruction}
 - For each drill, explain exactly where players stand, what the coach says, how reps flow, how to rotate lines/groups, and what success looks like.
 - Avoid unexplained coaching jargon. If you use a term like leverage, contain, route, or pursuit angle, explain what the coach should tell the kids to do.
 - Use big-energy, age-appropriate language.
