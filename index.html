@@ -648,7 +648,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.12.2";
+      const APP_VERSION = "v0.12.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1804,6 +1804,7 @@
                         <button class="mt-2 min-h-11 w-full rounded-md bg-violet-700 px-4 py-2 text-sm font-black text-white active:bg-violet-800 sm:w-auto" type="button" data-action="ai-swap-drill" data-block-index="${index}">
                           Create Replacement Activity
                         </button>
+                        <p class="mt-2 hidden rounded-md border border-violet-200 bg-violet-50 p-2 text-sm font-semibold text-violet-900" data-ai-swap-status="${index}"></p>
                       </div>
                     </div>
                   </details>
@@ -2004,7 +2005,7 @@
         const input = els.practicePlanResults.querySelector(`[data-ai-swap-input="${blockIndex}"]`);
         const request = input?.value.trim();
         if (!request) {
-          setPracticeAiStatus(blockIndex, "Tell Coachify what kind of replacement you want first.", "error");
+          setPracticeSwapStatus(blockIndex, "Tell Coachify what kind of replacement you want first.", "error");
           input?.focus();
           return;
         }
@@ -2014,15 +2015,15 @@
           button.disabled = true;
           button.classList.add("opacity-60");
         });
-        setPracticeAiStatus(blockIndex, "Building a replacement activity...");
+        setPracticeSwapStatus(blockIndex, "Building a replacement activity...");
 
         try {
           const response = await fetch("/api/practice-drill-help", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              mode: "reframe",
-              question: `Replace this activity with something else: ${request}`,
+              mode: "swap",
+              question: `Replace this activity with this coach request: ${request}. If the coach says "2 min drill" or "two-minute drill", interpret that as a football two-minute/game-clock situation drill, not as a request to make the activity two minutes long.`,
               plan: {
                 title: plan.title,
                 summary: plan.summary,
@@ -2039,7 +2040,7 @@
             })
           });
           const data = await readCoachifyApiJson(response, "Coachify could not build that replacement.");
-          if (!data.reframedBlock) throw new Error("Coachify answered, but did not return a replacement activity.");
+          if (!data.reframedBlock) throw new Error(data.answer || "Coachify answered, but did not return a replacement activity.");
 
           plan.blocks[blockIndex] = {
             ...block,
@@ -2060,13 +2061,30 @@
           input.value = "";
           await savePracticePlanChange(plan, "AI replacement activity saved.");
         } catch (error) {
-          setPracticeAiStatus(blockIndex, error.message || "Coachify could not build that replacement.", "error");
+          setPracticeSwapStatus(blockIndex, error.message || "Coachify could not build that replacement.", "error");
         } finally {
           buttons.forEach((button) => {
             button.disabled = false;
             button.classList.remove("opacity-60");
           });
         }
+      }
+
+      function setPracticeSwapStatus(blockIndex, message, kind = "info") {
+        const status = els.practicePlanResults.querySelector(`[data-ai-swap-status="${blockIndex}"]`);
+        if (!status) {
+          setPracticeAiStatus(blockIndex, message, kind);
+          return;
+        }
+        status.classList.remove("hidden", "border-red-200", "bg-red-50", "text-red-900", "border-violet-200", "bg-violet-50", "text-violet-900", "border-emerald-200", "bg-emerald-50", "text-emerald-900");
+        const classes =
+          kind === "error"
+            ? ["border-red-200", "bg-red-50", "text-red-900"]
+            : kind === "success"
+              ? ["border-emerald-200", "bg-emerald-50", "text-emerald-900"]
+              : ["border-violet-200", "bg-violet-50", "text-violet-900"];
+        status.classList.add(...classes);
+        status.textContent = message;
       }
 
       function setPracticeAiStatus(blockIndex, message, kind = "info") {

@@ -97,12 +97,12 @@ export async function onRequestPost({ request, env }) {
     }, 500);
   }
 
-  const mode = input.mode === "reframe" ? "reframe" : "question";
+  const mode = input.mode === "swap" ? "swap" : input.mode === "reframe" ? "reframe" : "question";
   const prompt = `
 You are Coachify, a practical assistant for volunteer youth sports coaches.
 
 Answer a coach's question about one drill. Be direct, encouraging, and field-ready.
-Keep the answer concise: 120-180 words unless the coach asks for a clearer version.
+Keep the answer concise: 120-180 words unless the coach asks for a clearer version or replacement activity.
 
 Mode: ${mode}
 Coach question: ${input.question}
@@ -130,7 +130,7 @@ Return JSON only:
   "reframedBlock": null
 }
 
-If mode is "reframe", also return "reframedBlock" with this exact shape:
+If mode is "reframe" or "swap", also return "reframedBlock" with this exact shape:
 {
   "name": "string",
   "goal": "string",
@@ -146,9 +146,13 @@ If mode is "reframe", also return "reframedBlock" with this exact shape:
 
 Rules:
 - Do not change the drill duration.
+- If mode is "swap", replace the current drill with a different activity that matches the coach's request. Do not merely rewrite the same drill.
+- If the coach says "2 min drill", "2-minute drill", or "two minute drill", interpret that as a football two-minute/game-clock situation drill, not as a request to make the activity two minutes long.
+- The returned replacement should still fit inside the existing drill's assigned practice time.
 - Do not invent equipment the coach did not mention unless you give a no-equipment alternative.
 - Assume the coach is inexperienced and needs plain steps.
-- If reframing, make the drill clearer and easier to run, not more complex.
+- If reframing or swapping, make the drill clear enough that the coach knows exactly where kids stand, what happens on the whistle, how players rotate, and what to say.
+- Avoid vague filler like "run short rounds", "create small groups", "game-like reps", or "work on the focus" unless you immediately explain the exact rep.
 `;
 
   try {
@@ -161,7 +165,7 @@ Rules:
       body: JSON.stringify({
         model: env.OPENAI_MODEL || "gpt-5-mini",
         input: prompt,
-        max_output_tokens: mode === "reframe" ? 1600 : 700,
+        max_output_tokens: mode === "reframe" || mode === "swap" ? 1800 : 700,
         text: {
           format: {
             type: "json_schema",
