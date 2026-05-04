@@ -546,7 +546,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.9.9";
+      const APP_VERSION = "v0.10.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1302,13 +1302,21 @@
           return;
         }
 
-        if (plan.status === "failed") {
+        if (plan.status === "failed" || plan.status === "needs_retry") {
           els.copyPracticePlanBtn.classList.add("hidden");
           els.practicePlanResults.innerHTML = `
             <article class="rounded-md border border-red-200 bg-red-50 p-4">
-              <p class="text-[11px] font-black uppercase tracking-wide text-red-700">Practice build failed</p>
+              <p class="text-[11px] font-black uppercase tracking-wide text-red-700">Draft needs attention</p>
               <h2 class="mt-1 text-2xl font-black text-red-950">${escapeHtml(plan.title || "Practice Plan")}</h2>
-              <p class="mt-2 text-sm font-semibold leading-6 text-red-900">${escapeHtml(plan.error || "Coachify could not finish this plan. Try building it again.")}</p>
+              <p class="mt-2 text-sm font-semibold leading-6 text-red-900">${escapeHtml(plan.error || "This draft did not complete. Remove it and build a fresh plan when you are ready.")}</p>
+              <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                <button class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="retry-practice-from-draft" data-plan-id="${plan.id}">
+                  Build Fresh Plan
+                </button>
+                <button class="min-h-11 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="remove-practice-draft" data-plan-id="${plan.id}">
+                  Remove Draft
+                </button>
+              </div>
             </article>
           `;
           return;
@@ -2125,18 +2133,18 @@
         const ageSeconds = practicePlanAgeSeconds(plan);
         const ageLabel = ageSeconds >= 60 ? `${Math.floor(ageSeconds / 60)}m ${ageSeconds % 60}s` : `${ageSeconds}s`;
         const isStale = ageSeconds >= 120;
-        const statusTitle = isResuming ? "Finishing now" : isStale ? "Needs attention" : "Building in the background";
+        const statusTitle = isResuming ? "Finishing now" : isStale ? "Draft needs attention" : "Preparing your plan";
         const statusCopy = isResuming
           ? "Coachify is making one recovery attempt now."
           : isStale
-            ? "This has taken longer than expected. You can retry once or mark it failed and build a fresh plan."
-            : "You can leave this page. Coachify will save the plan to this team when it finishes.";
-        const progressLabel = isResuming ? "Recovery attempt in progress" : isStale ? "Still not finished" : "Queued with Coachify";
+            ? "This draft took longer than expected. You can try once more or remove it and build a fresh plan."
+            : "Coachify is building the plan and will save it to this team when it finishes.";
+        const progressLabel = isResuming ? "Recovery attempt in progress" : isStale ? "Still preparing" : "Working on the plan";
         const helpCopy = isResuming
-          ? "This attempt has a 90-second limit. If it cannot finish, Coachify will show a clear error instead of staying stuck."
+          ? "This attempt has a 90-second limit. If it needs another try, Coachify will give you a clear next step."
           : isStale
-            ? "If this keeps happening, build a fresh plan and delete this stuck one after practice."
-            : "Plans usually take 30-45 seconds. If this ever gets stuck, reopening the plan will resume the build.";
+            ? "If this keeps happening, remove this draft and build a fresh plan."
+            : "Plans usually take 30-45 seconds.";
         els.practicePlanResults.innerHTML = `
           <article class="overflow-hidden rounded-md border border-emerald-200 bg-white shadow-sm">
             <div class="bg-gradient-to-r from-emerald-700 to-slate-950 p-4 text-white">
@@ -2172,10 +2180,10 @@
               </div>
               <div class="grid gap-2 sm:grid-cols-2">
                 <button class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800 disabled:opacity-50" type="button" data-action="retry-practice-build" data-plan-id="${plan.id}" ${isResuming ? "disabled" : ""}>
-                  Retry Finish
+                  Try Finish
                 </button>
-                <button class="min-h-11 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="mark-practice-build-failed" data-plan-id="${plan.id}">
-                  Mark Failed
+                <button class="min-h-11 rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="remove-practice-draft" data-plan-id="${plan.id}">
+                  Remove Draft
                 </button>
               </div>
             </div>
@@ -2202,14 +2210,14 @@
         state.practiceBuildStartedAt = null;
       }
 
-      async function markPracticePlanFailed(planId, message = "Coachify could not finish this plan. Try building a fresh one.") {
+      async function markPracticePlanNeedsRetry(planId, message = "This draft needs another try. You can remove it and build a fresh plan.") {
         const team = getSelectedTeam();
         const plan = (team?.practicePlans || []).find((item) => item.id === planId);
         if (!team || !plan) return;
 
         state.resumingPracticePlanIds.delete(plan.id);
         delete state.practiceResumeStartedAt[plan.id];
-        plan.status = "failed";
+        plan.status = "needs_retry";
         plan.error = message;
         plan.updatedAt = new Date().toISOString();
         renderPracticePlan(plan);
@@ -2217,9 +2225,42 @@
         try {
           await saveSelectedCloudTeam();
         } catch (error) {
-          console.warn("Could not save failed practice plan state", error);
+          console.warn("Could not save practice draft state", error);
         }
         setPracticeStatus(message, "error");
+      }
+
+      async function removePracticeDraft(planId) {
+        const team = getSelectedTeam();
+        if (!team) return;
+
+        state.resumingPracticePlanIds.delete(planId);
+        delete state.practiceResumeStartedAt[planId];
+        team.practicePlans = (team.practicePlans || []).filter((plan) => plan.id !== planId);
+        if (state.activePracticePlanId === planId) {
+          state.activePracticePlanId = null;
+          renderPracticePlan(null);
+        }
+        renderPracticePlanHistory();
+        await saveSelectedCloudTeam();
+        setPracticeStatus("Draft removed.", "success");
+      }
+
+      function fillPracticeFormFromDraft(plan) {
+        const request = plan?.request || {};
+        if (!request) return;
+        els.practiceNameInput.value = request.practiceName || plan.title || "";
+        els.practiceSportInput.value = request.sport || "Flag Football";
+        const totalMinutes = Number(request.totalMinutes || 60);
+        const option = [...els.practiceLengthInput.options].find((item) => Number(item.value) === totalMinutes);
+        els.practiceLengthInput.value = option ? String(totalMinutes) : "custom";
+        els.customPracticeLengthInput.value = String(totalMinutes);
+        renderPracticeLengthInput();
+        els.practiceEnergyInput.value = request.energy || "mixed energy";
+        els.practiceFocusInput.value = request.focus || "";
+        els.practiceEquipmentInput.value = request.equipment || "";
+        els.practiceWaterBreaksInput.checked = Boolean(request.includeWaterBreaks);
+        els.practiceFocusInput.focus();
       }
 
       async function resumePendingPracticePlan(plan) {
@@ -2256,16 +2297,16 @@
               teamCloudId: team.cloudId
             })
           });
-          const data = await readCoachifyApiJson(response, "Practice plan resume failed.");
+          const data = await readCoachifyApiJson(response, "Practice plan needs another try.");
 
           await loadCloudTeams();
           setPracticeStatus(data.warning || "Practice plan finished and saved.", data.warning ? "info" : "success");
         } catch (error) {
           const message =
             error.name === "AbortError"
-              ? "Coachify tried to finish this plan, but it took too long. Marking it failed so you can build a fresh one."
-              : error.message || "Practice plan resume failed.";
-          await markPracticePlanFailed(plan.id, message);
+              ? "This draft took too long to complete. Remove it and build a fresh plan when you are ready."
+              : error.message || "Practice plan needs another try.";
+          await markPracticePlanNeedsRetry(plan.id, message);
         } finally {
           if (timeoutId) window.clearTimeout(timeoutId);
           state.resumingPracticePlanIds.delete(plan.id);
@@ -2308,59 +2349,41 @@
             skillMix: team.roster.map((player) => Number(player.skill || 3))
           }
         };
-        const planId = makeId("practice");
-        const pendingPlan = {
-          id: planId,
-          title: payload.practiceName || `${payload.sport || "Team"} Practice Plan`,
-          totalMinutes: payload.totalMinutes,
-          summary: `Building a plan focused on ${payload.focus}.`,
-          status: "building",
-          blocks: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          request: payload
-        };
-        team.practicePlans = [pendingPlan, ...(team.practicePlans || [])].slice(0, 20);
-        renderPracticePlan(pendingPlan);
-        renderPracticePlanHistory();
-
         els.buildPracticePlanBtn.disabled = true;
-        els.buildPracticePlanBtn.textContent = "Starting Build...";
-        setPracticeStatus("Starting the background build. You can leave this page once it is queued.");
+        els.buildPracticePlanBtn.textContent = "Building...";
+        setPracticeStatus("Coachify is building your plan now. Keep this page open until it saves.");
         startPracticeBuildLoading(payload);
 
         try {
-          await saveSelectedCloudTeam();
           const response = await fetch("/api/practice-plan", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${session.access_token}`
             },
-            body: JSON.stringify({
-              ...payload,
-              async: true,
-              planId,
-              teamCloudId: team.cloudId
-            })
+            body: JSON.stringify(payload)
           });
-          const data = await readCoachifyApiJson(response, "Practice plan failed.");
+          const data = await readCoachifyApiJson(response, "Practice plan did not finish.");
+          const now = new Date().toISOString();
+          const completedPlan = {
+            ...(data.plan || {}),
+            id: makeId("practice"),
+            title: payload.practiceName || data.plan?.title || `${payload.sport || "Team"} Practice Plan`,
+            status: "ready",
+            createdAt: now,
+            updatedAt: now,
+            request: payload,
+            warning: data.warning || null
+          };
 
-          renderPracticePlan(pendingPlan);
+          team.practicePlans = [completedPlan, ...(team.practicePlans || []).filter((plan) => plan.status !== "building")].slice(0, 20);
+          await saveSelectedCloudTeam();
+          renderPracticePlan(completedPlan);
           renderPracticePlanHistory();
-          setPracticeStatus(data.queued ? "Practice plan is building in the background and will save automatically." : "Practice plan saved to this team.", "success");
+          setPracticeStatus(data.warning || "Practice plan saved to this team.", data.warning ? "info" : "success");
         } catch (error) {
-          pendingPlan.status = "failed";
-          pendingPlan.error = error.message || "Practice plan failed.";
-          pendingPlan.updatedAt = new Date().toISOString();
-          renderPracticePlan(pendingPlan);
-          renderPracticePlanHistory();
-          try {
-            await saveSelectedCloudTeam();
-          } catch (saveError) {
-            console.warn("Could not save failed practice plan state", saveError);
-          }
-          setPracticeStatus(error.message || "Practice plan failed.", "error");
+          renderPracticePlan(null);
+          setPracticeStatus(error.message || "Practice plan did not finish. Try again with a little more detail.", "error");
         } finally {
           stopPracticeBuildLoading();
           els.buildPracticePlanBtn.disabled = false;
@@ -3567,8 +3590,14 @@
             if (plan) resumePendingPracticePlan(plan);
           }
 
-          if (button.dataset.action === "mark-practice-build-failed") {
-            markPracticePlanFailed(button.dataset.planId, "Practice plan marked failed. Build a fresh plan when you are ready.");
+          if (button.dataset.action === "remove-practice-draft") {
+            removePracticeDraft(button.dataset.planId);
+          }
+
+          if (button.dataset.action === "retry-practice-from-draft") {
+            const plan = (getSelectedTeam()?.practicePlans || []).find((item) => item.id === button.dataset.planId);
+            fillPracticeFormFromDraft(plan);
+            removePracticeDraft(button.dataset.planId);
           }
 
           if (button.dataset.action === "adjust-drill-time") {
