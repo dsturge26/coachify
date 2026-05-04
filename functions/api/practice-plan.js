@@ -333,7 +333,11 @@ async function responseErrorMessage(response, fallback) {
 
   try {
     const data = JSON.parse(text);
-    return data.error?.message || data.message || data.error || fallback;
+    const message = data.error?.message || data.message || data.error || fallback;
+    if (String(message).includes("teams.practice_plans")) {
+      return "Practice plan storage is not set up yet. In Supabase, run supabase_practice_plans.sql, then try again.";
+    }
+    return message;
   } catch (error) {
     const preview = text.replace(/\s+/g, " ").slice(0, 240);
     return preview ? `${fallback} ${preview}` : fallback;
