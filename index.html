@@ -34,13 +34,11 @@
         min-height: 100dvh;
         overscroll-behavior-y: none;
         padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
+        padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
       }
 
       .app-surface {
-        background:
-          linear-gradient(180deg, rgba(15, 118, 110, 0.08) 0, rgba(15, 118, 110, 0) 17rem),
-          #f6f8fc;
+        background: #f7f9fc;
       }
 
       .app-card {
@@ -74,29 +72,39 @@
       }
 
       .team-tabbar {
-        position: sticky;
-        bottom: max(0.75rem, env(safe-area-inset-bottom));
+        position: fixed;
+        left: 50%;
+        right: auto;
+        bottom: max(0.65rem, env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        width: min(calc(100vw - 1.5rem), 34rem);
         z-index: 30;
-        box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+        padding-bottom: env(safe-area-inset-bottom);
       }
 
       .coach-shell {
-        display: grid;
-        gap: 1rem;
+        display: block;
       }
 
       .nav-label {
         display: block;
-        font-size: 0.7rem;
+        font-size: 0.68rem;
         font-weight: 900;
         letter-spacing: 0.02em;
         line-height: 1;
       }
 
       .nav-icon {
-        display: block;
-        font-size: 1.15rem;
+        display: grid;
+        place-items: center;
         line-height: 1;
+      }
+
+      .nav-svg {
+        height: 1.25rem;
+        width: 1.25rem;
+        stroke-width: 2.25;
       }
 
       button,
@@ -122,23 +130,9 @@
         outline-offset: 2px;
       }
 
-      @media (min-width: 640px) {
-        .team-tabbar {
-          top: 0.75rem;
-          bottom: auto;
-        }
-      }
-
       @media (min-width: 1024px) {
-        .coach-shell {
-          grid-template-columns: 11rem minmax(0, 1fr);
-          align-items: start;
-        }
-
         .team-tabbar {
-          top: 1rem;
-          grid-template-columns: 1fr;
-          width: 100%;
+          width: min(34rem, calc(100vw - 2rem));
         }
       }
 
@@ -152,8 +146,8 @@
     </style>
   </head>
   <body class="app-surface min-h-screen text-slate-950">
-    <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-4 pb-24 sm:px-6 sm:py-6">
-      <header class="relative mb-5 flex flex-col gap-4 rounded-md border border-white/80 bg-white/80 p-4 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+    <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-4 pb-28 sm:px-6 sm:py-6">
+      <header class="relative mb-4 flex flex-col gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <p id="appVersionBadge" class="absolute right-3 top-3 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"></p>
         <div class="flex items-center gap-3">
           <div class="brand-mark" aria-hidden="true"></div>
@@ -176,7 +170,7 @@
               </button>
             </div>
           </div>
-          <div id="headerSignedInControls" class="hidden rounded-md bg-white p-3 shadow-sm">
+          <div id="headerSignedInControls" class="hidden rounded-md border border-slate-200 bg-white p-3">
             <p id="headerSignedInLabel" class="text-sm font-bold text-slate-800"></p>
             <div class="mt-2 grid gap-2 sm:grid-cols-2">
               <button id="installAppBtn" class="hidden min-h-10 rounded-md bg-emerald-700 px-3 py-2 text-sm font-semibold text-white active:bg-emerald-800" type="button">
@@ -227,8 +221,8 @@
         <p id="cloudStatus" class="text-sm font-semibold text-slate-700">Not signed in.</p>
       </section>
 
-      <section id="teamEditorView" class="hidden space-y-4">
-        <section class="rounded-md border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <section id="teamEditorView" class="hidden space-y-3">
+        <section class="rounded-md border border-slate-200 bg-white/90 p-3 sm:p-4">
           <div class="grid gap-3">
             <label class="block sm:flex sm:items-center sm:gap-3">
               <span class="text-xs font-black uppercase tracking-wide text-slate-500 sm:w-28">Current team</span>
@@ -258,19 +252,46 @@
         <div class="coach-shell">
         <div class="team-tabbar grid grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white/95 p-1 backdrop-blur">
           <button id="homeTabBtn" class="min-h-14 rounded-md bg-slate-900 px-2 py-2 text-white" type="button">
-            <span class="nav-icon" aria-hidden="true">H</span>
+            <span class="nav-icon" aria-hidden="true">
+              <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 10.75 12 3l9 7.75" />
+                <path d="M5.5 10.5V20h13v-9.5" />
+                <path d="M9.5 20v-6h5v6" />
+              </svg>
+            </span>
             <span class="nav-label">Home</span>
           </button>
           <button id="gameDayTabBtn" class="min-h-14 rounded-md px-2 py-2 text-slate-700" type="button">
-            <span class="nav-icon" aria-hidden="true">G</span>
+            <span class="nav-icon" aria-hidden="true">
+              <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+                <path d="M8 8h8" />
+                <path d="M8 12h5" />
+                <path d="M8 16h7" />
+              </svg>
+            </span>
             <span class="nav-label">Game</span>
           </button>
           <button id="practicePlanTabBtn" class="min-h-14 rounded-md px-2 py-2 text-slate-700" type="button">
-            <span class="nav-icon" aria-hidden="true">P</span>
+            <span class="nav-icon" aria-hidden="true">
+              <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 3v5" />
+                <path d="M7 8h10" />
+                <path d="M8 8l-2 9a3 3 0 0 0 3 4h6a3 3 0 0 0 3-4l-2-9" />
+                <path d="M9 14h6" />
+              </svg>
+            </span>
             <span class="nav-label">Practice</span>
           </button>
           <button id="setupTabBtn" class="min-h-14 rounded-md px-2 py-2 text-slate-700" type="button">
-            <span class="nav-icon" aria-hidden="true">T</span>
+            <span class="nav-icon" aria-hidden="true">
+              <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M16 11a4 4 0 1 0-8 0" />
+                <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+                <path d="M18 8.5a3 3 0 0 1 3 3" />
+                <path d="M21.5 20a5.5 5.5 0 0 0-3.25-5" />
+              </svg>
+            </span>
             <span class="nav-label">Team</span>
           </button>
         </div>
@@ -649,7 +670,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.12.7";
+      const APP_VERSION = "v0.12.8";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -2846,8 +2867,8 @@
         els.setupPanel.classList.toggle("hidden", !isSetup);
         const setButton = (button, active) => {
           button.className = active
-            ? "min-h-14 rounded-md bg-slate-900 px-2 py-2 text-white shadow-sm"
-            : "min-h-14 rounded-md px-2 py-2 text-slate-700 active:bg-slate-100";
+            ? "min-h-14 rounded-md bg-slate-950 px-2 py-2 text-white shadow-sm"
+            : "min-h-14 rounded-md px-2 py-2 text-slate-500 active:bg-slate-100";
         };
         setButton(els.homeTabBtn, isHome);
         setButton(els.gameDayTabBtn, isGame);
