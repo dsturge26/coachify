@@ -155,6 +155,10 @@ function normalizedFocusText(input) {
   return String(input?.focus || "").toLowerCase();
 }
 
+function wantsOffensivePlayReps(input) {
+  return /\b(offense|offensive|playbook|huddle|drive|drives|scrimmage|game reps|real game reps|run plays|running plays|2 minute|2-minute|two minute)\b/.test(normalizedFocusText(input));
+}
+
 function practicePlayerCount(input) {
   return Math.max(
     1,
@@ -186,6 +190,12 @@ function focusThemes(input) {
     if (!themes.includes(theme)) themes.push(theme);
   };
 
+  if (wantsOffensivePlayReps(input)) {
+    add("snaps");
+    add("handoffs");
+    add("offensePlayReps");
+    add("catching");
+  }
   if (/flag|pull|tackle|hip|swipe/.test(focus)) add("flagPulling");
   if (/handoff|exchange|fake|mesh|alligator|belly/.test(focus)) add("handoffs");
   if (/snap|center|qb|quarterback/.test(focus)) add("snaps");
@@ -200,7 +210,14 @@ function concreteThemeDrill(theme, minutes, input, seed, offset) {
   const count = practicePlayerCount(input);
   const stations = stationPlan(count);
   const focus = input.focus || "today's focus";
+  const playersOnField = Math.max(4, Number(input?.team?.playersOnField || Math.min(6, count)));
+  const sidelineCount = Math.max(0, count - playersOnField);
+  const offenseSetup =
+    count >= playersOnField
+      ? `Use ${playersOnField} offensive players at a time. Set a huddle cone 5 yards behind the line of scrimmage, one line-of-scrimmage cone, and two finish cones 10-15 yards downfield. Put QB, Center, RB/runner, and receivers in the same spots they use in your playbook. The other ${sidelineCount} player${sidelineCount === 1 ? "" : "s"} wait at a sideline sub cone; if you want bodies in the way, they can stand as half-speed dummy defenders.`
+      : `Use all ${count} players on offense. Set a huddle cone 5 yards behind the line of scrimmage, one line-of-scrimmage cone, and two finish cones 10-15 yards downfield. Fill QB, Center, runner, and receiver spots first, then use any extra player as the next-up sub.`;
   const names = {
+    offensePlayReps: ["Huddle-to-Play Script Reps", "Call It, Line Up, Run It", "Mini-Drive Offensive Reps"],
     flagPulling: ["Hip Tap to Live Pull Alley", "Belly Button Breakdown Alley", "Two-Hand Flag Finish"],
     handoffs: ["Belly Pocket Edge Race", "Clamp and Go Handoff Alley", "No-Crash Handoff Lane"],
     snaps: ["Snap-Set-Go Relay", "Clean Snap Launch Lines", "Center-QB Start Circuit"],
@@ -211,6 +228,19 @@ function concreteThemeDrill(theme, minutes, input, seed, offset) {
   const name = pickSeeded(names[theme] || names.flagPulling, seed, offset);
 
   const templates = {
+    offensePlayReps: makeDrill(
+      minutes,
+      name,
+      "Run real offensive plays from the huddle through the snap, exchange, route, or handoff so practice looks like game day.",
+      offenseSetup,
+      "Coach calls one real play from your playbook. Players huddle, break the huddle, line up, snap the ball, and run the play all the way through the finish cones. After the rep, the ball carrier or target sprints to the sideline sub cone, the next player comes in, and the group has 10 seconds to huddle for the next play. Run 3-4 called plays repeatedly instead of inventing a new drill.",
+      "Huddle, hear the play, line up fast, snap it, run it, reset.",
+      "Watch the same game-day details every rep: fast huddle break, correct color/position spots, clean snap, clean handoff or route, and everyone finishing forward. If the play breaks down, fix the first mistake only, then run the same play again immediately.",
+      "Players can hear a play call, get to the right spot, start on the snap, and finish the play without the coach walking everyone into place.",
+      "Kids wander after the play, receivers forget their spot, the QB/Center rushes the snap, or the coach changes plays before the team gets one clean rep.",
+      "Remove defenders and walk through the first rep. Use play numbers or colors if kids do not know play names yet.",
+      "Add a 10-second huddle clock, half-speed dummy defenders, or a rule that the offense must run the same play twice cleanly before changing plays."
+    ),
     flagPulling: makeDrill(
       minutes,
       name,
@@ -323,6 +353,14 @@ function ensurePracticePlanQuality(plan, input) {
   const drillBlocks = plan.blocks.filter((block) => block.blockType !== "water");
   const weakBlocks = drillBlocks.filter(vaguePracticeBlock);
   if (weakBlocks.length) return fallbackPlan(input);
+  if (wantsOffensivePlayReps(input)) {
+    const hasPlayRepBlock = drillBlocks.some((block) =>
+      /\b(huddle|playbook|called plays|real play|offensive play|line of scrimmage|mini-drive|drive|snap the ball)\b/i.test(
+        [block.name, block.goal, block.setup, block.instructions, block.coachingPoints].join(" ")
+      )
+    );
+    if (!hasPlayRepBlock) return fallbackPlan(input);
+  }
   return plan;
 }
 
@@ -518,6 +556,9 @@ Rules:
 - Do not copy a reference blindly. Adapt it to the selected team's age, player count, practice length, and requested focus.
 - This must feel customized to today's exact focus, roster count, equipment, and practice blueprint. Do not give a generic practice template.
 - A coach should be able to walk onto the field and run the drill from the card without inventing missing details.
+- If the coach asks for offense, offensive reps, real game reps, running plays, playbook work, huddle speed, drives, or scrimmage-like offense, the plan must include at least one explicit offensive play-rep block. That block must have kids huddle, hear a real play call, line up in offensive positions, snap the ball, run the called play, finish the rep, rotate/sub, and reset for the next play.
+- For offensive play-rep blocks, do not substitute generic skill stations. Use the coach's own playbook/play names if provided. If no play names are provided, tell the coach to use "Play 1 / Play 2 / Play 3" or their printed play card.
+- If the coach asks for "real game reps on offense," include game-day mechanics: huddle, line of scrimmage, QB, Center, runner/receivers, cadence/snap, play finish, sideline sub/reset, and a 10-second reset or huddle clock.
 - Each drill setup must include: cone layout or field landmark, approximate distance/size, exact starting spots, and how to split the expected player count.
 - Each drill instructions field must include: what happens on the coach's command, what one rep looks like, and exactly how players rotate after the rep.
 - Each coachScript must be a real sentence the coach can say out loud to kids. Do not write strategy notes there.
