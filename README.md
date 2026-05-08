@@ -20,6 +20,7 @@ Production app: https://coachify-app.com/
 - `supabase_accept_invite_fix.sql` - small SQL patch for invite acceptance issues
 - `supabase_invite_debug.sql` - SQL checks for invite troubleshooting
 - `supabase_invite_force_accept.sql` - emergency helper to grant assistant access from a pending invite
+- `supabase_leave_team.sql` - assistant self-service leave-team helper
 - `supabase_division_settings.sql` - per-team division and field-size settings
 - `supabase_delete_teams.sql` - head-coach team deletion policy
 - `supabase_practice_plans.sql` - saved AI-generated practice plans

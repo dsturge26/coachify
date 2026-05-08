@@ -233,9 +233,14 @@
                 <p id="coachRoleBadge" class="rounded-md bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800"></p>
                 <p id="teamStorageBadge" class="rounded-md bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800"></p>
               </div>
-              <button id="showInviteCardBtn" class="hidden min-h-11 rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white active:bg-emerald-800" type="button">
-                Share Team
-              </button>
+              <div class="flex flex-col gap-2 sm:flex-row">
+                <button id="showInviteCardBtn" class="hidden min-h-11 rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white active:bg-emerald-800" type="button">
+                  Share Team
+                </button>
+                <button id="leaveTeamBtn" class="hidden min-h-11 rounded-md border border-red-200 px-4 py-2 font-semibold text-red-700 active:bg-red-50" type="button">
+                  Leave Team
+                </button>
+              </div>
             </div>
             <div id="gameDayInviteCard" class="hidden rounded-md border border-emerald-200 bg-emerald-50 p-3">
               <p class="text-sm font-bold text-emerald-950">Invite an assistant coach by email. They will see the invitation after signing in.</p>
@@ -687,7 +692,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.13.2";
+      const APP_VERSION = "v0.13.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1065,6 +1070,7 @@
         gameDayTeamSelect: document.querySelector("#gameDayTeamSelect"),
         coachRoleBadge: document.querySelector("#coachRoleBadge"),
         showInviteCardBtn: document.querySelector("#showInviteCardBtn"),
+        leaveTeamBtn: document.querySelector("#leaveTeamBtn"),
         gameDayInviteCard: document.querySelector("#gameDayInviteCard"),
         gameDayInviteEmailInput: document.querySelector("#gameDayInviteEmailInput"),
         sendGameDayInviteBtn: document.querySelector("#sendGameDayInviteBtn"),
@@ -1687,6 +1693,38 @@
         setAppStatus(`${email} no longer has access to ${team.name}.`, "success");
         await loadCloudTeams();
         await loadTeamAccessForSelectedTeam({ renderAfter: true });
+      }
+
+      async function leaveSelectedTeam() {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !isAssistantCoach(team)) {
+          setAppStatus("Only assistant coaches can leave a shared team here.", "warning");
+          return;
+        }
+
+        const teamName = team.name || "this team";
+        const confirmed = confirm(`Leave ${teamName}?\n\nYou will no longer see this team unless the head coach invites you again.`);
+        if (!confirmed) return;
+
+        const { error } = await cloud.rpc("leave_team_as_assistant", {
+          p_team_id: team.cloudId
+        });
+
+        if (error) {
+          setAppStatus(error.message.includes("leave_team_as_assistant")
+            ? "Leaving a team needs the latest Supabase SQL update."
+            : error.message, "danger");
+          return;
+        }
+
+        state.teams = state.teams.filter((item) => item.cloudId !== team.cloudId);
+        state.memberships = state.memberships.filter((membership) => membership.team_id !== team.cloudId);
+        state.selectedTeamId = state.teams[0]?.id || null;
+        state.activeTeamTab = "home";
+        state.teamAccess = [];
+        saveState();
+        setAppStatus(`You left ${teamName}.`, "success");
+        await loadCloudTeams();
       }
 
       async function saveSelectedCloudTeam() {
@@ -3029,6 +3067,12 @@
         return membership?.role === "head";
       }
 
+      function isAssistantCoach(team = getSelectedTeam()) {
+        if (!team?.cloudId) return false;
+        const membership = state.memberships.find((item) => item.team_id === team.cloudId);
+        return membership?.role === "assistant";
+      }
+
       function roleLabel(team = getSelectedTeam()) {
         if (!team?.cloudId) return "Account required";
         if (team.createdBy && team.createdBy === state.user?.id) return "Head coach";
@@ -4156,6 +4200,7 @@
           : "rounded-md bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800";
         els.deleteTeamBtn.classList.toggle("hidden", !headCoach);
         els.showInviteCardBtn.classList.toggle("hidden", !team.cloudId || !headCoach);
+        els.leaveTeamBtn.classList.toggle("hidden", !team.cloudId || !isAssistantCoach(team));
         els.gameDayInviteCard.classList.add("hidden");
         els.lineupPlannerSection.classList.toggle("hidden", !headCoach);
         els.sharedLineupSection.classList.toggle("hidden", headCoach);
@@ -4246,6 +4291,7 @@
             loadTeamAccessForSelectedTeam();
           }
         });
+        els.leaveTeamBtn.addEventListener("click", leaveSelectedTeam);
         els.sendGameDayInviteBtn.addEventListener("click", () => {
           sendTeamInvite(els.gameDayInviteEmailInput);
         });
