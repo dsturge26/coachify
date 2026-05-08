@@ -692,7 +692,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.13.3";
+      const APP_VERSION = "v0.13.4";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1480,7 +1480,10 @@
 
         if (error) {
           state.teamAccess = [];
-          if (renderAfter) renderTeamAccess(error.message);
+          const message = error.message.includes("list_team_access_for_head")
+            ? "Team access management needs the latest Supabase SQL update. Run supabase_team_access_management.sql, then try again."
+            : error.message;
+          if (renderAfter) renderTeamAccess(message);
           return;
         }
 
@@ -1537,7 +1540,7 @@
           html = `
             <div class="rounded-md bg-white/80 p-3">
               <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Team access</p>
-              <p class="mt-1 text-sm font-semibold text-emerald-950">See who can open this team and manage pending invitations.</p>
+              <p class="mt-1 text-sm font-semibold text-emerald-950">See who can open this team, cancel pending invites, or remove assistant access.</p>
               <div class="mt-2 grid gap-2">
                 ${accessRows.map((row) => {
                   const isMember = row.access_type === "member";
@@ -1554,7 +1557,7 @@
                       : "bg-slate-100 text-slate-700";
                   const date = row.updated_at || row.created_at;
                   const action = isMember && !isHead
-                    ? `<button class="min-h-10 rounded-md border border-red-200 px-3 py-2 text-sm font-bold text-red-700 active:bg-red-50" type="button" data-action="remove-team-access" data-user-id="${escapeHtml(row.user_id)}" data-email="${escapeHtml(email)}">Remove</button>`
+                    ? `<button class="min-h-10 rounded-md border border-red-200 px-3 py-2 text-sm font-bold text-red-700 active:bg-red-50" type="button" data-action="remove-team-access" data-user-id="${escapeHtml(row.user_id)}" data-email="${escapeHtml(email)}">Remove access</button>`
                     : (!isMember && isPending)
                       ? `<button class="min-h-10 rounded-md border border-amber-300 px-3 py-2 text-sm font-bold text-amber-800 active:bg-amber-50" type="button" data-action="revoke-team-invite" data-invite-id="${escapeHtml(row.invite_id || row.id)}" data-email="${escapeHtml(email)}">Cancel invite</button>`
                       : "";
@@ -1685,7 +1688,7 @@
 
         if (error) {
           setAppStatus(error.message.includes("remove_team_assistant")
-            ? "Team access management needs the latest Supabase SQL update."
+            ? "Team access management needs the latest Supabase SQL update. Run supabase_team_access_management.sql, then try again."
             : error.message, "danger");
           return;
         }
@@ -3095,8 +3098,10 @@
 
       function orderedLineupEntries(lineup, side) {
         if (side === "offense") {
-          const order = ["QB", "WR1", "WR2", "WR3", "Center", "RB", "OP7", "OP8"];
-          return order.filter((position) => lineup[position]).map((position) => [position, lineup[position]]);
+          const order = ["QB", "Center", "WR1", "WR2", "WR3", "RB", "OP7", "OP8"];
+          const ordered = order.filter((position) => lineup[position]).map((position) => [position, lineup[position]]);
+          const remaining = Object.entries(lineup).filter(([position]) => !order.includes(position));
+          return [...ordered, ...remaining];
         }
         return Object.entries(lineup);
       }
