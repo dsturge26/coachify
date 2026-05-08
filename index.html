@@ -687,7 +687,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.13.0";
+      const APP_VERSION = "v0.13.2";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -991,7 +991,7 @@
         user: null,
         memberships: [],
         pendingInvites: [],
-        sentInvites: [],
+        teamAccess: [],
         cloudChannel: null,
         deferredInstallPrompt: null,
         activePracticePlanId: null,
@@ -1398,7 +1398,7 @@
         renderCloudStatus();
         render();
         subscribeToSelectedCloudTeam();
-        await loadSentInvitesForSelectedTeam({ renderAfter: true });
+        await loadTeamAccessForSelectedTeam({ renderAfter: true });
       }
 
       async function loadPendingInvites({ renderAfter = true } = {}) {
@@ -1437,17 +1437,17 @@
         if (renderAfter) renderPendingInvites();
       }
 
-      async function loadSentInvitesForSelectedTeam({ renderAfter = true } = {}) {
+      async function loadTeamAccessForSelectedTeam({ renderAfter = true } = {}) {
         const team = getSelectedTeam();
         if (!team?.cloudId || !isHeadCoach(team)) {
-          state.sentInvites = [];
-          if (renderAfter) renderSentInvites();
+          state.teamAccess = [];
+          if (renderAfter) renderTeamAccess();
           return;
         }
 
         let data = null;
         let error = null;
-        const rpcResult = await cloud.rpc("list_team_invites_for_head", {
+        const rpcResult = await cloud.rpc("list_team_access_for_head", {
           p_team_id: team.cloudId
         });
 
@@ -1459,18 +1459,27 @@
             .select("id, team_id, team_name, invited_email, role, status, created_at, updated_at")
             .eq("team_id", team.cloudId)
             .order("created_at", { ascending: false });
-          data = directResult.data;
+          data = (directResult.data || []).map((invite) => ({
+            access_type: "invite",
+            invite_id: invite.id,
+            user_id: null,
+            email: invite.invited_email,
+            role: invite.role,
+            status: invite.status,
+            created_at: invite.created_at,
+            updated_at: invite.updated_at
+          }));
           error = directResult.error;
         }
 
         if (error) {
-          state.sentInvites = [];
-          if (renderAfter) renderSentInvites(error.message);
+          state.teamAccess = [];
+          if (renderAfter) renderTeamAccess(error.message);
           return;
         }
 
-        state.sentInvites = data || [];
-        if (renderAfter) renderSentInvites();
+        state.teamAccess = data || [];
+        if (renderAfter) renderTeamAccess();
       }
 
       function renderPendingInvites() {
@@ -1508,33 +1517,51 @@
         `;
       }
 
-      function renderSentInvites(errorMessage = "") {
+      function renderTeamAccess(errorMessage = "") {
         const targets = [els.gameDaySentInvitesList, els.setupSentInvitesList].filter(Boolean);
         if (targets.length === 0) return;
 
-        const invites = state.sentInvites || [];
+        const accessRows = state.teamAccess || [];
         let html = "";
         if (errorMessage) {
-          html = `<p class="rounded-md bg-red-50 p-3 text-sm font-bold text-red-900">Could not load sent invites: ${escapeHtml(errorMessage)}</p>`;
-        } else if (invites.length === 0) {
-          html = `<p class="rounded-md bg-white/70 p-3 text-sm font-bold text-emerald-950">No invites sent for this team yet.</p>`;
+          html = `<p class="rounded-md bg-red-50 p-3 text-sm font-bold text-red-900">Could not load team access: ${escapeHtml(errorMessage)}</p>`;
+        } else if (accessRows.length === 0) {
+          html = `<p class="rounded-md bg-white/70 p-3 text-sm font-bold text-emerald-950">No assistant access or pending invites yet.</p>`;
         } else {
           html = `
             <div class="rounded-md bg-white/80 p-3">
-              <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Sent invites</p>
+              <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Team access</p>
+              <p class="mt-1 text-sm font-semibold text-emerald-950">See who can open this team and manage pending invitations.</p>
               <div class="mt-2 grid gap-2">
-                ${invites.map((invite) => {
-                  const statusStyles = invite.status === "accepted"
+                ${accessRows.map((row) => {
+                  const isMember = row.access_type === "member";
+                  const isHead = row.role === "head";
+                  const isPending = row.status === "pending";
+                  const email = row.email || row.invited_email || "Unknown coach";
+                  const label = isMember
+                    ? (isHead ? "Head coach" : "Assistant coach")
+                    : (isPending ? "Pending invite" : `${row.status || "Invite"}`);
+                  const statusStyles = isMember || row.status === "accepted"
                     ? "bg-emerald-100 text-emerald-900"
-                    : "bg-amber-100 text-amber-900";
-                  const date = invite.updated_at || invite.created_at;
+                    : isPending
+                      ? "bg-amber-100 text-amber-900"
+                      : "bg-slate-100 text-slate-700";
+                  const date = row.updated_at || row.created_at;
+                  const action = isMember && !isHead
+                    ? `<button class="min-h-10 rounded-md border border-red-200 px-3 py-2 text-sm font-bold text-red-700 active:bg-red-50" type="button" data-action="remove-team-access" data-user-id="${escapeHtml(row.user_id)}" data-email="${escapeHtml(email)}">Remove</button>`
+                    : (!isMember && isPending)
+                      ? `<button class="min-h-10 rounded-md border border-amber-300 px-3 py-2 text-sm font-bold text-amber-800 active:bg-amber-50" type="button" data-action="revoke-team-invite" data-invite-id="${escapeHtml(row.invite_id || row.id)}" data-email="${escapeHtml(email)}">Cancel invite</button>`
+                      : "";
                   return `
-                    <div class="flex flex-col gap-1 rounded-md border border-emerald-100 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex flex-col gap-2 rounded-md border border-emerald-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p class="font-bold text-slate-950">${escapeHtml(invite.invited_email)}</p>
+                        <p class="font-bold text-slate-950">${escapeHtml(email)}</p>
                         <p class="text-xs font-semibold text-slate-500">${date ? escapeHtml(new Date(date).toLocaleString()) : ""}</p>
                       </div>
-                      <span class="w-fit rounded-md px-2 py-1 text-xs font-black uppercase tracking-wide ${statusStyles}">${escapeHtml(invite.status || "pending")}</span>
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="w-fit rounded-md px-2 py-1 text-xs font-black uppercase tracking-wide ${statusStyles}">${escapeHtml(label)}</span>
+                        ${action}
+                      </div>
                     </div>
                   `;
                 }).join("")}
@@ -1551,12 +1578,19 @@
       async function acceptTeamInvite(inviteId) {
         if (!inviteId || !state.user) return;
 
-        const { error } = await cloud.rpc("accept_team_invite", {
+        setAppStatus("Accepting team invite...", "info");
+        const { data, error } = await cloud.rpc("accept_team_invite", {
           p_invite_id: inviteId
         });
 
         if (error) {
           setAppStatus(error.message, "danger");
+          return;
+        }
+
+        if (!data) {
+          setAppStatus("Coachify could not confirm the invite was accepted. Refresh and try again.", "warning");
+          await loadPendingInvites();
           return;
         }
 
@@ -1601,7 +1635,58 @@
         input.value = "";
         setAppStatus(`Invite sent to ${email}. They need to sign in with that exact email, then accept the team invitation.`, "success");
         await loadPendingInvites({ renderAfter: true });
-        await loadSentInvitesForSelectedTeam({ renderAfter: true });
+        await loadTeamAccessForSelectedTeam({ renderAfter: true });
+      }
+
+      async function revokeTeamInvite(inviteId, email = "this coach") {
+        if (!inviteId) return;
+        const confirmed = confirm(`Cancel the pending invite for ${email}?`);
+        if (!confirmed) return;
+
+        let error = null;
+        const rpcResult = await cloud.rpc("revoke_team_invite", {
+          p_invite_id: inviteId
+        });
+
+        if (rpcResult.error) {
+          const directResult = await cloud
+            .from("team_invites")
+            .update({ status: "revoked" })
+            .eq("id", inviteId);
+          error = directResult.error;
+        }
+
+        if (error) {
+          setAppStatus(error.message, "danger");
+          return;
+        }
+
+        setAppStatus(`Invite cancelled for ${email}.`, "success");
+        await loadTeamAccessForSelectedTeam({ renderAfter: true });
+      }
+
+      async function removeTeamAccess(userId, email = "this coach") {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !userId) return;
+
+        const confirmed = confirm(`Remove ${email} from ${team.name}? They will no longer see this team.`);
+        if (!confirmed) return;
+
+        const { error } = await cloud.rpc("remove_team_assistant", {
+          p_team_id: team.cloudId,
+          p_user_id: userId
+        });
+
+        if (error) {
+          setAppStatus(error.message.includes("remove_team_assistant")
+            ? "Team access management needs the latest Supabase SQL update."
+            : error.message, "danger");
+          return;
+        }
+
+        setAppStatus(`${email} no longer has access to ${team.name}.`, "success");
+        await loadCloudTeams();
+        await loadTeamAccessForSelectedTeam({ renderAfter: true });
       }
 
       async function saveSelectedCloudTeam() {
@@ -2922,12 +3007,13 @@
         state.activeTeamTab = normalizeTeamTab(tab);
         if (changedTeam) {
           state.activePracticePlanId = null;
-          state.sentInvites = [];
+          state.teamAccess = [];
           stopPracticeBuildLoading();
         }
         saveState();
         render();
         subscribeToSelectedCloudTeam();
+        loadTeamAccessForSelectedTeam();
       }
 
       function getSelectedMembership() {
@@ -4079,7 +4165,7 @@
         els.buildPracticePlanBtn.disabled = !headCoach;
         els.buildPracticePlanBtn.classList.toggle("opacity-50", !headCoach);
         els.inviteCodePanel.classList.toggle("hidden", !team.cloudId || !headCoach);
-        renderSentInvites();
+        renderTeamAccess();
         if (!headCoach && normalizeTeamTab(state.activeTeamTab) === "team") {
           state.activeTeamTab = "home";
         }
@@ -4157,7 +4243,7 @@
         els.showInviteCardBtn.addEventListener("click", () => {
           els.gameDayInviteCard.classList.toggle("hidden");
           if (!els.gameDayInviteCard.classList.contains("hidden")) {
-            loadSentInvitesForSelectedTeam();
+            loadTeamAccessForSelectedTeam();
           }
         });
         els.sendGameDayInviteBtn.addEventListener("click", () => {
@@ -4166,6 +4252,18 @@
         els.sendSetupInviteBtn.addEventListener("click", () => {
           sendTeamInvite(els.setupInviteEmailInput);
         });
+        const handleAccessClick = (event) => {
+          const button = event.target.closest("button[data-action]");
+          if (!button) return;
+          if (button.dataset.action === "revoke-team-invite") {
+            revokeTeamInvite(button.dataset.inviteId, button.dataset.email);
+          }
+          if (button.dataset.action === "remove-team-access") {
+            removeTeamAccess(button.dataset.userId, button.dataset.email);
+          }
+        };
+        els.gameDaySentInvitesList.addEventListener("click", handleAccessClick);
+        els.setupSentInvitesList.addEventListener("click", handleAccessClick);
 
         els.homeTabBtn.addEventListener("click", () => {
           setActiveTeamTab("home");

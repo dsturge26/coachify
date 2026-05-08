@@ -16,6 +16,10 @@ Production app: https://coachify-app.com/
 - `supabase_create_team_function.sql` - helper function for team creation
 - `supabase_role_lockdown.sql` - database guard for assistant coach permissions
 - `supabase_email_invites.sql` - email-based assistant coach invitations
+- `supabase_invite_repair.sql` - reliable invite lookup and team access management helpers
+- `supabase_accept_invite_fix.sql` - small SQL patch for invite acceptance issues
+- `supabase_invite_debug.sql` - SQL checks for invite troubleshooting
+- `supabase_invite_force_accept.sql` - emergency helper to grant assistant access from a pending invite
 - `supabase_division_settings.sql` - per-team division and field-size settings
 - `supabase_delete_teams.sql` - head-coach team deletion policy
 - `supabase_practice_plans.sql` - saved AI-generated practice plans
