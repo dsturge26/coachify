@@ -249,6 +249,21 @@
           </div>
         </section>
 
+        <div id="appStatus" class="hidden rounded-md border p-3 text-sm font-bold"></div>
+
+        <section id="teamEditorInvitesPanel" class="hidden rounded-md border border-emerald-200 bg-emerald-50 p-3">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 class="text-lg font-black text-emerald-950">Team Invitations</h2>
+              <p class="text-sm font-semibold text-emerald-900">Accept shared teams here, even if you already have another team open.</p>
+            </div>
+            <button id="refreshInvitesBtn" class="min-h-10 rounded-md border border-emerald-300 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-50" type="button">
+              Refresh
+            </button>
+          </div>
+          <div id="teamEditorInvitesList" class="mt-3 grid gap-2"></div>
+        </section>
+
         <div class="coach-shell">
         <div class="team-tabbar grid grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white/95 p-1 backdrop-blur">
           <button id="homeTabBtn" class="min-h-14 rounded-md bg-slate-900 px-2 py-2 text-white" type="button">
@@ -670,7 +685,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.12.8";
+      const APP_VERSION = "v0.12.9";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1008,7 +1023,11 @@
         cloudSignOutBtn: document.querySelector("#cloudSignOutBtn"),
         pendingInvitesPanel: document.querySelector("#pendingInvitesPanel"),
         pendingInvitesList: document.querySelector("#pendingInvitesList"),
+        teamEditorInvitesPanel: document.querySelector("#teamEditorInvitesPanel"),
+        teamEditorInvitesList: document.querySelector("#teamEditorInvitesList"),
+        refreshInvitesBtn: document.querySelector("#refreshInvitesBtn"),
         cloudStatus: document.querySelector("#cloudStatus"),
+        appStatus: document.querySelector("#appStatus"),
         inviteCodePanel: document.querySelector("#inviteCodePanel"),
         setupInviteEmailInput: document.querySelector("#setupInviteEmailInput"),
         sendSetupInviteBtn: document.querySelector("#sendSetupInviteBtn"),
@@ -1118,6 +1137,24 @@
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
+      }
+
+      function setAppStatus(message, tone = "info") {
+        const text = String(message || "").trim();
+        if (els.cloudStatus) {
+          els.cloudStatus.textContent = text || (state.user ? `Signed in as ${state.user.email}.` : "Not signed in.");
+        }
+        if (!els.appStatus) return;
+        els.appStatus.classList.toggle("hidden", !text);
+        if (!text) return;
+        const styles = {
+          success: "rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-950",
+          warning: "rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-950",
+          danger: "rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-950",
+          info: "rounded-md border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-950"
+        };
+        els.appStatus.className = styles[tone] || styles.info;
+        els.appStatus.textContent = text;
       }
 
       async function readCoachifyApiJson(response, fallbackMessage) {
@@ -1373,9 +1410,9 @@
 
         if (error) {
           state.pendingInvites = [];
-          els.cloudStatus.textContent = error.message.includes("team_invites")
+          setAppStatus(error.message.includes("team_invites")
             ? "Email invites need the new Supabase invite setup SQL."
-            : error.message;
+            : error.message, "danger");
           if (renderAfter) renderPendingInvites();
           return;
         }
@@ -1385,24 +1422,38 @@
       }
 
       function renderPendingInvites() {
-        if (!els.pendingInvitesPanel || !els.pendingInvitesList) return;
-
         const invites = state.pendingInvites || [];
-        els.pendingInvitesPanel.classList.toggle("hidden", invites.length === 0);
-        els.pendingInvitesList.innerHTML = invites
-          .map((invite) => {
-            const teamName = invite.team_name || "Shared team";
-            return `
-              <div class="rounded-md border border-emerald-200 bg-white p-3">
-                <p class="font-bold text-emerald-950">${escapeHtml(teamName)}</p>
-                <p class="text-sm text-emerald-900">Assistant coach invitation</p>
-                <button class="mt-2 min-h-11 w-full rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white active:bg-emerald-800" type="button" data-action="accept-invite" data-invite-id="${invite.id}">
-                  Accept Team Invite
-                </button>
-              </div>
-            `;
-          })
+        const html = invites
+          .map((invite) => renderInviteCard(invite))
           .join("");
+
+        if (els.pendingInvitesPanel && els.pendingInvitesList) {
+          els.pendingInvitesPanel.classList.toggle("hidden", invites.length === 0);
+          els.pendingInvitesList.innerHTML = html;
+        }
+
+        if (els.teamEditorInvitesPanel && els.teamEditorInvitesList) {
+          els.teamEditorInvitesPanel.classList.toggle("hidden", invites.length === 0);
+          els.teamEditorInvitesList.innerHTML = html;
+        }
+      }
+
+      function renderInviteCard(invite) {
+        const teamName = invite.team_name || "Shared team";
+        const sentDate = invite.created_at ? new Date(invite.created_at).toLocaleString() : "";
+        return `
+          <div class="rounded-md border border-emerald-200 bg-white p-3">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="font-bold text-emerald-950">${escapeHtml(teamName)}</p>
+                <p class="text-sm text-emerald-900">Assistant coach invitation${sentDate ? ` - sent ${escapeHtml(sentDate)}` : ""}</p>
+              </div>
+              <button class="min-h-11 rounded-md bg-emerald-700 px-4 py-2 font-semibold text-white active:bg-emerald-800" type="button" data-action="accept-invite" data-invite-id="${invite.id}">
+                Accept Team Invite
+              </button>
+            </div>
+          </div>
+        `;
       }
 
       async function acceptTeamInvite(inviteId) {
@@ -1413,11 +1464,11 @@
         });
 
         if (error) {
-          els.cloudStatus.textContent = error.message;
+          setAppStatus(error.message, "danger");
           return;
         }
 
-        els.cloudStatus.textContent = "Team invite accepted.";
+        setAppStatus("Team invite accepted. The shared team should appear in your team list now.", "success");
         await loadCloudTeams();
         await loadPendingInvites();
       }
@@ -1425,13 +1476,13 @@
       async function sendTeamInvite(input) {
         const team = getSelectedTeam();
         if (!team?.cloudId || !isHeadCoach(team)) {
-          els.cloudStatus.textContent = "Only the head coach can invite assistant coaches.";
+          setAppStatus("Only the head coach can invite assistant coaches.", "warning");
           return;
         }
 
         const email = (input?.value || "").trim().toLowerCase();
         if (!email || !email.includes("@")) {
-          els.cloudStatus.textContent = "Enter the assistant coach email first.";
+          setAppStatus("Enter the assistant coach email first.", "warning");
           input?.focus();
           return;
         }
@@ -1449,14 +1500,15 @@
         );
 
         if (error) {
-          els.cloudStatus.textContent = error.message.includes("team_invites")
+          setAppStatus(error.message.includes("team_invites")
             ? "Email invites need the new Supabase invite setup SQL."
-            : error.message;
+            : error.message, "danger");
           return;
         }
 
         input.value = "";
-        els.cloudStatus.textContent = `Invite sent to ${email}.`;
+        setAppStatus(`Invite sent to ${email}. They need to sign in with that exact email, then accept the team invitation.`, "success");
+        await loadPendingInvites({ renderAfter: true });
       }
 
       async function saveSelectedCloudTeam() {
@@ -3942,6 +3994,7 @@
         renderGameDaySummary();
         renderHomePanel();
         renderPracticePlanHistory();
+        renderPendingInvites();
         els.lineupResults.innerHTML = "";
         els.sharedLineupResults.innerHTML = "";
         els.defenseAuditContent.innerHTML = "Build a lineup to audit defensive balance.";
@@ -3997,6 +4050,14 @@
           const button = event.target.closest("button[data-action='accept-invite']");
           if (!button) return;
           acceptTeamInvite(button.dataset.inviteId);
+        });
+        els.teamEditorInvitesList.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-action='accept-invite']");
+          if (!button) return;
+          acceptTeamInvite(button.dataset.inviteId);
+        });
+        els.refreshInvitesBtn.addEventListener("click", () => {
+          loadPendingInvites();
         });
         els.showInviteCardBtn.addEventListener("click", () => {
           els.gameDayInviteCard.classList.toggle("hidden");
