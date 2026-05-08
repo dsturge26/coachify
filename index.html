@@ -695,7 +695,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.13.5";
+      const APP_VERSION = "v0.13.6";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1006,7 +1006,8 @@
         practiceBuildTimer: null,
         practiceBuildStartedAt: null,
         resumingPracticePlanIds: new Set(),
-        practiceResumeStartedAt: {}
+        practiceResumeStartedAt: {},
+        suppressRealtimeUntil: 0
       };
 
       const els = {
@@ -1762,6 +1763,7 @@
         const team = getSelectedTeam();
         if (!team?.cloudId || !state.user) return;
 
+        state.suppressRealtimeUntil = Date.now() + 2500;
         const { error } = await cloud.from("teams").update(teamToCloudPayload(team)).eq("id", team.cloudId);
         if (error) {
           const needsPracticeSetup = error.message.includes("practice_plans");
@@ -3010,6 +3012,9 @@
             "postgres_changes",
             { event: "UPDATE", schema: "public", table: "teams", filter: `id=eq.${team.cloudId}` },
             (payload) => {
+              if (Date.now() < state.suppressRealtimeUntil) {
+                return;
+              }
               const updatedTeam = cloudRowToTeam(payload.new);
               const wasSelected = state.selectedTeamId === team.id;
               state.teams = state.teams.map((item) => (item.cloudId === updatedTeam.cloudId ? updatedTeam : item));
@@ -3158,6 +3163,7 @@
           roster: row.roster || [],
           manualStartingLineup: emptyManualLineup(),
           touchTracker: row.touch_tracker || emptyTouchTracker(),
+          attendance: Array.isArray(row.attendance) ? row.attendance : [],
           lastLineupPlan: row.lineup_plan || null,
           practicePlans: row.practice_plans || []
         };
@@ -3362,7 +3368,15 @@
       }
 
       function getAttendingPlayerIds() {
-        return [...document.querySelectorAll('input[name="attendance"]:checked')].map((input) => input.value);
+        const inputs = [...document.querySelectorAll('input[name="attendance"]')];
+        if (inputs.length > 0) {
+          return inputs.filter((input) => input.checked).map((input) => input.value);
+        }
+        const team = getSelectedTeam();
+        if (!team) return [];
+        return Array.isArray(team.attendance) && team.attendance.length > 0
+          ? team.attendance
+          : (team.roster || []).map((player) => player.id);
       }
 
       function normalizePlayer(player) {
@@ -3865,12 +3879,17 @@
           return;
         }
 
+        const savedAttendance = Array.isArray(team.attendance) && team.attendance.length > 0
+          ? new Set(team.attendance)
+          : new Set((team.roster || []).map((player) => player.id));
+
         els.attendanceOptions.innerHTML = [...team.roster]
           .sort(comparePlayers)
           .map((player) => {
+            const checked = savedAttendance.has(player.id) ? "checked" : "";
             return `
               <label class="flex min-h-12 items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-semibold">
-                <input class="h-6 w-6 accent-emerald-700" type="checkbox" name="attendance" value="${player.id}" checked />
+                <input class="h-6 w-6 accent-emerald-700" type="checkbox" name="attendance" value="${player.id}" ${checked} />
                 <span>${escapeHtml(playerLabel(player))}</span>
               </label>
             `;
@@ -4538,6 +4557,10 @@
         });
 
         els.attendanceOptions.addEventListener("change", () => {
+          const team = getSelectedTeam();
+          if (team) {
+            team.attendance = getAttendingPlayerIds();
+          }
           renderTouchTracker();
           renderGameDaySummary();
           renderHomePanel();
