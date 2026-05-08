@@ -333,11 +333,6 @@
             </div>
             <div id="gameDaySummary" class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"></div>
           </div>
-          <div class="border-t border-white/10 bg-white/5 p-3">
-            <button id="generateLineupBtn" class="min-h-12 w-full rounded-md bg-emerald-500 px-5 py-3 text-base font-black text-slate-950 active:bg-emerald-400 sm:w-auto">
-              Build Lineup
-            </button>
-          </div>
         </section>
 
         <section id="sharedLineupSection" class="hidden rounded-md border border-slate-200 bg-white p-4 shadow-sm">
@@ -352,6 +347,24 @@
         </section>
 
         <section class="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+          <section id="lineupPlannerSection" class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Head coach</p>
+                <h2 class="text-2xl font-black">Attendance and Lineup</h2>
+                <p class="text-sm text-slate-600">Mark who showed, then build the rotation board.</p>
+              </div>
+            </div>
+            <div class="mt-4">
+              <h3 class="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Attendance</h3>
+              <div id="attendanceOptions" class="grid gap-2"></div>
+            </div>
+            <div id="lineupBuildStatus" class="mt-4 hidden rounded-md border p-3 text-sm font-bold"></div>
+            <button id="generateLineupBtn" class="mt-4 min-h-12 w-full rounded-md bg-emerald-600 px-5 py-3 text-base font-black text-white active:bg-emerald-700">
+              Build Lineup
+            </button>
+          </section>
+
           <section class="rounded-md border border-emerald-200 bg-white p-4 shadow-sm">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -370,20 +383,6 @@
             </div>
             <div id="touchTrackerStatus" class="mt-3 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-700"></div>
             <div id="touchTrackerList" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
-          </section>
-
-          <section id="lineupPlannerSection" class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Head coach</p>
-                <h2 class="text-2xl font-black">Attendance and Lineup</h2>
-                <p class="text-sm text-slate-600">Mark who showed, then build the rotation board.</p>
-              </div>
-            </div>
-            <div class="mt-4">
-              <h3 class="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Attendance</h3>
-              <div id="attendanceOptions" class="grid gap-2"></div>
-            </div>
           </section>
         </section>
 
@@ -695,7 +694,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.13.6";
+      const APP_VERSION = "v0.13.7";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1094,6 +1093,7 @@
         lineupPlannerSection: document.querySelector("#lineupPlannerSection"),
         sharedLineupSection: document.querySelector("#sharedLineupSection"),
         generateLineupBtn: document.querySelector("#generateLineupBtn"),
+        lineupBuildStatus: document.querySelector("#lineupBuildStatus"),
         lineupResults: document.querySelector("#lineupResults"),
         sharedLineupResults: document.querySelector("#sharedLineupResults"),
         undoTouchBtn: document.querySelector("#undoTouchBtn"),
@@ -1171,6 +1171,21 @@
         };
         els.appStatus.className = styles[tone] || styles.info;
         els.appStatus.textContent = text;
+      }
+
+      function setLineupBuildStatus(message, tone = "info") {
+        if (!els.lineupBuildStatus) return;
+        const text = String(message || "").trim();
+        els.lineupBuildStatus.classList.toggle("hidden", !text);
+        if (!text) return;
+        const styles = {
+          success: "mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-950",
+          warning: "mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-950",
+          danger: "mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-950",
+          info: "mt-4 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm font-bold text-sky-950"
+        };
+        els.lineupBuildStatus.className = styles[tone] || styles.info;
+        els.lineupBuildStatus.textContent = text;
       }
 
       async function readCoachifyApiJson(response, fallbackMessage) {
@@ -4538,22 +4553,42 @@
           renderPositionOptions();
         });
 
-        els.generateLineupBtn.addEventListener("click", () => {
+        els.generateLineupBtn.addEventListener("click", async () => {
           const team = getSelectedTeam();
           if (!team) return;
           if (!isHeadCoach(team)) {
-            els.cloudStatus.textContent = "Only the head coach can build or rebuild the lineup.";
+            setLineupBuildStatus("Only the head coach can build or rebuild the lineup.", "warning");
             return;
           }
 
-          const attendingIds = getAttendingPlayerIds();
-          const plan = generateRotationBoard(team, attendingIds);
-          team.lastLineupPlan = plan;
-          renderLineupResults(plan);
-          renderDefenseAudit(plan);
-          renderGameDaySummary();
-          renderHomePanel();
-          saveSelectedCloudTeam();
+          const originalText = els.generateLineupBtn.textContent;
+          els.generateLineupBtn.disabled = true;
+          els.generateLineupBtn.textContent = "Building lineup...";
+          setLineupBuildStatus("Building lineup from today’s attendance...", "info");
+
+          try {
+            const attendingIds = getAttendingPlayerIds();
+            team.attendance = attendingIds;
+            const plan = generateRotationBoard(team, attendingIds);
+            team.lastLineupPlan = plan;
+            renderLineupResults(plan);
+            renderDefenseAudit(plan);
+            renderGameDaySummary();
+            renderHomePanel();
+            await saveSelectedCloudTeam();
+
+            if (plan.ok) {
+              setLineupBuildStatus("Lineup built and shared with assistant coaches.", "success");
+              els.lineupResults.scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+              setLineupBuildStatus(plan.warnings?.[0] || "Coachify could not build a lineup from the selected attendance.", "danger");
+            }
+          } catch (error) {
+            setLineupBuildStatus(error.message || "Coachify could not save the lineup. Try again.", "danger");
+          } finally {
+            els.generateLineupBtn.disabled = false;
+            els.generateLineupBtn.textContent = originalText;
+          }
         });
 
         els.attendanceOptions.addEventListener("change", () => {
