@@ -53,7 +53,7 @@
       .app-topbar {
         position: sticky;
         top: env(safe-area-inset-top);
-        z-index: 25;
+        z-index: 70;
         margin-bottom: 1rem;
         display: flex;
         align-items: center;
@@ -158,6 +158,28 @@
         color: #027a48;
       }
 
+      .context-select {
+        width: 100%;
+        appearance: none;
+        border: 0;
+        background: transparent;
+        padding: 0.05rem 2rem 0.05rem 0;
+        color: var(--coach-ink);
+        font-size: 1.05rem;
+        font-weight: 950;
+        line-height: 1.25;
+      }
+
+      .context-select:focus {
+        outline: none;
+      }
+
+      .context-select:focus-visible {
+        border-radius: 0.75rem;
+        outline: 3px solid rgba(20, 184, 166, 0.22);
+        outline-offset: 0.35rem;
+      }
+
       .empty-state {
         border: 1px dashed rgba(203, 213, 225, 0.95);
         border-radius: 20px;
@@ -202,7 +224,7 @@
         bottom: max(0.5rem, env(safe-area-inset-bottom));
         transform: translateX(-50%);
         width: min(calc(100vw - 1rem), 34rem);
-        z-index: 30;
+        z-index: 50;
         border-radius: 26px;
         box-shadow: 0 16px 42px rgba(15, 23, 42, 0.14);
         padding-bottom: env(safe-area-inset-bottom);
@@ -303,7 +325,7 @@
               <button id="installAppBtn" class="hidden min-h-10 rounded-full bg-emerald-700 px-3 py-2 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button">
                 Install App
               </button>
-              <button id="headerSignOutBtn" class="min-h-10 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm active:bg-slate-100" type="button">
+              <button id="headerSignOutBtn" class="min-h-10 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm active:bg-slate-100" type="button" data-action="sign-out">
                 Sign Out
               </button>
             </div>
@@ -363,7 +385,7 @@
             <button id="cloudRefreshBtn" class="min-h-11 rounded-md border border-slate-300 px-4 py-2 font-semibold active:bg-slate-100" type="button">
               Refresh Teams
             </button>
-            <button id="cloudSignOutBtn" class="min-h-11 rounded-md border border-red-200 px-4 py-2 font-semibold text-red-700 active:bg-red-50" type="button">
+            <button id="cloudSignOutBtn" class="min-h-11 rounded-md border border-red-200 px-4 py-2 font-semibold text-red-700 active:bg-red-50" type="button" data-action="sign-out">
               Sign Out
             </button>
           </div>
@@ -376,11 +398,14 @@
       </section>
 
       <section id="teamEditorView" class="hidden space-y-4">
-        <section class="team-switcher-card p-3 sm:p-4">
-          <div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
-            <label class="block">
-              <span class="text-[11px] font-black uppercase tracking-wide text-slate-400">Team</span>
-              <select id="gameDayTeamSelect" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-lg font-black text-slate-950 shadow-sm"></select>
+        <section class="team-switcher-card px-4 py-3">
+          <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <label class="block rounded-[20px] bg-slate-50 px-3 py-2">
+              <span class="text-[11px] font-black uppercase tracking-wide text-slate-400">Current team</span>
+              <span class="relative mt-1 block">
+                <select id="gameDayTeamSelect" class="context-select"></select>
+                <span class="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">v</span>
+              </span>
             </label>
             <div class="flex flex-wrap items-center gap-2 sm:justify-end">
               <p id="coachRoleBadge" class="stat-pill"></p>
@@ -495,43 +520,7 @@
             <div class="section-header">
               <h3 class="text-base font-black text-slate-950">Game tools</h3>
             </div>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-              <a class="action-tile min-h-24" href="#lineupPlannerSection">
-                <span class="feature-icon h-11 w-11 bg-emerald-50 text-emerald-700">IN</span>
-                <span>
-                  <span class="block text-sm font-black text-slate-950">Attendance</span>
-                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Who&apos;s in</span>
-                </span>
-              </a>
-              <a class="action-tile min-h-24" href="#lineupPlannerSection">
-                <span class="feature-icon h-11 w-11 bg-sky-50 text-sky-700">LN</span>
-                <span>
-                  <span class="block text-sm font-black text-slate-950">Lineup</span>
-                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Build board</span>
-                </span>
-              </a>
-              <a class="action-tile min-h-24" href="#touchTrackerSection">
-                <span class="feature-icon h-11 w-11 bg-indigo-50 text-indigo-700">TR</span>
-                <span>
-                  <span class="block text-sm font-black text-slate-950">Touches</span>
-                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Live counter</span>
-                </span>
-              </a>
-              <a class="action-tile min-h-24" href="#gamePlanningSection">
-                <span class="feature-icon h-11 w-11 bg-orange-50 text-orange-700">MT</span>
-                <span>
-                  <span class="block text-sm font-black text-slate-950">Matchups</span>
-                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Balance check</span>
-                </span>
-              </a>
-              <a class="action-tile min-h-24" href="#gameNotesSection">
-                <span class="feature-icon h-11 w-11 bg-slate-100 text-slate-700">NT</span>
-                <span>
-                  <span class="block text-sm font-black text-slate-950">Notes</span>
-                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Reminders</span>
-                </span>
-              </a>
-            </div>
+            <div id="gameToolsGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-5"></div>
           </section>
 
           <details id="lineupPlannerSection" class="native-card p-4" open>
@@ -607,7 +596,7 @@
             </summary>
             <div class="mt-4 grid gap-3">
               <div class="rounded-2xl bg-orange-50 p-3 text-sm font-bold leading-6 text-orange-950">
-                Use this after building the lineup to spot defensive balance issues before the game starts.
+                Use this to spot defensive balance issues before the game starts.
               </div>
               <div id="defenseAuditContent" class="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
                 Build a lineup to audit defensive balance.
@@ -922,7 +911,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.15.0";
+      const APP_VERSION = "v0.15.1";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1235,7 +1224,9 @@
         resumingPracticePlanIds: new Set(),
         practiceResumeStartedAt: {},
         gameNotesSaveTimer: null,
-        suppressRealtimeUntil: 0
+        suppressRealtimeUntil: 0,
+        signingOut: false,
+        lastSignOutTapAt: 0
       };
 
       const els = {
@@ -1282,6 +1273,7 @@
         gameDayPanel: document.querySelector("#gameDayPanel"),
         gameDaySummary: document.querySelector("#gameDaySummary"),
         gamePrimaryAction: document.querySelector("#gamePrimaryAction"),
+        gameToolsGrid: document.querySelector("#gameToolsGrid"),
         gameNotesInput: document.querySelector("#gameNotesInput"),
         practicePlanPanel: document.querySelector("#practicePlanPanel"),
         setupPanel: document.querySelector("#setupPanel"),
@@ -1607,15 +1599,37 @@
       }
 
       async function signOutOfCloud() {
-        await cloud.auth.signOut();
-        state.user = null;
-        state.memberships = [];
-        state.pendingInvites = [];
-        state.teams = [];
-        state.selectedTeamId = null;
-        renderCloudStatus();
-        saveState();
-        render();
+        if (state.signingOut) return;
+        state.signingOut = true;
+
+        try {
+          await cloud.auth.signOut();
+        } finally {
+          state.user = null;
+          state.memberships = [];
+          state.pendingInvites = [];
+          state.teamAccess = [];
+          state.teams = [];
+          state.selectedTeamId = null;
+          state.activeTeamTab = "home";
+          state.signingOut = false;
+          renderCloudStatus();
+          saveState();
+          render();
+        }
+      }
+
+      function handleSignOutEvent(event) {
+        const button = event.target.closest?.("[data-action='sign-out'], #headerSignOutBtn, #cloudSignOutBtn");
+        if (!button) return;
+
+        const now = Date.now();
+        if (event.type === "click" && now - state.lastSignOutTapAt < 700) return;
+        state.lastSignOutTapAt = now;
+
+        event.preventDefault();
+        event.stopPropagation();
+        signOutOfCloud();
       }
 
       async function refreshCoachify() {
@@ -3986,10 +4000,47 @@
         els.gameDayTeamSelect.innerHTML = state.teams
           .map((item) => {
             const selected = item.id === team?.id ? "selected" : "";
-            const label = escapeHtml(`${teamStorageLabel(item)} - ${item.name || "Untitled Team"}`);
+            const division = getTeamDivision(item);
+            const label = escapeHtml(`${item.name || "Untitled Team"} - ${division.divisionName}`);
             return `<option value="${item.id}" ${selected}>${label}</option>`;
           })
           .join("");
+      }
+
+      function gameToolTileHtml(tool) {
+        return `
+          <a class="action-tile min-h-24" href="${tool.href}">
+            <span class="feature-icon h-11 w-11 ${tool.iconClass}">${tool.icon}</span>
+            <span>
+              <span class="block text-sm font-black text-slate-950">${escapeHtml(tool.title)}</span>
+              <span class="mt-0.5 block text-xs font-bold text-slate-500">${escapeHtml(tool.detail)}</span>
+            </span>
+          </a>
+        `;
+      }
+
+      function renderGameTools() {
+        const team = getSelectedTeam();
+        if (!team || !els.gameToolsGrid) return;
+
+        const headCoach = isHeadCoach(team);
+        const tools = headCoach
+          ? [
+              { href: "#lineupPlannerSection", icon: "IN", iconClass: "bg-emerald-50 text-emerald-700", title: "Attendance", detail: "Who's in" },
+              { href: "#lineupPlannerSection", icon: "LN", iconClass: "bg-sky-50 text-sky-700", title: "Build Lineup", detail: "Create board" },
+              { href: "#touchTrackerSection", icon: "TR", iconClass: "bg-indigo-50 text-indigo-700", title: "Touches", detail: "Live counter" },
+              { href: "#gamePlanningSection", icon: "GP", iconClass: "bg-orange-50 text-orange-700", title: "Game Plan", detail: "Balance check" },
+              { href: "#gameNotesSection", icon: "NT", iconClass: "bg-slate-100 text-slate-700", title: "Notes", detail: "Reminders" }
+            ]
+          : [
+              { href: "#sharedLineupSection", icon: "LN", iconClass: "bg-sky-50 text-sky-700", title: "View Lineup", detail: "Head coach plan" },
+              { href: "#touchTrackerSection", icon: "TR", iconClass: "bg-indigo-50 text-indigo-700", title: "Track Touches", detail: "Live counter" },
+              { href: "#gamePlanningSection", icon: "GP", iconClass: "bg-orange-50 text-orange-700", title: "View Game Plan", detail: "Shared notes" },
+              { href: "#gameNotesSection", icon: "NT", iconClass: "bg-slate-100 text-slate-700", title: "Game Notes", detail: "Reminders" }
+            ];
+
+        els.gameToolsGrid.className = `grid grid-cols-2 gap-3 ${headCoach ? "sm:grid-cols-5" : "sm:grid-cols-4"}`;
+        els.gameToolsGrid.innerHTML = tools.map(gameToolTileHtml).join("");
       }
 
       function renderPlayerList() {
@@ -4668,7 +4719,7 @@
               <h3 class="text-base font-black text-slate-950">Quick actions</h3>
             </div>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              ${homeActionTileHtml({ tab: "game", icon: "LN", title: "Build lineup", detail: "Game board", tone: "emerald" })}
+              ${homeActionTileHtml({ tab: "game", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
               ${homeActionTileHtml({ tab: "game", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
               ${homeActionTileHtml({ tab: "practice", icon: "PR", title: "Practice plan", detail: "Build or open", tone: "sky" })}
               ${homeActionTileHtml({ tab: "team", icon: "TM", title: "Roster", detail: setupDisabled ? "Head coach" : "Manage team", tone: "orange", disabled: setupDisabled })}
@@ -4700,20 +4751,19 @@
         const headCoach = isHeadCoach(team);
         els.coachRoleBadge.textContent = roleLabel(team);
         els.coachRoleBadge.className = "stat-pill";
-        els.teamStorageBadge.textContent = teamStorageLabel(team);
-        els.teamStorageBadge.className = team.cloudId
-          ? "stat-pill is-success"
-          : "stat-pill";
+        els.teamStorageBadge.textContent = "";
+        els.teamStorageBadge.className = "hidden";
         els.deleteTeamBtn.classList.toggle("hidden", !headCoach);
         els.showInviteCardBtn.classList.toggle("hidden", !team.cloudId || !headCoach);
         els.leaveTeamBtn.classList.toggle("hidden", !team.cloudId || !isAssistantCoach(team));
         els.gameDayInviteCard.classList.add("hidden");
         els.lineupPlannerSection.classList.toggle("hidden", !headCoach);
         els.sharedLineupSection.classList.toggle("hidden", headCoach);
-        els.gamePrimaryAction.textContent = headCoach ? "Build Lineup" : "Open Lineup";
+        els.gamePrimaryAction.textContent = headCoach ? "Build Lineup" : "View Lineup";
         els.gamePrimaryAction.setAttribute("href", headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
         els.generateLineupBtn.disabled = !headCoach;
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
+        renderGameTools();
         els.setupTabBtn.disabled = !headCoach;
         els.buildPracticePlanBtn.disabled = !headCoach;
         els.buildPracticePlanBtn.classList.toggle("opacity-50", !headCoach);
@@ -4732,7 +4782,9 @@
         renderPendingInvites();
         els.lineupResults.innerHTML = "";
         els.sharedLineupResults.innerHTML = "";
-        els.defenseAuditContent.innerHTML = "Build a lineup to audit defensive balance.";
+        els.defenseAuditContent.innerHTML = headCoach
+          ? "Build a lineup to audit defensive balance."
+          : "Waiting for the head coach's shared lineup.";
         if (team.lastLineupPlan?.ok) {
           renderLineupResults(team.lastLineupPlan, headCoach ? els.lineupResults : els.sharedLineupResults);
           renderDefenseAudit(team.lastLineupPlan);
@@ -4770,7 +4822,8 @@
         els.headerSignInBtn.addEventListener("click", signInToCloud);
         els.headerSignUpBtn.addEventListener("click", signUpToCloud);
         els.headerRefreshBtn.addEventListener("click", refreshCoachify);
-        els.headerSignOutBtn.addEventListener("click", signOutOfCloud);
+        document.addEventListener("click", handleSignOutEvent, { capture: true });
+        document.addEventListener("touchend", handleSignOutEvent, { capture: true, passive: false });
         els.installAppBtn.addEventListener("click", async () => {
           if (!state.deferredInstallPrompt) {
             alert("On iPhone, tap the Share button in Safari, then tap Add to Home Screen.");
@@ -4783,7 +4836,6 @@
         });
         els.cloudSignInBtn.addEventListener("click", signInToCloud);
         els.cloudSignUpBtn.addEventListener("click", signUpToCloud);
-        els.cloudSignOutBtn.addEventListener("click", signOutOfCloud);
         els.cloudRefreshBtn.addEventListener("click", refreshCoachify);
         els.pendingInvitesList.addEventListener("click", (event) => {
           const button = event.target.closest("button[data-action='accept-invite']");
