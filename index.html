@@ -471,93 +471,165 @@
         <section id="homePanel" class="space-y-4"></section>
 
         <section id="gameDayPanel" class="space-y-4">
-        <section class="overflow-hidden rounded-md border border-slate-900 bg-slate-950 text-white shadow-sm">
-          <div class="grid gap-4 p-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <section class="page-header">
             <div>
-              <p class="text-xs font-black uppercase tracking-wide text-emerald-300">Game command</p>
-              <h2 class="mt-1 text-3xl font-black leading-tight">Sideline Mode</h2>
-              <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">Track attendance, open the shared lineup, and keep touches balanced without hunting through setup screens.</p>
+              <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Game</p>
+              <h2 class="mt-1 text-3xl font-black tracking-tight text-slate-950">Game Day</h2>
             </div>
-            <div id="gameDaySummary" class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"></div>
-          </div>
-        </section>
+            <span class="stat-pill">Flag football</span>
+          </section>
 
-        <details id="lineupPlannerSection" class="rounded-md border border-slate-200 bg-white p-4 shadow-sm" open>
-          <summary class="cursor-pointer list-none">
-            <div class="flex items-center justify-between gap-3">
+          <section class="native-card overflow-hidden">
+            <div class="grid gap-4 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Head coach</p>
-                <h2 class="text-2xl font-black">Attendance and Lineup</h2>
-                <p class="text-sm text-slate-600">Mark who showed, then build the rotation board.</p>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Next matchup</p>
+                <h3 class="mt-1 text-2xl font-black leading-tight text-slate-950">Today&apos;s board</h3>
+                <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">Attendance, lineup, touches, and notes for this team.</p>
               </div>
-              <span class="chevron text-2xl font-bold text-slate-600">&rsaquo;</span>
+              <a id="gamePrimaryAction" class="primary-button grid w-full place-items-center text-center sm:w-auto" href="#lineupPlannerSection">Build Lineup</a>
             </div>
-          </summary>
-          <div class="mt-4">
-              <h3 class="mb-2 text-sm font-bold uppercase tracking-wide text-slate-600">Attendance</h3>
-              <div id="attendanceOptions" class="grid gap-2"></div>
-          </div>
-          <div id="lineupBuildStatus" class="mt-4 hidden rounded-md border p-3 text-sm font-bold"></div>
-          <button id="generateLineupBtn" class="mt-4 min-h-12 w-full rounded-md bg-emerald-600 px-5 py-3 text-base font-black text-white active:bg-emerald-700">
-            Build Lineup
-          </button>
-        </details>
+            <div id="gameDaySummary" class="grid grid-cols-3 border-t border-slate-100 bg-slate-50/70"></div>
+          </section>
 
-        <details class="rounded-md border border-emerald-200 bg-white p-4 shadow-sm" open>
-          <summary class="cursor-pointer list-none">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Assistant friendly</p>
-                <h2 class="text-2xl font-black">Touch Tracker</h2>
-                <p class="text-sm text-slate-600">Tap a kid every time they touch the ball.</p>
+          <section>
+            <div class="section-header">
+              <h3 class="text-base font-black text-slate-950">Game tools</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <a class="action-tile min-h-24" href="#lineupPlannerSection">
+                <span class="feature-icon h-11 w-11 bg-emerald-50 text-emerald-700">IN</span>
+                <span>
+                  <span class="block text-sm font-black text-slate-950">Attendance</span>
+                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Who&apos;s in</span>
+                </span>
+              </a>
+              <a class="action-tile min-h-24" href="#lineupPlannerSection">
+                <span class="feature-icon h-11 w-11 bg-sky-50 text-sky-700">LN</span>
+                <span>
+                  <span class="block text-sm font-black text-slate-950">Lineup</span>
+                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Build board</span>
+                </span>
+              </a>
+              <a class="action-tile min-h-24" href="#touchTrackerSection">
+                <span class="feature-icon h-11 w-11 bg-indigo-50 text-indigo-700">TR</span>
+                <span>
+                  <span class="block text-sm font-black text-slate-950">Touches</span>
+                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Live counter</span>
+                </span>
+              </a>
+              <a class="action-tile min-h-24" href="#gamePlanningSection">
+                <span class="feature-icon h-11 w-11 bg-orange-50 text-orange-700">MT</span>
+                <span>
+                  <span class="block text-sm font-black text-slate-950">Matchups</span>
+                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Balance check</span>
+                </span>
+              </a>
+              <a class="action-tile min-h-24" href="#gameNotesSection">
+                <span class="feature-icon h-11 w-11 bg-slate-100 text-slate-700">NT</span>
+                <span>
+                  <span class="block text-sm font-black text-slate-950">Notes</span>
+                  <span class="mt-0.5 block text-xs font-bold text-slate-500">Reminders</span>
+                </span>
+              </a>
+            </div>
+          </section>
+
+          <details id="lineupPlannerSection" class="native-card p-4" open>
+            <summary class="cursor-pointer list-none">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Lineup builder</p>
+                  <h2 class="text-xl font-black text-slate-950">Attendance first</h2>
+                </div>
+                <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
               </div>
-              <span class="chevron text-2xl font-bold text-slate-600">&rsaquo;</span>
-            </div>
-          </summary>
-          <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <p class="text-sm font-semibold text-slate-600">Use this after every offensive touch.</p>
-            </div>
-            <div class="grid grid-cols-2 gap-2 sm:w-64">
-              <button id="undoTouchBtn" class="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm font-bold active:bg-slate-100" type="button">
-                Undo
+            </summary>
+            <div class="mt-4 grid gap-4">
+              <button id="generateLineupBtn" class="primary-button w-full" type="button">
+                Build Lineup
               </button>
-              <button id="resetTouchesBtn" class="min-h-11 rounded-md border border-red-200 px-3 py-2 text-sm font-bold text-red-700 active:bg-red-50" type="button">
-                Reset
-              </button>
+              <div id="lineupBuildStatus" class="hidden rounded-2xl border p-3 text-sm font-bold"></div>
+              <div>
+                <div class="section-header">
+                  <h3 class="text-sm font-black uppercase tracking-wide text-slate-500">Players here today</h3>
+                </div>
+                <div id="attendanceOptions" class="grid gap-2"></div>
+              </div>
             </div>
-          </div>
-          <div id="touchTrackerStatus" class="mt-3 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-700"></div>
-          <div id="touchTrackerList" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
-        </details>
+          </details>
 
-        <section id="sharedLineupSection" class="hidden rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-xs font-black uppercase tracking-wide text-slate-500">Shared board</p>
-              <h2 class="text-2xl font-black">Lineup</h2>
+          <details id="touchTrackerSection" class="native-card p-4" open>
+            <summary class="cursor-pointer list-none">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-indigo-700">Live counter</p>
+                  <h2 class="text-xl font-black text-slate-950">Touch Tracker</h2>
+                </div>
+                <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
+              </div>
+            </summary>
+            <div class="mt-4 grid gap-3">
+              <div class="grid grid-cols-2 gap-2">
+                <button id="undoTouchBtn" class="min-h-11 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 shadow-sm active:bg-slate-100" type="button">
+                  Undo
+                </button>
+                <button id="resetTouchesBtn" class="min-h-11 rounded-full border border-red-100 bg-white px-3 py-2 text-sm font-black text-red-700 shadow-sm active:bg-red-50" type="button">
+                  Reset
+                </button>
+              </div>
+              <div id="touchTrackerStatus" class="rounded-2xl bg-slate-50 p-3 text-sm font-bold text-slate-700"></div>
+              <div id="touchTrackerList" class="grid gap-2 sm:grid-cols-2"></div>
             </div>
-            <span class="rounded-md bg-sky-100 px-3 py-2 text-xs font-black uppercase tracking-wide text-sky-900">Head coach plan</span>
-          </div>
-          <div id="sharedLineupResults" class="mt-4 space-y-4"></div>
-        </section>
+          </details>
 
-        <section id="lineupResults" class="space-y-4"></section>
-
-        <details class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-          <summary class="cursor-pointer list-none">
+          <section id="sharedLineupSection" class="hidden native-card p-4">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Fairness check</p>
-                <h2 class="text-xl font-black">Defense Audit</h2>
+                <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared board</p>
+                <h2 class="text-xl font-black text-slate-950">Lineup</h2>
               </div>
-              <span class="chevron text-2xl font-bold text-slate-600">&rsaquo;</span>
+              <span class="stat-pill">Head coach plan</span>
             </div>
-          </summary>
-          <div id="defenseAuditContent" class="mt-4 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-700">
-            Build a lineup to audit defensive balance.
-          </div>
-        </details>
+            <div id="sharedLineupResults" class="mt-4 space-y-4"></div>
+          </section>
+
+          <section id="lineupResults" class="space-y-4"></section>
+
+          <details id="gamePlanningSection" class="native-card p-4">
+            <summary class="cursor-pointer list-none">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-orange-700">Planning</p>
+                  <h2 class="text-xl font-black text-slate-950">Matchups</h2>
+                </div>
+                <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
+              </div>
+            </summary>
+            <div class="mt-4 grid gap-3">
+              <div class="rounded-2xl bg-orange-50 p-3 text-sm font-bold leading-6 text-orange-950">
+                Use this after building the lineup to spot defensive balance issues before the game starts.
+              </div>
+              <div id="defenseAuditContent" class="rounded-2xl bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+                Build a lineup to audit defensive balance.
+              </div>
+            </div>
+          </details>
+
+          <details id="gameNotesSection" class="native-card p-4">
+            <summary class="cursor-pointer list-none">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-slate-500">Game notes</p>
+                  <h2 class="text-xl font-black text-slate-950">Reminders</h2>
+                </div>
+                <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
+              </div>
+            </summary>
+            <div class="mt-4">
+              <textarea id="gameNotesInput" class="min-h-28 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold leading-6 text-slate-900 shadow-sm" placeholder="Example: watch edge contain, remind assistant to track touches, keep huddle quick."></textarea>
+              <p class="mt-2 text-xs font-bold text-slate-500">Saved with this team&apos;s game-day tracker.</p>
+            </div>
+          </details>
         </section>
 
         <section id="practicePlanPanel" class="hidden space-y-4">
@@ -850,7 +922,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.14.1";
+      const APP_VERSION = "v0.15.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1162,6 +1234,7 @@
         practiceBuildStartedAt: null,
         resumingPracticePlanIds: new Set(),
         practiceResumeStartedAt: {},
+        gameNotesSaveTimer: null,
         suppressRealtimeUntil: 0
       };
 
@@ -1208,6 +1281,8 @@
         homePanel: document.querySelector("#homePanel"),
         gameDayPanel: document.querySelector("#gameDayPanel"),
         gameDaySummary: document.querySelector("#gameDaySummary"),
+        gamePrimaryAction: document.querySelector("#gamePrimaryAction"),
+        gameNotesInput: document.querySelector("#gameNotesInput"),
         practicePlanPanel: document.querySelector("#practicePlanPanel"),
         setupPanel: document.querySelector("#setupPanel"),
         practicePlanForm: document.querySelector("#practicePlanForm"),
@@ -3418,7 +3493,8 @@
       function emptyTouchTracker() {
         return {
           counts: {},
-          history: []
+          history: [],
+          gameNotes: ""
         };
       }
 
@@ -3426,6 +3502,7 @@
         team.touchTracker = team.touchTracker || emptyTouchTracker();
         team.touchTracker.counts = team.touchTracker.counts || {};
         team.touchTracker.history = Array.isArray(team.touchTracker.history) ? team.touchTracker.history : [];
+        team.touchTracker.gameNotes = typeof team.touchTracker.gameNotes === "string" ? team.touchTracker.gameNotes : "";
 
         for (const player of team.roster) {
           if (!Number.isInteger(team.touchTracker.counts[player.id])) {
@@ -4024,7 +4101,7 @@
               statusLabel = "Target soon";
             }
             return `
-              <button class="min-h-16 rounded-md border-2 ${urgencyClasses} p-3 text-left active:brightness-95" type="button" data-action="add-touch" data-player-id="${player.id}">
+              <button class="min-h-16 rounded-2xl border-2 ${urgencyClasses} p-3 text-left active:brightness-95" type="button" data-action="add-touch" data-player-id="${player.id}">
                 <span class="flex items-center justify-between gap-3">
                   <span>
                     <span class="block text-lg font-bold">${escapeHtml(playerLabel(player))}</span>
@@ -4038,13 +4115,20 @@
           .join("");
       }
 
+      function renderGameNotes() {
+        const team = getSelectedTeam();
+        if (!team || !els.gameNotesInput) return;
+        ensureTouchTracker(team);
+        els.gameNotesInput.value = team.touchTracker.gameNotes || "";
+      }
+
       function renderAttendanceOptions() {
         const team = getSelectedTeam();
         if (!team) return;
 
         if (team.roster.length === 0) {
           els.attendanceOptions.innerHTML = `
-            <div class="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+            <div class="empty-state text-sm font-semibold">
               Add roster kids below before generating lineups.
             </div>
           `;
@@ -4060,7 +4144,7 @@
           .map((player) => {
             const checked = savedAttendance.has(player.id) ? "checked" : "";
             return `
-              <label class="flex min-h-12 items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-semibold">
+              <label class="flex min-h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 font-bold shadow-sm">
                 <input class="h-6 w-6 accent-emerald-700" type="checkbox" name="attendance" value="${player.id}" ${checked} />
                 <span>${escapeHtml(playerLabel(player))}</span>
               </label>
@@ -4259,16 +4343,16 @@
         if (!team) return;
         const snapshot = gameDaySnapshot(team);
         const statusCards = [
-          { label: "Present", value: `${snapshot.attendingCount}/${team.roster.length}`, tone: "bg-white/10 text-white" },
-          { label: "Lineup", value: snapshot.lineupReady ? "Ready" : "Needed", tone: snapshot.lineupReady ? "bg-emerald-400 text-slate-950" : "bg-amber-300 text-slate-950" },
-          { label: "Touches", value: `${snapshot.totalTouches}`, tone: "bg-white/10 text-white" }
+          { label: "Present", value: `${snapshot.attendingCount}/${team.roster.length}` },
+          { label: "Lineup", value: snapshot.lineupReady ? "Ready" : "Needed" },
+          { label: "Touches", value: `${snapshot.totalTouches}` }
         ];
         els.gameDaySummary.innerHTML = statusCards
           .map(
-            (card) => `
-              <div class="rounded-md ${card.tone} p-3">
-                <p class="text-[11px] font-black uppercase tracking-wide opacity-75">${card.label}</p>
-                <p class="mt-1 text-xl font-black">${card.value}</p>
+            (card, index) => `
+              <div class="p-3 ${index > 0 ? "border-l border-slate-100" : ""}">
+                <p class="text-[11px] font-black uppercase tracking-wide text-slate-400">${card.label}</p>
+                <p class="mt-1 text-xl font-black text-slate-950">${card.value}</p>
               </div>
             `
           )
@@ -4626,6 +4710,8 @@
         els.gameDayInviteCard.classList.add("hidden");
         els.lineupPlannerSection.classList.toggle("hidden", !headCoach);
         els.sharedLineupSection.classList.toggle("hidden", headCoach);
+        els.gamePrimaryAction.textContent = headCoach ? "Build Lineup" : "Open Lineup";
+        els.gamePrimaryAction.setAttribute("href", headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
         els.generateLineupBtn.disabled = !headCoach;
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
         els.setupTabBtn.disabled = !headCoach;
@@ -4639,6 +4725,7 @@
         renderPositionOptions();
         renderAttendanceOptions();
         renderTouchTracker();
+        renderGameNotes();
         renderGameDaySummary();
         renderHomePanel();
         renderPracticePlanHistory();
@@ -5002,13 +5089,28 @@
           if (!team) return;
           if (!confirm("Reset touch counts for this game?")) return;
 
+          const gameNotes = team.touchTracker?.gameNotes || "";
           team.touchTracker = emptyTouchTracker();
+          team.touchTracker.gameNotes = gameNotes;
           ensureTouchTracker(team);
           saveState();
           renderTouchTracker();
+          renderGameNotes();
           renderGameDaySummary();
           renderHomePanel();
           saveSelectedCloudTeam();
+        });
+
+        els.gameNotesInput.addEventListener("input", () => {
+          const team = getSelectedTeam();
+          if (!team) return;
+          ensureTouchTracker(team);
+          team.touchTracker.gameNotes = els.gameNotesInput.value;
+          saveState();
+          clearTimeout(state.gameNotesSaveTimer);
+          state.gameNotesSaveTimer = setTimeout(() => {
+            saveSelectedCloudTeam();
+          }, 700);
         });
 
         els.clearPlayerFormBtn.addEventListener("click", resetPlayerForm);
