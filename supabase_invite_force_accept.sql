@@ -1,9 +1,9 @@
 -- Coachify emergency assistant access helper
--- Replace test@coachify-app.com with the assistant's exact login email.
+-- Replace assistant@example.com with the assistant's exact login email.
 -- This grants assistant access for any pending invite sent to that email.
 
 with params as (
-  select lower(trim('test@coachify-app.com')) as assistant_email
+  select lower(trim('assistant@example.com')) as assistant_email
 ),
 matching_invites as (
   select ti.*

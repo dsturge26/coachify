@@ -66,6 +66,11 @@
         backdrop-filter: blur(18px);
       }
 
+      .app-topbar,
+      .app-topbar * {
+        pointer-events: auto;
+      }
+
       .app-card {
         border: 1px solid var(--coach-line);
         border-radius: 24px;
@@ -919,7 +924,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.15.2";
+      const APP_VERSION = "v0.15.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1234,7 +1239,8 @@
         gameNotesSaveTimer: null,
         suppressRealtimeUntil: 0,
         signingOut: false,
-        lastSignOutTapAt: 0
+        lastSignOutTapAt: 0,
+        lifecycleHandlersBound: false
       };
 
       const els = {
@@ -1557,7 +1563,7 @@
       }
 
       function getCloudCredentials() {
-        const email = (els.cloudEmailInput.value || els.headerEmailInput.value).trim();
+        const email = normalizeEmail(els.cloudEmailInput.value || els.headerEmailInput.value);
         const password = els.cloudPasswordInput.value || els.headerPasswordInput.value;
         if (!email || !password) {
           els.cloudStatus.textContent = "Enter email and password first.";
@@ -1568,6 +1574,10 @@
         els.cloudPasswordInput.value = password;
         els.headerPasswordInput.value = password;
         return { email, password };
+      }
+
+      function normalizeEmail(email) {
+        return String(email || "").trim().toLowerCase();
       }
 
       async function requireCloudSession() {
@@ -1612,6 +1622,8 @@
 
         try {
           await cloud.auth.signOut();
+        } catch (error) {
+          console.error("Coachify sign out failed before local cleanup", error);
         } finally {
           state.user = null;
           state.memberships = [];
@@ -1644,6 +1656,35 @@
         signOutOfCloud();
       }
 
+      function bindSignOutDelegation() {
+        document.removeEventListener("click", handleSignOutEvent, true);
+        document.removeEventListener("pointerup", handleSignOutEvent, true);
+        document.removeEventListener("touchend", handleSignOutEvent, true);
+        document.addEventListener("click", handleSignOutEvent, { capture: true });
+        document.addEventListener("pointerup", handleSignOutEvent, { capture: true });
+        document.addEventListener("touchend", handleSignOutEvent, { capture: true, passive: false });
+      }
+
+      function refreshPersistentAppShell() {
+        bindSignOutDelegation();
+        if (!state.user) return;
+        renderCloudStatus();
+        els.appHeader.style.pointerEvents = "auto";
+        els.headerSignedInControls.style.pointerEvents = "auto";
+      }
+
+      function bindLifecycleHandlers() {
+        if (state.lifecycleHandlersBound) return;
+        state.lifecycleHandlersBound = true;
+        window.addEventListener("pageshow", refreshPersistentAppShell);
+        window.addEventListener("focus", refreshPersistentAppShell);
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            refreshPersistentAppShell();
+          }
+        });
+      }
+
       async function refreshCoachify() {
         if (!state.user) {
           window.location.reload();
@@ -1670,6 +1711,8 @@
 
       async function loadCloudTeams() {
         if (!state.user) return;
+
+        await repairAcceptedInviteMemberships();
 
         const { data: memberships, error: membershipError } = await cloud
           .from("team_members")
@@ -1712,7 +1755,7 @@
       async function loadPendingInvites({ renderAfter = true } = {}) {
         if (!state.user) return;
 
-        const email = (state.user.email || "").trim().toLowerCase();
+        const email = normalizeEmail(state.user.email);
         if (!email) return;
 
         let data = null;
@@ -1725,7 +1768,7 @@
           const directResult = await cloud
             .from("team_invites")
             .select("id, team_id, team_name, invited_email, role, created_at")
-            .eq("invited_email", email)
+            .ilike("invited_email", email)
             .eq("status", "pending")
             .order("created_at", { ascending: false });
           data = directResult.data;
@@ -1743,6 +1786,117 @@
 
         state.pendingInvites = data || [];
         if (renderAfter) renderPendingInvites();
+      }
+
+      async function ensureAssistantMembershipForInvite(teamId, source = "invite") {
+        if (!teamId || !state.user?.id) return false;
+
+        const { error } = await cloud
+          .from("team_members")
+          .upsert(
+            {
+              team_id: teamId,
+              user_id: state.user.id,
+              role: "assistant"
+            },
+            {
+              onConflict: "team_id,user_id",
+              ignoreDuplicates: true
+            }
+          );
+
+        if (error) {
+          console.error(`Coachify could not ensure assistant membership from ${source}`, error);
+          return false;
+        }
+
+        return true;
+      }
+
+      async function currentUserHasTeamMembership(teamId) {
+        if (!teamId || !state.user?.id) return false;
+        return teamMemberExists(teamId, state.user.id);
+      }
+
+      async function teamMemberExists(teamId, userId) {
+        if (!teamId || !userId) return false;
+
+        const { data, error } = await cloud
+          .from("team_members")
+          .select("team_id, role")
+          .eq("team_id", teamId)
+          .eq("user_id", userId)
+          .limit(1);
+
+        if (error) {
+          console.error("Coachify could not verify team membership", error);
+          return false;
+        }
+
+        return Boolean(data?.length);
+      }
+
+      async function repairAcceptedInviteMemberships() {
+        if (!state.user?.id) return;
+
+        const email = normalizeEmail(state.user.email);
+        if (!email) return;
+
+        const { data: acceptedInvites, error } = await cloud
+          .from("team_invites")
+          .select("id, team_id, team_name, invited_email, status")
+          .ilike("invited_email", email)
+          .eq("status", "accepted");
+
+        if (error) {
+          if (!String(error.message || "").includes("team_invites")) {
+            console.error("Coachify could not check accepted team invites", error);
+          }
+          return;
+        }
+
+        if (!acceptedInvites?.length) return;
+
+        const { data: existingMemberships, error: membershipError } = await cloud
+          .from("team_members")
+          .select("team_id")
+          .eq("user_id", state.user.id);
+
+        if (membershipError) {
+          console.error("Coachify could not verify team memberships while repairing invites", membershipError);
+          return;
+        }
+
+        const existingTeamIds = new Set((existingMemberships || []).map((membership) => membership.team_id));
+        const missingInvites = acceptedInvites.filter((invite) => !existingTeamIds.has(invite.team_id));
+
+        for (const invite of missingInvites) {
+          await ensureAssistantMembershipForInvite(invite.team_id, `accepted invite ${invite.id}`);
+        }
+      }
+
+      async function repairAcceptedInviteById(inviteId) {
+        if (!inviteId || !state.user?.id) return null;
+        const email = normalizeEmail(state.user.email);
+        if (!email) return null;
+
+        const { data, error } = await cloud
+          .from("team_invites")
+          .select("id, team_id, invited_email, status")
+          .eq("id", inviteId)
+          .ilike("invited_email", email)
+          .limit(1);
+
+        if (error) {
+          console.error("Coachify could not inspect invite after accept failure", { inviteId, email, error });
+          return null;
+        }
+
+        const invite = data?.[0];
+        if (!invite || invite.status !== "accepted") return null;
+
+        const repaired = await ensureAssistantMembershipForInvite(invite.team_id, `accepted invite retry ${invite.id}`);
+        return repaired ? invite.team_id : null;
       }
 
       async function loadTeamAccessForSelectedTeam({ renderAfter = true } = {}) {
@@ -1895,17 +2049,42 @@
         });
 
         if (error) {
+          console.error("Coachify invite accept failed", { inviteId, email: normalizeEmail(state.user.email), error });
+          const repairedTeamId = await repairAcceptedInviteById(inviteId);
+          if (repairedTeamId && await currentUserHasTeamMembership(repairedTeamId)) {
+            setAppStatus("Team invite accepted. The shared team is now in your team list.", "success");
+            await loadCloudTeams();
+            await loadPendingInvites();
+            return;
+          }
           setAppStatus(error.message, "danger");
           return;
         }
 
         if (!data) {
+          console.error("Coachify invite accept returned no team id", { inviteId, email: normalizeEmail(state.user.email), data });
+          const repairedTeamId = await repairAcceptedInviteById(inviteId);
+          if (repairedTeamId && await currentUserHasTeamMembership(repairedTeamId)) {
+            setAppStatus("Team invite accepted. The shared team is now in your team list.", "success");
+            await loadCloudTeams();
+            await loadPendingInvites();
+            return;
+          }
           setAppStatus("Coachify could not confirm the invite was accepted. Refresh and try again.", "warning");
           await loadPendingInvites();
           return;
         }
 
-        setAppStatus("Team invite accepted. The shared team should appear in your team list now.", "success");
+        await ensureAssistantMembershipForInvite(data, `accepted invite ${inviteId}`);
+        const membershipConfirmed = await currentUserHasTeamMembership(data);
+        if (!membershipConfirmed) {
+          setAppStatus("Invite accepted, but Coachify could not confirm team access yet. Refresh, then try signing out and back in if it still does not appear.", "warning");
+          console.error("Coachify invite accepted but membership was not confirmed", { inviteId, teamId: data, email: normalizeEmail(state.user.email) });
+          await loadPendingInvites();
+          return;
+        }
+
+        setAppStatus("Team invite accepted. The shared team is now in your team list.", "success");
         await loadCloudTeams();
         await loadPendingInvites();
       }
@@ -1917,7 +2096,7 @@
           return;
         }
 
-        const email = (input?.value || "").trim().toLowerCase();
+        const email = normalizeEmail(input?.value);
         if (!email || !email.includes("@")) {
           setAppStatus("Enter the assistant coach email first.", "warning");
           input?.focus();
@@ -1937,6 +2116,7 @@
         );
 
         if (error) {
+          console.error("Coachify invite send failed", { teamId: team.cloudId, email, error });
           setAppStatus(error.message.includes("team_invites")
             ? "Email invites need the new Supabase invite setup SQL."
             : error.message, "danger");
@@ -1960,6 +2140,7 @@
         });
 
         if (rpcResult.error) {
+          console.error("Coachify revoke invite RPC failed; trying direct update", { inviteId, email, error: rpcResult.error });
           const directResult = await cloud
             .from("team_invites")
             .update({ status: "revoked" })
@@ -1968,6 +2149,7 @@
         }
 
         if (error) {
+          console.error("Coachify invite revoke failed", { inviteId, email, error });
           setAppStatus(error.message, "danger");
           return;
         }
@@ -1989,9 +2171,18 @@
         });
 
         if (error) {
+          console.error("Coachify remove assistant failed", { teamId: team.cloudId, userId, email, error });
           setAppStatus(error.message.includes("remove_team_assistant")
             ? "Team access management needs the latest Supabase SQL update. Run supabase_team_access_management.sql, then try again."
             : error.message, "danger");
+          return;
+        }
+
+        const stillHasAccess = await teamMemberExists(team.cloudId, userId);
+        if (stillHasAccess) {
+          console.error("Coachify remove assistant returned success but membership still exists", { teamId: team.cloudId, userId, email });
+          setAppStatus(`Coachify could not confirm ${email} was removed. Refresh and try Remove access again.`, "warning");
+          await loadTeamAccessForSelectedTeam({ renderAfter: true });
           return;
         }
 
@@ -4657,7 +4848,9 @@
         const rosterCount = team.roster.length;
         const presentCount = typeof snapshot.attendingCount === "number" ? snapshot.attendingCount : rosterCount;
         const hasRoster = rosterCount > 0;
-        const setupDisabled = headCoach ? false : true;
+        const rosterActionHtml = headCoach
+          ? homeActionTileHtml({ tab: "team", icon: "TM", title: "Roster", detail: "Manage team", tone: "orange" })
+          : "";
         const nextTab = hasRoster ? "game" : "team";
         const nextTitle = !hasRoster
           ? "Add your roster"
@@ -4756,11 +4949,11 @@
             <div class="section-header">
               <h3 class="text-base font-black text-slate-950">Quick actions</h3>
             </div>
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div class="grid grid-cols-2 gap-3 ${headCoach ? "sm:grid-cols-4" : "sm:grid-cols-3"}">
               ${homeActionTileHtml({ tab: "game", section: headCoach ? "lineupPlannerSection" : "sharedLineupSection", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
               ${homeActionTileHtml({ tab: "game", section: "touchTrackerSection", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
               ${homeActionTileHtml({ tab: "practice", icon: "PR", title: "Practice plan", detail: "Build or open", tone: "sky" })}
-              ${homeActionTileHtml({ tab: "team", icon: "TM", title: "Roster", detail: setupDisabled ? "Head coach" : "Manage team", tone: "orange", disabled: setupDisabled })}
+              ${rosterActionHtml}
             </div>
           </section>
 
@@ -4860,9 +5053,8 @@
         els.headerSignInBtn.addEventListener("click", signInToCloud);
         els.headerSignUpBtn.addEventListener("click", signUpToCloud);
         els.headerRefreshBtn.addEventListener("click", refreshCoachify);
-        document.addEventListener("click", handleSignOutEvent, { capture: true });
-        document.addEventListener("pointerup", handleSignOutEvent, { capture: true });
-        document.addEventListener("touchend", handleSignOutEvent, { capture: true, passive: false });
+        bindSignOutDelegation();
+        bindLifecycleHandlers();
         els.installAppBtn.addEventListener("click", async () => {
           if (!state.deferredInstallPrompt) {
             alert("On iPhone, tap the Share button in Safari, then tap Add to Home Screen.");
