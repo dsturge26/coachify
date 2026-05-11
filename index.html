@@ -38,14 +38,50 @@
       }
 
       .app-surface {
-        background: #f7f9fc;
+        background:
+          radial-gradient(circle at 15% 8%, rgba(20, 184, 166, 0.12), transparent 28rem),
+          radial-gradient(circle at 88% 18%, rgba(99, 102, 241, 0.1), transparent 24rem),
+          #f8fafc;
       }
 
       .app-card {
-        border: 1px solid #dbe3ef;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.96);
-        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.07);
+        border: 1px solid rgba(203, 213, 225, 0.78);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+        backdrop-filter: blur(18px);
+      }
+
+      .native-card {
+        border: 1px solid rgba(203, 213, 225, 0.7);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 14px 35px rgba(15, 23, 42, 0.07);
+      }
+
+      .soft-card {
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+      }
+
+      .quick-action-card {
+        min-height: 6.3rem;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+      }
+
+      .feature-icon {
+        display: grid;
+        height: 3rem;
+        width: 3rem;
+        place-items: center;
+        border-radius: 16px;
+        font-size: 1rem;
+        font-weight: 950;
       }
 
       .brand-mark {
@@ -53,22 +89,18 @@
         height: 3rem;
         width: 3rem;
         place-items: center;
-        border-radius: 8px;
-        background: #0f172a;
+        border-radius: 16px;
+        background: linear-gradient(145deg, #020617, #111827);
         color: white;
-        box-shadow: inset 0 -4px 0 rgba(20, 184, 166, 0.45);
+        box-shadow: inset 0 -5px 0 rgba(20, 184, 166, 0.38), 0 14px 28px rgba(15, 23, 42, 0.18);
       }
 
       .brand-mark::before {
-        content: "";
-        width: 1.65rem;
-        height: 1.65rem;
-        border-radius: 999px;
-        background:
-          linear-gradient(90deg, transparent 42%, white 42% 58%, transparent 58%),
-          linear-gradient(0deg, transparent 42%, white 42% 58%, transparent 58%),
-          #14b8a6;
-        border: 2px solid white;
+        content: "C";
+        font-size: 1.75rem;
+        font-weight: 950;
+        line-height: 1;
+        letter-spacing: -0.08em;
       }
 
       .team-tabbar {
@@ -79,7 +111,8 @@
         transform: translateX(-50%);
         width: min(calc(100vw - 1.5rem), 34rem);
         z-index: 30;
-        box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+        border-radius: 24px;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
         padding-bottom: env(safe-area-inset-bottom);
       }
 
@@ -147,7 +180,7 @@
   </head>
   <body class="app-surface min-h-screen text-slate-950">
     <main class="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-4 py-4 pb-28 sm:px-6 sm:py-6">
-      <header class="relative mb-4 flex flex-col gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center sm:justify-between">
+      <header id="appHeader" class="relative mb-5 flex flex-col gap-3 rounded-[24px] border border-white/80 bg-white/85 p-4 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <p id="appVersionBadge" class="absolute right-3 top-3 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600"></p>
         <div class="flex items-center gap-3">
           <div class="brand-mark" aria-hidden="true"></div>
@@ -170,7 +203,7 @@
               </button>
             </div>
           </div>
-          <div id="headerSignedInControls" class="hidden rounded-md border border-slate-200 bg-white p-3">
+          <div id="headerSignedInControls" class="hidden rounded-2xl border border-slate-200 bg-white/90 p-3 shadow-sm">
             <p id="headerSignedInLabel" class="text-sm font-bold text-slate-800"></p>
             <div class="mt-2 grid gap-2 sm:grid-cols-3">
               <button id="headerRefreshBtn" class="min-h-10 rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 active:bg-slate-100" type="button">
@@ -189,23 +222,50 @@
 
       <section id="teamListView" class="space-y-4"></section>
 
-      <section id="cloudAccessView" class="app-card mx-auto w-full max-w-xl space-y-4 p-5">
-        <div class="flex items-start gap-3">
-          <div class="brand-mark h-10 w-10 shrink-0" aria-hidden="true"></div>
-          <div>
-            <h2 id="cloudAccessTitle" class="text-2xl font-bold">Coach Login</h2>
-            <p id="cloudAccessSubtitle" class="text-sm text-slate-600">Sign in or create an account to view teams, build lineups, or join as an assistant coach.</p>
+      <section id="cloudAccessView" class="mx-auto grid min-h-[calc(100dvh-7rem)] w-full max-w-xl content-center gap-6">
+        <div class="app-card overflow-hidden p-6 sm:p-8">
+          <div class="grid justify-items-center gap-5 text-center">
+            <div class="brand-mark h-20 w-20" aria-hidden="true"></div>
+            <div>
+              <h2 id="cloudAccessTitle" class="text-4xl font-black tracking-tight text-slate-950">Coachify</h2>
+              <p id="cloudAccessSubtitle" class="mx-auto mt-3 max-w-sm text-base font-semibold leading-7 text-slate-600">Everything youth coaches need to lead with confidence.</p>
+            </div>
           </div>
-        </div>
-        <div id="cloudSignedOutControls" class="grid gap-3 sm:grid-cols-2">
-          <input id="cloudEmailInput" class="min-h-12 w-full rounded-md border border-slate-300 px-3 text-base sm:col-span-2" type="email" placeholder="coach@email.com" />
-          <input id="cloudPasswordInput" class="min-h-12 w-full rounded-md border border-slate-300 px-3 text-base sm:col-span-2" type="password" placeholder="Password" />
-          <button id="cloudSignInBtn" class="min-h-12 w-full whitespace-nowrap rounded-md bg-slate-900 px-4 py-2 font-semibold text-white active:bg-slate-700" type="button">
-            Sign In
-          </button>
-          <button id="cloudSignUpBtn" class="min-h-12 w-full whitespace-nowrap rounded-md border border-emerald-300 px-4 py-2 font-semibold text-emerald-800 active:bg-emerald-50" type="button">
-            Create Login
-          </button>
+
+          <div class="mt-8 grid gap-4">
+            <div class="grid grid-cols-[auto_1fr] items-center gap-4">
+              <span class="feature-icon bg-emerald-50 text-emerald-700">LN</span>
+              <div>
+                <p class="font-black text-slate-950">Set Lineups</p>
+                <p class="text-sm font-semibold leading-6 text-slate-500">Create the right lineup for every game.</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-[auto_1fr] items-center gap-4">
+              <span class="feature-icon bg-indigo-50 text-indigo-700">PR</span>
+              <div>
+                <p class="font-black text-slate-950">Plan Practices</p>
+                <p class="text-sm font-semibold leading-6 text-slate-500">Build focused practice plans from real team needs.</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-[auto_1fr] items-center gap-4">
+              <span class="feature-icon bg-orange-50 text-orange-700">TR</span>
+              <div>
+                <p class="font-black text-slate-950">Track Progress</p>
+                <p class="text-sm font-semibold leading-6 text-slate-500">Keep touches and game-day balance visible.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="cloudSignedOutControls" class="mt-8 grid gap-3 sm:grid-cols-2">
+            <input id="cloudEmailInput" class="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm sm:col-span-2" type="email" placeholder="coach@email.com" />
+            <input id="cloudPasswordInput" class="min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm sm:col-span-2" type="password" placeholder="Password" />
+            <button id="cloudSignInBtn" class="min-h-12 w-full whitespace-nowrap rounded-2xl bg-slate-950 px-4 py-2 font-black text-white shadow-lg shadow-slate-300 active:bg-slate-800" type="button">
+              Get Started
+            </button>
+            <button id="cloudSignUpBtn" class="min-h-12 w-full whitespace-nowrap rounded-2xl border border-slate-200 bg-white px-4 py-2 font-black text-slate-700 active:bg-slate-50" type="button">
+              Create Login
+            </button>
+          </div>
         </div>
         <div id="cloudSignedInControls" class="hidden space-y-3">
           <div class="flex flex-col gap-2 sm:flex-row">
@@ -221,11 +281,11 @@
             <div id="pendingInvitesList" class="mt-2 grid gap-2"></div>
           </div>
         </div>
-        <p id="cloudStatus" class="text-sm font-semibold text-slate-700">Not signed in.</p>
+        <p id="cloudStatus" class="text-center text-sm font-semibold text-slate-700">Not signed in.</p>
       </section>
 
       <section id="teamEditorView" class="hidden space-y-3">
-        <section class="rounded-md border border-slate-200 bg-white/90 p-3 sm:p-4">
+        <section class="native-card p-3 sm:p-4">
           <div class="grid gap-3">
             <label class="block sm:flex sm:items-center sm:gap-3">
               <span class="text-xs font-black uppercase tracking-wide text-slate-500 sm:w-28">Current team</span>
@@ -274,7 +334,7 @@
         </section>
 
         <div class="coach-shell">
-        <div class="team-tabbar grid grid-cols-4 gap-1 rounded-md border border-slate-200 bg-white/95 p-1 backdrop-blur">
+        <div class="team-tabbar grid grid-cols-4 gap-1 border border-slate-200 bg-white/95 p-1 backdrop-blur">
           <button id="homeTabBtn" class="min-h-14 rounded-md bg-slate-900 px-2 py-2 text-white" type="button">
             <span class="nav-icon" aria-hidden="true">
               <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -356,12 +416,20 @@
           </button>
         </details>
 
-        <section class="rounded-md border border-emerald-200 bg-white p-4 shadow-sm">
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <details class="rounded-md border border-emerald-200 bg-white p-4 shadow-sm" open>
+          <summary class="cursor-pointer list-none">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Assistant friendly</p>
+                <h2 class="text-2xl font-black">Touch Tracker</h2>
+                <p class="text-sm text-slate-600">Tap a kid every time they touch the ball.</p>
+              </div>
+              <span class="chevron text-2xl font-bold text-slate-600">&rsaquo;</span>
+            </div>
+          </summary>
+          <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Assistant friendly</p>
-              <h2 class="text-2xl font-black">Touch Tracker</h2>
-              <p class="text-sm text-slate-600">Tap a kid every time they touch the ball.</p>
+              <p class="text-sm font-semibold text-slate-600">Use this after every offensive touch.</p>
             </div>
             <div class="grid grid-cols-2 gap-2 sm:w-64">
               <button id="undoTouchBtn" class="min-h-11 rounded-md border border-slate-300 px-3 py-2 text-sm font-bold active:bg-slate-100" type="button">
@@ -374,7 +442,7 @@
           </div>
           <div id="touchTrackerStatus" class="mt-3 rounded-md bg-slate-50 p-3 text-sm font-semibold text-slate-700"></div>
           <div id="touchTrackerList" class="mt-3 grid gap-2 sm:grid-cols-2"></div>
-        </section>
+        </details>
 
         <section id="sharedLineupSection" class="hidden rounded-md border border-slate-200 bg-white p-4 shadow-sm">
           <div class="flex items-center justify-between gap-3">
@@ -695,7 +763,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.13.8";
+      const APP_VERSION = "v0.14.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1011,6 +1079,7 @@
       };
 
       const els = {
+        appHeader: document.querySelector("#appHeader"),
         appVersionBadge: document.querySelector("#appVersionBadge"),
         teamListView: document.querySelector("#teamListView"),
         headerSignedOutControls: document.querySelector("#headerSignedOutControls"),
@@ -1285,10 +1354,10 @@
         els.cloudSignedInControls.classList.toggle("hidden", !signedIn);
         renderInstallButton();
         els.headerSignedInLabel.textContent = signedIn ? `Signed in as ${state.user.email}` : "";
-        els.cloudAccessTitle.textContent = signedIn ? "Coach Access" : "Coach Login";
+        els.cloudAccessTitle.textContent = signedIn ? "Coach Access" : "Coachify";
         els.cloudAccessSubtitle.textContent = signedIn
           ? "Create a team, refresh your teams, or accept an assistant coach invitation."
-          : "Sign in or create an account to view teams, build lineups, or join as an assistant coach.";
+          : "Everything youth coaches need to lead with confidence.";
         els.cloudStatus.textContent = signedIn
           ? `Signed in as ${state.user.email}. Teams loaded: ${state.memberships.length}.`
           : "Not signed in.";
@@ -3198,8 +3267,8 @@
         els.setupPanel.classList.toggle("hidden", !isSetup);
         const setButton = (button, active) => {
           button.className = active
-            ? "min-h-14 rounded-md bg-slate-950 px-2 py-2 text-white shadow-sm"
-            : "min-h-14 rounded-md px-2 py-2 text-slate-500 active:bg-slate-100";
+            ? "min-h-14 rounded-[18px] bg-slate-950 px-2 py-2 text-white shadow-lg shadow-slate-300"
+            : "min-h-14 rounded-[18px] px-2 py-2 text-slate-500 active:bg-slate-100";
         };
         setButton(els.homeTabBtn, isHome);
         setButton(els.gameDayTabBtn, isGame);
@@ -4177,73 +4246,227 @@
           .join("");
       }
 
-      function renderHomePanel() {
+      function renderHomePanelLegacy() {
         const team = getSelectedTeam();
         if (!team) return;
         const division = getTeamDivision(team);
         const snapshot = gameDaySnapshot(team);
         const headCoach = isHeadCoach(team);
-        const latestPlan = (team.practicePlans || []).find((plan) => plan.status !== "building");
-        const primaryTab = team.roster.length === 0 ? "team" : snapshot.lineupReady ? "game" : "game";
-        const primaryLabel = team.roster.length === 0 ? "Add Roster" : snapshot.lineupReady ? "Open Game Day" : headCoach ? "Build Game Lineup" : "Open Shared Lineup";
+        const savedPlans = (team.practicePlans || []).filter((plan) => plan.status !== "building").slice(0, 2);
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? "Good morning, Coach!" : hour < 18 ? "Good afternoon, Coach!" : "Good evening, Coach!";
+        const hasRoster = team.roster.length > 0;
+        const primaryTab = hasRoster ? "game" : "team";
+        const primaryLabel = !hasRoster ? "Add Roster" : snapshot.lineupReady ? "Open Game Day" : headCoach ? "Build Lineup" : "Open Shared Lineup";
+        const nextTitle = snapshot.lineupReady ? "Game day board is ready" : "Build today's lineup";
+        const nextMeta = snapshot.lineupReady
+          ? `${snapshot.totalTouches} touches tracked`
+          : `${snapshot.attendingCount}/${team.roster.length} marked present`;
+        const setupDisabled = headCoach ? "" : "disabled aria-disabled=\"true\"";
+        const setupSubtext = headCoach ? "Roster and access" : "Head coach only";
+        const recentPlansHtml = savedPlans.length
+          ? savedPlans
+              .map((plan) => {
+                const date = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Saved plan";
+                return `
+                  <button class="soft-card flex items-center justify-between gap-3 p-3 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="practice">
+                    <span class="grid grid-cols-[auto_1fr] items-center gap-3">
+                      <span class="feature-icon h-10 w-10 rounded-2xl bg-indigo-50 text-sm text-indigo-700">PR</span>
+                      <span>
+                        <span class="block font-black text-slate-950">${escapeHtml(plan.title || "Practice Plan")}</span>
+                        <span class="block text-sm font-semibold text-slate-500">Practice Plan - ${escapeHtml(date)}</span>
+                      </span>
+                    </span>
+                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Saved</span>
+                  </button>
+                `;
+              })
+              .join("")
+          : `
+            <button class="soft-card flex items-center justify-between gap-3 p-3 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="practice">
+              <span class="grid grid-cols-[auto_1fr] items-center gap-3">
+                <span class="feature-icon h-10 w-10 rounded-2xl bg-indigo-50 text-sm text-indigo-700">PR</span>
+                <span>
+                  <span class="block font-black text-slate-950">Create your first practice plan</span>
+                  <span class="block text-sm font-semibold text-slate-500">Practice Plan</span>
+                </span>
+              </span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">New</span>
+            </button>
+          `;
         els.homePanel.innerHTML = `
-          <section class="overflow-hidden rounded-md border border-slate-900 bg-slate-950 text-white shadow-sm">
-            <div class="p-4">
-              <p class="text-xs font-black uppercase tracking-wide text-emerald-300">Today</p>
-              <h2 class="mt-1 text-3xl font-black leading-tight">${escapeHtml(team.name || "Untitled Team")}</h2>
-              <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">${escapeHtml(division.divisionName)} - ${division.playersOnField} on field - ${escapeHtml(roleLabel(team))}</p>
-            </div>
-            <div class="grid gap-2 border-t border-white/10 bg-white/5 p-3 sm:grid-cols-4">
-              <div class="rounded-md bg-white/10 p-3">
-                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Roster</p>
-                <p class="mt-1 text-2xl font-black">${team.roster.length}</p>
-              </div>
-              <div class="rounded-md bg-white/10 p-3">
-                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Present</p>
-                <p class="mt-1 text-2xl font-black">${snapshot.attendingCount}</p>
-              </div>
-              <div class="rounded-md ${snapshot.lineupReady ? "bg-emerald-400 text-slate-950" : "bg-amber-300 text-slate-950"} p-3">
-                <p class="text-[11px] font-black uppercase tracking-wide opacity-75">Lineup</p>
-                <p class="mt-1 text-2xl font-black">${snapshot.lineupReady ? "Ready" : "Needed"}</p>
-              </div>
-              <div class="rounded-md bg-white/10 p-3">
-                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Touches</p>
-                <p class="mt-1 text-2xl font-black">${snapshot.totalTouches}</p>
-              </div>
-            </div>
-          </section>
-
-          <section class="grid gap-3 sm:grid-cols-3">
-            <button class="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-left active:bg-emerald-100" type="button" data-action="go-tab" data-tab="${primaryTab}">
-              <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Next up</p>
-              <h3 class="mt-1 text-xl font-black text-emerald-950">${primaryLabel}</h3>
-              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-900">${snapshot.needsTouch ? `Next touches: ${escapeHtml(snapshot.needsTouch)}` : "Start with attendance and roster."}</p>
-            </button>
-            <button class="rounded-md border border-sky-200 bg-sky-50 p-4 text-left active:bg-sky-100" type="button" data-action="go-tab" data-tab="practice">
-              <p class="text-xs font-black uppercase tracking-wide text-sky-700">Practice</p>
-              <h3 class="mt-1 text-xl font-black text-sky-950">${latestPlan ? escapeHtml(latestPlan.title || "Saved plan") : "Build a plan"}</h3>
-              <p class="mt-2 text-sm font-semibold leading-6 text-sky-900">${snapshot.practiceCount} saved plan${snapshot.practiceCount === 1 ? "" : "s"}</p>
-            </button>
-            <button class="rounded-md border border-slate-200 bg-white p-4 text-left active:bg-slate-50 disabled:opacity-50" type="button" data-action="go-tab" data-tab="team" ${headCoach ? "" : "disabled"}>
-              <p class="text-xs font-black uppercase tracking-wide text-slate-500">Team</p>
-              <h3 class="mt-1 text-xl font-black text-slate-950">Roster and invites</h3>
-              <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${headCoach ? "Manage players, division, and coaches." : "Team setup is managed by the head coach."}</p>
-            </button>
-          </section>
-
-          <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between gap-3">
+          <section class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Coach view</p>
-                <h3 class="text-xl font-black">Quick read</h3>
+              <h2 class="text-3xl font-black tracking-tight text-slate-950">${escapeHtml(greeting)}</h2>
+              <p class="mt-1 text-sm font-semibold text-slate-500">Here's what's happening with your team.</p>
               </div>
-              <span class="rounded-md bg-slate-100 px-3 py-2 text-xs font-black uppercase tracking-wide text-slate-700">${escapeHtml(roleLabel(team))}</span>
+              <span class="rounded-full bg-white/90 px-3 py-2 text-xs font-black text-slate-600 shadow-sm">${escapeHtml(roleLabel(team))}</span>
             </div>
-            <div class="mt-3 grid gap-2 sm:grid-cols-3">
-              <p class="rounded-md bg-slate-50 p-3 text-sm font-bold text-slate-700">Game Day keeps lineup and touches together.</p>
-              <p class="rounded-md bg-slate-50 p-3 text-sm font-bold text-slate-700">Practice plans save to this team.</p>
-              <p class="rounded-md bg-slate-50 p-3 text-sm font-bold text-slate-700">Team setup stays out of the way after roster build.</p>
+            <button class="native-card grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 p-4 text-left active:bg-slate-50 disabled:opacity-70" type="button" data-action="go-tab" data-tab="team" ${setupDisabled}>
+              <div class="brand-mark h-12 w-12" aria-hidden="true"></div>
+              <div>
+                <p class="text-lg font-black text-slate-950">${escapeHtml(team.name || "Untitled Team")}</p>
+                <p class="text-sm font-semibold text-slate-500">${escapeHtml(division.divisionName)} - ${division.playersOnField} on field - ${escapeHtml(setupSubtext)}</p>
+              </div>
+              <span class="text-xl font-black text-slate-400">⌄</span>
             </div>
+          </section>
+
+          <section>
+            <h3 class="mb-3 text-base font-black text-slate-950">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <button class="quick-action-card p-3 text-left active:bg-emerald-50" type="button" data-action="go-tab" data-tab="game">
+                <span class="feature-icon bg-emerald-50 text-emerald-700">LN</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Lineup</span>
+              </button>
+              <button class="quick-action-card p-3 text-left active:bg-indigo-50" type="button" data-action="go-tab" data-tab="practice">
+                <span class="feature-icon bg-indigo-50 text-indigo-700">PR</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Practice Plan</span>
+              </button>
+              <button class="quick-action-card p-3 text-left active:bg-sky-50" type="button" data-action="go-tab" data-tab="game">
+                <span class="feature-icon bg-sky-50 text-sky-700">TR</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Touches</span>
+              </button>
+              <button class="quick-action-card p-3 text-left active:bg-orange-50 disabled:opacity-50" type="button" data-action="go-tab" data-tab="team" ${headCoach ? "" : "disabled"}>
+                <span class="feature-icon bg-orange-50 text-orange-700">TM</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Team</span>
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h3 class="mb-3 text-base font-black text-slate-950">Next Up</h3>
+            <button class="native-card grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 p-4 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="${primaryTab}">
+              <span class="feature-icon bg-emerald-50 text-emerald-700">GO</span>
+              <span>
+                <span class="block text-lg font-black text-slate-950">${escapeHtml(nextTitle)}</span>
+                <span class="block text-sm font-semibold text-slate-500">${escapeHtml(primaryLabel)} - ${escapeHtml(nextMeta)}</span>
+              </span>
+              <span class="text-2xl font-black text-slate-400">›</span>
+            </button>
+          </section>
+
+          <section>
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <h3 class="text-base font-black text-slate-950">Recent Plans</h3>
+              <button class="text-sm font-black text-slate-500" type="button" data-action="go-tab" data-tab="practice">View All</button>
+            </div>
+            <div class="grid gap-3">${recentPlansHtml}</div>
+          </section>
+        `;
+      }
+
+      function renderHomePanel() {
+        const team = getSelectedTeam();
+        if (!team) return;
+
+        const division = getTeamDivision(team);
+        const snapshot = gameDaySnapshot(team);
+        const headCoach = isHeadCoach(team);
+        const savedPlans = (team.practicePlans || []).filter((plan) => plan.status !== "building").slice(0, 2);
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? "Good morning, Coach!" : hour < 18 ? "Good afternoon, Coach!" : "Good evening, Coach!";
+        const hasRoster = team.roster.length > 0;
+        const primaryTab = hasRoster ? "game" : "team";
+        const primaryLabel = !hasRoster ? "Add Roster" : snapshot.lineupReady ? "Open Game Day" : headCoach ? "Build Lineup" : "Open Shared Lineup";
+        const nextTitle = snapshot.lineupReady ? "Game day board is ready" : "Build today's lineup";
+        const nextMeta = snapshot.lineupReady
+          ? `${snapshot.totalTouches} touches tracked`
+          : `${snapshot.attendingCount}/${team.roster.length} marked present`;
+        const setupDisabled = headCoach ? "" : "disabled aria-disabled=\"true\"";
+        const setupSubtext = headCoach ? "Roster and access" : "Head coach only";
+        const recentPlansHtml = savedPlans.length
+          ? savedPlans
+              .map((plan) => {
+                const date = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "Saved plan";
+                return `
+                  <button class="soft-card flex items-center justify-between gap-3 p-3 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="practice">
+                    <span class="grid grid-cols-[auto_1fr] items-center gap-3">
+                      <span class="feature-icon h-10 w-10 rounded-2xl bg-indigo-50 text-sm text-indigo-700">PR</span>
+                      <span>
+                        <span class="block font-black text-slate-950">${escapeHtml(plan.title || "Practice Plan")}</span>
+                        <span class="block text-sm font-semibold text-slate-500">Practice Plan - ${escapeHtml(date)}</span>
+                      </span>
+                    </span>
+                    <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Saved</span>
+                  </button>
+                `;
+              })
+              .join("")
+          : `
+            <button class="soft-card flex items-center justify-between gap-3 p-3 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="practice">
+              <span class="grid grid-cols-[auto_1fr] items-center gap-3">
+                <span class="feature-icon h-10 w-10 rounded-2xl bg-indigo-50 text-sm text-indigo-700">PR</span>
+                <span>
+                  <span class="block font-black text-slate-950">Create your first practice plan</span>
+                  <span class="block text-sm font-semibold text-slate-500">Practice Plan</span>
+                </span>
+              </span>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">New</span>
+            </button>
+          `;
+
+        els.homePanel.innerHTML = `
+          <section class="space-y-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-3xl font-black tracking-tight text-slate-950">${escapeHtml(greeting)}</h2>
+                <p class="mt-1 text-sm font-semibold text-slate-500">Here's what's happening with your team.</p>
+              </div>
+              <span class="rounded-full bg-white/90 px-3 py-2 text-xs font-black text-slate-600 shadow-sm">${escapeHtml(roleLabel(team))}</span>
+            </div>
+
+            <button class="native-card grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 p-4 text-left active:bg-slate-50 disabled:opacity-70" type="button" data-action="go-tab" data-tab="team" ${setupDisabled}>
+              <div class="brand-mark h-12 w-12" aria-hidden="true"></div>
+              <div>
+                <p class="text-lg font-black text-slate-950">${escapeHtml(team.name || "Untitled Team")}</p>
+                <p class="text-sm font-semibold text-slate-500">${escapeHtml(division.divisionName)} - ${division.playersOnField} on field - ${escapeHtml(setupSubtext)}</p>
+              </div>
+              <span class="text-xl font-black text-slate-400">v</span>
+            </button>
+          </section>
+
+          <section>
+            <h3 class="mb-3 text-base font-black text-slate-950">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <button class="quick-action-card p-3 text-left active:bg-emerald-50" type="button" data-action="go-tab" data-tab="game">
+                <span class="feature-icon bg-emerald-50 text-emerald-700">LN</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Lineup</span>
+              </button>
+              <button class="quick-action-card p-3 text-left active:bg-indigo-50" type="button" data-action="go-tab" data-tab="practice">
+                <span class="feature-icon bg-indigo-50 text-indigo-700">PR</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Practice Plan</span>
+              </button>
+              <button class="quick-action-card p-3 text-left active:bg-sky-50" type="button" data-action="go-tab" data-tab="game">
+                <span class="feature-icon bg-sky-50 text-sky-700">TR</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Touches</span>
+              </button>
+              <button class="quick-action-card p-3 text-left active:bg-orange-50 disabled:opacity-50" type="button" data-action="go-tab" data-tab="team" ${setupDisabled}>
+                <span class="feature-icon bg-orange-50 text-orange-700">TM</span>
+                <span class="mt-3 block text-sm font-black text-slate-950">Team</span>
+              </button>
+            </div>
+          </section>
+
+          <section>
+            <h3 class="mb-3 text-base font-black text-slate-950">Next Up</h3>
+            <button class="native-card grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 p-4 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="${primaryTab}">
+              <span class="feature-icon bg-emerald-50 text-emerald-700">GO</span>
+              <span>
+                <span class="block text-lg font-black text-slate-950">${escapeHtml(nextTitle)}</span>
+                <span class="block text-sm font-semibold text-slate-500">${escapeHtml(primaryLabel)} - ${escapeHtml(nextMeta)}</span>
+              </span>
+              <span class="text-2xl font-black text-slate-400">&gt;</span>
+            </button>
+          </section>
+
+          <section>
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <h3 class="text-base font-black text-slate-950">Recent Plans</h3>
+              <button class="text-sm font-black text-slate-500" type="button" data-action="go-tab" data-tab="practice">View All</button>
+            </div>
+            <div class="grid gap-3">${recentPlansHtml}</div>
           </section>
         `;
       }
@@ -4304,16 +4527,19 @@
         renderTeamList();
 
         if (!state.user) {
+          els.appHeader.classList.add("hidden");
           els.teamListView.classList.add("hidden");
           els.teamEditorView.classList.add("hidden");
           els.cloudAccessView.classList.remove("hidden");
         } else if (team) {
+          els.appHeader.classList.remove("hidden");
           els.teamListView.classList.add("hidden");
           els.cloudAccessView.classList.add("hidden");
           els.teamEditorView.classList.remove("hidden");
           renderTeamEditor();
           setActiveTeamTab(state.activeTeamTab || "home");
         } else {
+          els.appHeader.classList.remove("hidden");
           els.teamEditorView.classList.add("hidden");
           els.cloudAccessView.classList.remove("hidden");
           els.teamListView.classList.remove("hidden");
