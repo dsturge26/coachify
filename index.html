@@ -180,6 +180,14 @@
         outline-offset: 0.35rem;
       }
 
+      #lineupPlannerSection,
+      #sharedLineupSection,
+      #touchTrackerSection,
+      #gamePlanningSection,
+      #gameNotesSection {
+        scroll-margin-top: 6.5rem;
+      }
+
       .empty-state {
         border: 1px dashed rgba(203, 213, 225, 0.95);
         border-radius: 20px;
@@ -398,10 +406,10 @@
       </section>
 
       <section id="teamEditorView" class="hidden space-y-4">
-        <section class="team-switcher-card px-4 py-3">
+        <section class="team-switcher-card px-3 py-3 sm:px-4">
           <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <label class="block rounded-[20px] bg-slate-50 px-3 py-2">
-              <span class="text-[11px] font-black uppercase tracking-wide text-slate-400">Current team</span>
+            <label class="block rounded-[20px] bg-slate-50/90 px-3 py-2 ring-1 ring-slate-100">
+              <span class="text-[10px] font-black uppercase tracking-wide text-slate-400">Team context</span>
               <span class="relative mt-1 block">
                 <select id="gameDayTeamSelect" class="context-select"></select>
                 <span class="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">v</span>
@@ -911,7 +919,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.15.1";
+      const APP_VERSION = "v0.15.2";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1624,7 +1632,11 @@
         if (!button) return;
 
         const now = Date.now();
-        if (event.type === "click" && now - state.lastSignOutTapAt < 700) return;
+        if (now - state.lastSignOutTapAt < 700) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         state.lastSignOutTapAt = now;
 
         event.preventDefault();
@@ -3462,6 +3474,23 @@
         }
       }
 
+      function scrollToSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (!section || section.classList.contains("hidden")) return;
+        if (section.tagName === "DETAILS") {
+          section.open = true;
+        }
+        section.scrollIntoView({ behavior: "smooth", block: "start" });
+        section.focus?.({ preventScroll: true });
+      }
+
+      function goToGameSection(sectionId) {
+        setActiveTeamTab("game");
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => scrollToSection(sectionId));
+        });
+      }
+
       function comparePlayers(a, b) {
         return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
       }
@@ -4579,7 +4608,7 @@
         `;
       }
 
-      function homeActionTileHtml({ tab, icon, title, detail, tone = "emerald", disabled = false }) {
+      function homeActionTileHtml({ tab, section, icon, title, detail, tone = "emerald", disabled = false }) {
         const tones = {
           emerald: "bg-emerald-50 text-emerald-700",
           indigo: "bg-indigo-50 text-indigo-700",
@@ -4587,8 +4616,9 @@
           orange: "bg-orange-50 text-orange-700"
         };
         const disabledAttr = disabled ? "disabled aria-disabled=\"true\"" : "";
+        const sectionAttr = section ? `data-section="${escapeHtml(section)}"` : "";
         return `
-          <button class="action-tile disabled:opacity-45 active:bg-slate-50" type="button" data-action="go-tab" data-tab="${tab}" ${disabledAttr}>
+          <button class="action-tile disabled:opacity-45 active:bg-slate-50" type="button" data-action="go-tab" data-tab="${tab}" ${sectionAttr} ${disabledAttr}>
             <span class="feature-icon h-11 w-11 ${tones[tone] || tones.emerald}">${escapeHtml(icon)}</span>
             <span>
               <span class="block text-sm font-black text-slate-950">${escapeHtml(title)}</span>
@@ -4598,9 +4628,10 @@
         `;
       }
 
-      function homeActivityRowHtml({ tab, icon, title, detail, badge }) {
+      function homeActivityRowHtml({ tab, section, icon, title, detail, badge }) {
+        const sectionAttr = section ? `data-section="${escapeHtml(section)}"` : "";
         return `
-          <button class="soft-card flex items-center justify-between gap-3 p-3 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="${tab}">
+          <button class="soft-card flex items-center justify-between gap-3 p-3 text-left active:bg-slate-50" type="button" data-action="go-tab" data-tab="${tab}" ${sectionAttr}>
             <span class="grid min-w-0 grid-cols-[auto_1fr] items-center gap-3">
               <span class="feature-icon h-10 w-10 rounded-2xl bg-slate-50 text-sm text-slate-700">${escapeHtml(icon)}</span>
               <span class="min-w-0">
@@ -4641,6 +4672,11 @@
             ? `${presentCount} active players. ${snapshot.totalTouches} touches logged.`
             : `${division.playersOnField} on field. Mark attendance first.`;
         const nextCta = !hasRoster ? "Open Team" : snapshot.lineupReady ? "Open Game" : headCoach ? "Build Lineup" : "View Game";
+        const nextSection = hasRoster && !snapshot.lineupReady
+          ? headCoach
+            ? "lineupPlannerSection"
+            : "sharedLineupSection"
+          : "";
         const activities = [];
 
         if (latestPlan) {
@@ -4656,6 +4692,7 @@
 
         activities.push({
           tab: "game",
+          section: headCoach ? "lineupPlannerSection" : "sharedLineupSection",
           icon: "GM",
           title: snapshot.lineupReady ? "Lineup saved" : "Lineup not built",
           detail: snapshot.lineupReady ? `${presentCount} players ready` : "Open Game when ready",
@@ -4664,6 +4701,7 @@
 
         activities.push({
           tab: "game",
+          section: "touchTrackerSection",
           icon: "TR",
           title: "Touch tracker",
           detail: `${snapshot.totalTouches} total touches`,
@@ -4693,7 +4731,7 @@
                   <h3 class="mt-1 text-2xl font-black leading-tight text-slate-950">${escapeHtml(nextTitle)}</h3>
                   <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">${escapeHtml(nextDetail)}</p>
                 </div>
-                <button class="primary-button w-full sm:w-auto" type="button" data-action="go-tab" data-tab="${nextTab}">
+                <button class="primary-button w-full sm:w-auto" type="button" data-action="go-tab" data-tab="${nextTab}" ${nextSection ? `data-section="${nextSection}"` : ""}>
                   ${escapeHtml(nextCta)}
                 </button>
               </div>
@@ -4719,8 +4757,8 @@
               <h3 class="text-base font-black text-slate-950">Quick actions</h3>
             </div>
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              ${homeActionTileHtml({ tab: "game", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
-              ${homeActionTileHtml({ tab: "game", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
+              ${homeActionTileHtml({ tab: "game", section: headCoach ? "lineupPlannerSection" : "sharedLineupSection", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
+              ${homeActionTileHtml({ tab: "game", section: "touchTrackerSection", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
               ${homeActionTileHtml({ tab: "practice", icon: "PR", title: "Practice plan", detail: "Build or open", tone: "sky" })}
               ${homeActionTileHtml({ tab: "team", icon: "TM", title: "Roster", detail: setupDisabled ? "Head coach" : "Manage team", tone: "orange", disabled: setupDisabled })}
             </div>
@@ -4823,6 +4861,7 @@
         els.headerSignUpBtn.addEventListener("click", signUpToCloud);
         els.headerRefreshBtn.addEventListener("click", refreshCoachify);
         document.addEventListener("click", handleSignOutEvent, { capture: true });
+        document.addEventListener("pointerup", handleSignOutEvent, { capture: true });
         document.addEventListener("touchend", handleSignOutEvent, { capture: true, passive: false });
         els.installAppBtn.addEventListener("click", async () => {
           if (!state.deferredInstallPrompt) {
@@ -4897,6 +4936,10 @@
           const button = event.target.closest("button[data-action='go-tab']");
           if (!button) return;
           if (button.dataset.tab === "team" && !isHeadCoach()) return;
+          if (button.dataset.tab === "game" && button.dataset.section) {
+            goToGameSection(button.dataset.section);
+            return;
+          }
           setActiveTeamTab(button.dataset.tab);
         });
 
