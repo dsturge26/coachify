@@ -25,6 +25,7 @@ Production app: https://coachify-app.com/
 - `supabase_division_settings.sql` - per-team division and field-size settings
 - `supabase_delete_teams.sql` - head-coach team deletion policy
 - `supabase_practice_plans.sql` - saved AI-generated practice plans
+- `supabase_practice_plan_shares.sql` - head-to-assistant practice plan sharing
 
 ## Deploy
 

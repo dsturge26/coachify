@@ -642,7 +642,7 @@
                 <h2 class="mt-2 text-3xl font-black leading-tight text-slate-950">Build practices your team can actually run.</h2>
                 <p class="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-600">Tell Coachify the roster reality, field setup, and coaching goal. It turns that into editable practice blocks with setup, cues, groups, and adjustments.</p>
                 <div class="mt-4 flex flex-wrap gap-2">
-                  <a class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white active:bg-slate-800" href="#practicePlanForm">
+                  <a id="practiceBuildHeroAction" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white active:bg-slate-800" href="#practicePlanForm">
                     Build Practice Plan
                   </a>
                   <button id="copyPracticePlanBtn" class="hidden min-h-12 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-sm active:bg-slate-50" type="button">
@@ -654,8 +654,8 @@
             </div>
           </section>
 
-          <section class="grid gap-3 sm:grid-cols-3">
-            <a class="soft-card p-4 active:bg-slate-50" href="#practicePlanForm">
+          <section id="practiceQuickActionsGrid" class="grid gap-3 sm:grid-cols-3">
+            <a id="practiceCreatePlanTile" class="soft-card p-4 active:bg-slate-50" href="#practicePlanForm">
               <span class="feature-icon h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-700">+</span>
               <span class="mt-3 block text-base font-black text-slate-950">Create plan</span>
               <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Guided, editable, saved to this team</span>
@@ -672,8 +672,17 @@
             </div>
           </section>
 
+          <section id="practiceAssistantIntro" class="hidden soft-card border-0 bg-gradient-to-br from-white to-sky-50 p-4 shadow-lg sm:p-5">
+            <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared practice plans</p>
+            <h2 class="mt-1 text-2xl font-black text-slate-950">Plans from your head coach</h2>
+            <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">Open a shared plan, review the blocks, and use it on the field. Creating and editing plans stays with the head coach.</p>
+          </section>
+
+          <section id="practicePlanStatus" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900"></section>
+          <section id="practicePlanResults" class="space-y-4"></section>
+
           <section class="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-            <section class="soft-card p-4 shadow-lg sm:p-5">
+            <section id="practiceBuilderCard" class="soft-card p-4 shadow-lg sm:p-5">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Guided builder</p>
@@ -869,8 +878,6 @@
             </section>
           </section>
 
-          <section id="practicePlanStatus" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900"></section>
-          <section id="practicePlanResults" class="space-y-4"></section>
         </section>
 
         <section id="setupPanel" class="hidden space-y-4">
@@ -1033,7 +1040,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.16.1";
+      const APP_VERSION = "v0.16.2";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1338,11 +1345,14 @@
         memberships: [],
         pendingInvites: [],
         teamAccess: [],
+        practicePlanShares: [],
+        practicePlanShareSetupMissing: false,
         cloudChannel: null,
         deferredInstallPrompt: null,
         activePracticePlanId: null,
         practiceBuildTimer: null,
         practiceBuildStartedAt: null,
+        practiceBuildInFlight: false,
         resumingPracticePlanIds: new Set(),
         practiceResumeStartedAt: {},
         gameNotesSaveTimer: null,
@@ -1400,6 +1410,11 @@
         gameNotesInput: document.querySelector("#gameNotesInput"),
         practicePlanPanel: document.querySelector("#practicePlanPanel"),
         setupPanel: document.querySelector("#setupPanel"),
+        practiceBuildHeroAction: document.querySelector("#practiceBuildHeroAction"),
+        practiceQuickActionsGrid: document.querySelector("#practiceQuickActionsGrid"),
+        practiceCreatePlanTile: document.querySelector("#practiceCreatePlanTile"),
+        practiceAssistantIntro: document.querySelector("#practiceAssistantIntro"),
+        practiceBuilderCard: document.querySelector("#practiceBuilderCard"),
         practicePlanForm: document.querySelector("#practicePlanForm"),
         practiceNameInput: document.querySelector("#practiceNameInput"),
         practiceSportInput: document.querySelector("#practiceSportInput"),
@@ -1745,6 +1760,8 @@
           state.memberships = [];
           state.pendingInvites = [];
           state.teamAccess = [];
+          state.practicePlanShares = [];
+          state.practicePlanShareSetupMissing = false;
           state.teams = [];
           state.selectedTeamId = null;
           state.activeTeamTab = "home";
@@ -1818,6 +1835,7 @@
           await loadCloudTeams();
           await loadPendingInvites();
           await loadTeamAccessForSelectedTeam();
+          await loadPracticePlanSharesForSelectedTeam();
           render();
           setAppStatus("Coachify is refreshed with the latest team data.", "success");
         } catch (error) {
@@ -1845,6 +1863,7 @@
         if (teamIds.length === 0) {
           state.teams = [];
           state.selectedTeamId = null;
+          state.practicePlanShares = [];
           saveState();
           renderCloudStatus();
           render();
@@ -1866,6 +1885,7 @@
         render();
         subscribeToSelectedCloudTeam();
         await loadTeamAccessForSelectedTeam({ renderAfter: true });
+        await loadPracticePlanSharesForSelectedTeam({ renderAfter: true });
       }
 
       async function loadPendingInvites({ renderAfter = true } = {}) {
@@ -2551,6 +2571,298 @@
         return plan;
       }
 
+      function isPracticePlanShareSetupError(error) {
+        const message = String(error?.message || error || "").toLowerCase();
+        return message.includes("practice_plan_shares")
+          || message.includes("could not find the table")
+          || message.includes("relation") && message.includes("does not exist");
+      }
+
+      function handlePracticePlanShareError(error) {
+        console.error("Coachify practice-plan sharing error", error);
+        if (isPracticePlanShareSetupError(error)) {
+          state.practicePlanShareSetupMissing = true;
+          return "Practice plan sharing needs one Supabase update. Run supabase_practice_plan_shares.sql, then refresh Coachify.";
+        }
+        return error?.message || "Practice plan sharing could not update. Try refreshing and trying again.";
+      }
+
+      function getPracticePlanById(planId) {
+        const team = getSelectedTeam();
+        return (team?.practicePlans || []).find((plan) => plan.id === planId) || null;
+      }
+
+      function activePracticePlanShares(planId) {
+        return (state.practicePlanShares || []).filter((share) => share.practice_plan_id === planId && share.status === "active");
+      }
+
+      function ownPracticePlanShare(planId) {
+        if (!state.user?.id) return null;
+        return activePracticePlanShares(planId).find((share) => share.shared_with_user_id === state.user.id) || null;
+      }
+
+      function canViewPracticePlan(plan) {
+        const team = getSelectedTeam();
+        if (!team || !plan) return false;
+        if (isHeadCoach(team)) return true;
+        return Boolean(ownPracticePlanShare(plan.id));
+      }
+
+      function visiblePracticePlans() {
+        const team = getSelectedTeam();
+        const plans = (team?.practicePlans || []).map(syncPracticePlanAliases);
+        if (!team) return [];
+        if (isHeadCoach(team)) return plans;
+        return plans.filter((plan) => canViewPracticePlan(plan));
+      }
+
+      function activeAssistantAccessRows() {
+        return (state.teamAccess || []).filter((row) =>
+          row.access_type === "member"
+          && row.role === "assistant"
+          && row.status === "active"
+          && row.user_id
+          && row.user_id !== state.user?.id
+        );
+      }
+
+      function practiceShareSetupMessageHtml() {
+        return `
+          <div class="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-950">
+            Practice plan sharing needs one Supabase update before coaches can share plans. Run <span class="font-black">supabase_practice_plan_shares.sql</span>, then refresh Coachify.
+          </div>
+        `;
+      }
+
+      function renderPracticeSharePanel(plan, canEditPlan) {
+        const team = getSelectedTeam();
+        if (!team || !plan) return "";
+
+        if (!canEditPlan) {
+          const share = ownPracticePlanShare(plan.id);
+          if (!share) return "";
+          return `
+            <section class="soft-card border border-sky-100 bg-sky-50 p-3">
+              <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared with you</p>
+              <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-sm font-semibold leading-6 text-sky-950">You have view access to this practice plan.</p>
+                <button class="min-h-11 rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-black text-sky-900 active:bg-sky-100" type="button" data-action="remove-shared-practice-plan" data-plan-id="${plan.id}">
+                  Remove From My View
+                </button>
+              </div>
+            </section>
+          `;
+        }
+
+        if (state.practicePlanShareSetupMissing) {
+          return `
+            <section class="soft-card p-3">
+              <p class="text-xs font-black uppercase tracking-wide text-amber-700">Sharing setup</p>
+              <h3 class="mt-1 text-base font-black text-slate-950">Share with assistant coaches</h3>
+              <div class="mt-3">${practiceShareSetupMessageHtml()}</div>
+            </section>
+          `;
+        }
+
+        const assistants = activeAssistantAccessRows();
+        if (!assistants.length) {
+          return `
+            <section class="soft-card p-3">
+              <p class="text-xs font-black uppercase tracking-wide text-slate-500">Sharing</p>
+              <h3 class="mt-1 text-base font-black text-slate-950">No assistant coaches yet</h3>
+              <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">Invite assistants from the Team screen before sharing practice plans.</p>
+            </section>
+          `;
+        }
+
+        const rowsHtml = assistants
+          .map((assistant) => {
+            const email = assistant.email || "Assistant coach";
+            const share = activePracticePlanShares(plan.id).find((row) => row.shared_with_user_id === assistant.user_id);
+            return `
+              <div class="flex flex-col gap-2 rounded-2xl bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-black text-slate-950">${escapeHtml(email)}</p>
+                  <p class="text-xs font-bold text-slate-500">${share ? "Can view this plan" : "Not shared yet"}</p>
+                </div>
+                ${share ? `
+                  <button class="min-h-10 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="revoke-practice-plan-share" data-share-id="${share.id}" data-email="${escapeHtml(email)}">
+                    Revoke
+                  </button>
+                ` : `
+                  <button class="min-h-10 rounded-2xl bg-emerald-700 px-3 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="share-practice-plan" data-plan-id="${plan.id}" data-user-id="${assistant.user_id}" data-email="${escapeHtml(email)}">
+                    Share
+                  </button>
+                `}
+              </div>
+            `;
+          })
+          .join("");
+
+        return `
+          <section class="soft-card p-3">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Sharing</p>
+                <h3 class="mt-1 text-base font-black text-slate-950">Assistant access</h3>
+              </div>
+              <span class="rounded-2xl bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-900">${activePracticePlanShares(plan.id).length} shared</span>
+            </div>
+            <div class="mt-3 grid gap-2">${rowsHtml}</div>
+          </section>
+        `;
+      }
+
+      async function loadPracticePlanSharesForSelectedTeam({ renderAfter = true } = {}) {
+        const team = getSelectedTeam();
+        if (!state.user || !team?.cloudId) {
+          state.practicePlanShares = [];
+          state.practicePlanShareSetupMissing = false;
+          if (renderAfter) renderPracticePlanHistory();
+          return;
+        }
+
+        const { data, error } = await cloud
+          .from("practice_plan_shares")
+          .select("id, team_id, practice_plan_id, shared_by_user_id, shared_with_user_id, access_level, status, created_at, updated_at, revoked_at, removed_at")
+          .eq("team_id", team.cloudId);
+
+        if (error) {
+          state.practicePlanShares = [];
+          state.practicePlanShareSetupMissing = isPracticePlanShareSetupError(error);
+          if (!state.practicePlanShareSetupMissing) {
+            console.error("Coachify could not load practice plan shares", error);
+          }
+          if (renderAfter) {
+            renderPracticePlanHistory();
+            const activePlan = getActivePracticePlan();
+            if (activePlan) renderPracticePlan(activePlan);
+          }
+          return;
+        }
+
+        state.practicePlanShareSetupMissing = false;
+        state.practicePlanShares = data || [];
+        const activePlan = getActivePracticePlan();
+        if (activePlan && !canViewPracticePlan(activePlan)) {
+          renderPracticePlan(null);
+        }
+        if (renderAfter) {
+          renderPracticePlanHistory();
+          if (activePlan && canViewPracticePlan(activePlan)) renderPracticePlan(activePlan);
+        }
+      }
+
+      async function sharePracticePlanWithAssistant(planId, userId, email = "assistant coach") {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !isHeadCoach(team) || !state.user?.id) return;
+
+        try {
+          const { error } = await cloud
+            .from("practice_plan_shares")
+            .upsert(
+              {
+                team_id: team.cloudId,
+                practice_plan_id: planId,
+                shared_by_user_id: state.user.id,
+                shared_with_user_id: userId,
+                access_level: "view",
+                status: "active",
+                revoked_at: null,
+                removed_at: null
+              },
+              { onConflict: "team_id,practice_plan_id,shared_with_user_id" }
+            );
+          if (error) throw error;
+          await loadPracticePlanSharesForSelectedTeam({ renderAfter: true });
+          setPracticeStatus(`Practice plan shared with ${email}.`, "success");
+        } catch (error) {
+          setPracticeStatus(handlePracticePlanShareError(error), "error");
+          renderPracticePlan(getPracticePlanById(planId));
+          renderPracticePlanHistory();
+        }
+      }
+
+      async function revokePracticePlanShare(shareId, email = "assistant coach") {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !isHeadCoach(team) || !shareId) return;
+        if (!window.confirm(`Remove ${email}'s access to this practice plan?`)) return;
+
+        try {
+          const { error } = await cloud
+            .from("practice_plan_shares")
+            .update({
+              status: "revoked",
+              revoked_at: new Date().toISOString()
+            })
+            .eq("id", shareId)
+            .eq("team_id", team.cloudId);
+          if (error) throw error;
+          await loadPracticePlanSharesForSelectedTeam({ renderAfter: true });
+          setPracticeStatus(`Practice plan access removed for ${email}.`, "success");
+        } catch (error) {
+          setPracticeStatus(handlePracticePlanShareError(error), "error");
+        }
+      }
+
+      async function removeSharedPracticePlanFromView(planId) {
+        const share = ownPracticePlanShare(planId);
+        if (!share) {
+          setPracticeStatus("This shared plan is no longer available.", "error");
+          return;
+        }
+        if (!window.confirm("Remove this shared practice plan from your view? The head coach's original plan will not be deleted.")) return;
+
+        try {
+          const { error } = await cloud
+            .from("practice_plan_shares")
+            .update({
+              status: "removed_by_assistant",
+              removed_at: new Date().toISOString()
+            })
+            .eq("id", share.id);
+          if (error) throw error;
+          await loadPracticePlanSharesForSelectedTeam({ renderAfter: true });
+          if (state.activePracticePlanId === planId) renderPracticePlan(null);
+          setPracticeStatus("Shared practice plan removed from your view.", "success");
+        } catch (error) {
+          setPracticeStatus(handlePracticePlanShareError(error), "error");
+        }
+      }
+
+      async function revokePracticePlanSharesForPlan(planId) {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !isHeadCoach(team) || !planId || state.practicePlanShareSetupMissing) return;
+        try {
+          const { error } = await cloud
+            .from("practice_plan_shares")
+            .update({
+              status: "revoked",
+              revoked_at: new Date().toISOString()
+            })
+            .eq("team_id", team.cloudId)
+            .eq("practice_plan_id", planId)
+            .eq("status", "active");
+          if (error && !isPracticePlanShareSetupError(error)) throw error;
+        } catch (error) {
+          console.warn("Coachify could not revoke shares while deleting practice plan", error);
+        }
+      }
+
+      function openPracticePlan(planId, { scroll = true } = {}) {
+        const plan = getPracticePlanById(planId);
+        if (!plan || !canViewPracticePlan(plan)) {
+          setPracticeStatus("That practice plan is not available for your role.", "error");
+          renderPracticePlanHistory();
+          return;
+        }
+        renderPracticePlan(plan);
+        renderPracticePlanHistory();
+        if (scroll) {
+          window.setTimeout(() => els.practicePlanResults?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+        }
+      }
+
       function renderPracticePlanLegacy(plan) {
         if (!plan) {
           els.practicePlanResults.innerHTML = "";
@@ -2938,6 +3250,13 @@
         }
 
         syncPracticePlanAliases(plan);
+        if (!canViewPracticePlan(plan)) {
+          els.practicePlanResults.innerHTML = "";
+          els.copyPracticePlanBtn.classList.add("hidden");
+          state.activePracticePlanId = null;
+          setPracticeStatus("That practice plan is not shared with your coach account.", "error");
+          return;
+        }
         state.activePracticePlanId = plan.id || null;
         if (plan.status === "building") {
           els.copyPracticePlanBtn.classList.add("hidden");
@@ -2989,13 +3308,16 @@
                   <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
                 </div>
               </summary>
-              <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+              <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto]">
                 <input id="activePracticeNameInput" class="min-h-11 rounded-2xl border border-slate-200 px-3 text-base font-bold shadow-sm" value="${escapeHtml(planTitle(plan))}" aria-label="Practice name" />
                 <button class="min-h-11 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="rename-practice-plan">
                   Rename
                 </button>
                 <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="add-custom-practice-block">
                   Add Activity
+                </button>
+                <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="close-practice-plan">
+                  Back
                 </button>
                 <button class="min-h-11 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="delete-practice-plan">
                   Delete
@@ -3192,6 +3514,7 @@
                   </details>
                 ` : ""}
 
+                ${canEditPlan ? `
                 <details class="rounded-2xl border border-violet-100 bg-violet-50 p-3">
                   <summary class="cursor-pointer list-none">
                     <div class="flex items-center justify-between gap-3">
@@ -3211,6 +3534,7 @@
                   <p class="mt-2 hidden rounded-2xl border border-violet-200 bg-white p-2 text-sm font-semibold text-violet-900" data-practice-ai-status="${index}"></p>
                   <div class="mt-3 grid gap-2">${aiHistoryHtml}</div>
                 </details>
+                ` : ""}
               </div>
             </article>
           `;
@@ -3244,6 +3568,11 @@
               </div>
             </div>
             <div class="grid gap-3 p-4">
+              <div class="flex flex-wrap gap-2">
+                <button class="min-h-11 rounded-2xl border border-white/0 bg-slate-100 px-4 py-2 text-sm font-black text-slate-900 active:bg-slate-200" type="button" data-action="close-practice-plan">
+                  Back to Plans
+                </button>
+              </div>
               ${nextBlock ? `
                 <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
                   <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Run practice preview</p>
@@ -3258,6 +3587,7 @@
                 ${renderInfoTile("Safety", planSafety, "rose")}
               </div>
               ${managementControls}
+              ${renderPracticeSharePanel(plan, canEditPlan)}
             </div>
           </article>
           <details class="soft-card p-3">
@@ -3310,11 +3640,16 @@
         const team = getSelectedTeam();
         if (!team) return null;
         if (!state.activePracticePlanId) return null;
-        return (team.practicePlans || []).find((plan) => plan.id === state.activePracticePlanId) || null;
+        const plan = (team.practicePlans || []).find((item) => item.id === state.activePracticePlanId) || null;
+        return canViewPracticePlan(plan) ? plan : null;
       }
 
       async function savePracticePlanChange(plan, message = "Practice plan changes saved.") {
         if (!plan) return;
+        if (!isHeadCoach(getSelectedTeam())) {
+          setPracticeStatus("Only the head coach can edit and save practice plans.", "error");
+          return;
+        }
         syncPracticePlanAliases(plan);
         plan.updatedAt = new Date().toISOString();
         renderPracticePlan(plan);
@@ -3630,15 +3965,24 @@
         const plan = getActivePracticePlan();
         if (!team || !plan) return;
 
-        const confirmed = confirm(`Delete "${plan.title || "this practice plan"}"?\n\nThis removes it for all coaches on this team.`);
+        const confirmed = confirm(`Delete "${planTitle(plan)}"?\n\nThis removes it for all coaches on this team.`);
         if (!confirmed) return;
 
+        await revokePracticePlanSharesForPlan(plan.id);
         team.practicePlans = (team.practicePlans || []).filter((item) => item.id !== plan.id);
-        state.activePracticePlanId = team.practicePlans[0]?.id || null;
+        state.practicePlanShares = (state.practicePlanShares || []).filter((share) => share.practice_plan_id !== plan.id);
+        state.activePracticePlanId = team.practicePlans.find((item) => canViewPracticePlan(item))?.id || null;
         renderPracticePlanHistory();
-        renderPracticePlan(team.practicePlans[0] || null);
+        renderPracticePlan(getActivePracticePlan() || null);
         await saveSelectedCloudTeam();
         setPracticeStatus("Practice plan deleted.", "success");
+      }
+
+      async function deletePracticePlanById(planId) {
+        const plan = getPracticePlanById(planId);
+        if (!plan) return;
+        state.activePracticePlanId = plan.id;
+        await deleteActivePracticePlan();
       }
 
       async function savePracticeBlockEdit(blockIndex) {
@@ -3730,12 +4074,17 @@
 
       function renderPracticePlanHistory() {
         const team = getSelectedTeam();
-        const plans = team?.practicePlans || [];
+        const plans = visiblePracticePlans();
+        const headCoach = isHeadCoach(team);
         renderPracticeStudioStats();
+        if (state.practicePlanShareSetupMissing && !headCoach) {
+          els.practicePlanHistory.innerHTML = practiceShareSetupMessageHtml();
+          return;
+        }
         if (!plans.length) {
           els.practicePlanHistory.innerHTML = `
             <div class="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-600">
-              No saved practice plans yet. Build one here and it will stay attached to this team.
+              ${headCoach ? "No saved practice plans yet. Build one here and it will stay attached to this team." : "No practice plans have been shared with you yet."}
             </div>
           `;
           return;
@@ -3756,17 +4105,41 @@
                     ? "bg-emerald-100 text-emerald-900"
                     : "bg-slate-100 text-slate-700";
               const focus = planFocusText(plan) || "Open this saved plan.";
+              const shareCount = activePracticePlanShares(plan.id).length;
+              const shareLabel = headCoach
+                ? shareCount ? `${shareCount} shared` : "Not shared"
+                : "Shared with me";
               return `
-                <button class="rounded-3xl border ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-slate-50"} p-3 text-left shadow-sm active:bg-slate-100" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
-                  <span class="flex items-start justify-between gap-3">
-                    <span>
-                      <span class="block text-base font-black text-slate-950">${escapeHtml(planTitle(plan))}</span>
-                      <span class="mt-1 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(created)} - ${planTotalMinutes(plan)} minutes</span>
+                <article class="rounded-3xl border ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-slate-50"} p-3 shadow-sm">
+                  <button class="block w-full text-left active:opacity-80" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
+                    <span class="flex items-start justify-between gap-3">
+                      <span class="min-w-0">
+                        <span class="block truncate text-base font-black text-slate-950">${escapeHtml(planTitle(plan))}</span>
+                        <span class="mt-1 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(created)} - ${planTotalMinutes(plan)} minutes</span>
+                      </span>
+                      <span class="shrink-0 rounded-2xl px-2 py-1 text-[11px] font-black uppercase tracking-wide ${statusClasses}">${statusLabel}</span>
                     </span>
-                    <span class="shrink-0 rounded-2xl px-2 py-1 text-[11px] font-black uppercase tracking-wide ${statusClasses}">${statusLabel}</span>
-                  </span>
-                  <span class="mt-2 line-clamp-2 block text-sm font-semibold leading-5 text-slate-700">${escapeHtml(focus)}</span>
-                </button>
+                    <span class="mt-2 line-clamp-2 block text-sm font-semibold leading-5 text-slate-700">${escapeHtml(focus)}</span>
+                  </button>
+                  <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-white/70 pt-3">
+                    <span class="rounded-2xl bg-white px-2 py-1 text-[11px] font-black text-slate-600">${escapeHtml(shareLabel)}</span>
+                    <button class="min-h-10 rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
+                      Open
+                    </button>
+                    ${headCoach ? `
+                      <button class="min-h-10 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-800 active:bg-slate-100" type="button" data-action="open-practice-share" data-plan-id="${plan.id}">
+                        Share
+                      </button>
+                      <button class="min-h-10 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="quick-delete-practice-plan" data-plan-id="${plan.id}">
+                        Delete
+                      </button>
+                    ` : `
+                      <button class="min-h-10 rounded-2xl border border-sky-200 bg-white px-3 py-2 text-sm font-black text-sky-900 active:bg-sky-100" type="button" data-action="remove-shared-practice-plan" data-plan-id="${plan.id}">
+                        Remove
+                      </button>
+                    `}
+                  </div>
+                </article>
               `;
             }
           )
@@ -3787,51 +4160,77 @@
 
       function renderPracticeBuildLoading(payload, stepIndex = 0) {
         const steps = [
-          "Reading your focus",
-          "Choosing age-friendly drills",
-          "Building the practice timeline",
-          "Adding setup instructions",
-          "Writing coaching tips",
-          "Checking the plan is coach-ready"
+          {
+            title: "Reading team context...",
+            detail: "Checking the team, age group, roster size, and what you said needs work."
+          },
+          {
+            title: "Building practice structure...",
+            detail: "Laying out a simple progression so practice moves from warmup to game-like reps."
+          },
+          {
+            title: "Choosing drills...",
+            detail: "Picking activities that fit the sport, player count, field space, and coaching focus."
+          },
+          {
+            title: "Balancing time blocks...",
+            detail: "Keeping the total practice time aligned and avoiding long standing-around sections."
+          },
+          {
+            title: "Adding coaching cues...",
+            detail: "Writing plain-language setup, grouping, cues, and easier/harder adjustments."
+          },
+          {
+            title: "Finalizing your plan...",
+            detail: "Checking the blocks so the finished plan opens as editable cards."
+          }
         ];
         const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
         const percent = Math.min(92, 12 + stepIndex * 14);
         const elapsed = state.practiceBuildStartedAt ? Math.max(0, Math.round((Date.now() - state.practiceBuildStartedAt) / 1000)) : 0;
+        const isLongRunning = elapsed >= 45;
+        const reassuringCopy = isLongRunning
+          ? "Still working. Detailed practice plans can take a little longer when Coachify is tailoring the blocks and cues."
+          : "Detailed plans can take 30-60 seconds because Coachify is building structured activities, not raw chat text.";
 
         els.practicePlanResults.innerHTML = `
-          <article class="overflow-hidden rounded-md border border-emerald-200 bg-white shadow-sm">
-            <div class="bg-gradient-to-r from-emerald-700 to-slate-950 p-4 text-white">
+          <article class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-xl">
+            <div class="bg-gradient-to-r from-emerald-700 to-slate-950 p-5 text-white">
               <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Coachify is building</p>
               <h2 class="mt-1 text-2xl font-black leading-tight">Your practice playbook</h2>
-              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">Detailed plans can take 30-45 seconds because Coachify is writing setup steps, coaching language, and drill adjustments.</p>
+              <p class="mt-2 text-sm font-semibold leading-6 text-emerald-50">${reassuringCopy}</p>
             </div>
             <div class="grid gap-4 p-4">
-              <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
+              <div class="rounded-3xl border border-slate-200 bg-slate-50 p-3">
                 <div class="flex items-center justify-between gap-3">
-                  <p class="text-sm font-black text-slate-950">${currentStep}</p>
+                  <div>
+                    <p class="text-sm font-black text-slate-950">${currentStep.title}</p>
+                    <p class="mt-1 text-sm font-semibold leading-5 text-slate-600">${currentStep.detail}</p>
+                  </div>
                   <p class="text-sm font-bold text-slate-500">${elapsed}s</p>
                 </div>
                 <div class="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
                   <div class="h-full rounded-full bg-emerald-600 transition-all" style="width: ${percent}%"></div>
                 </div>
+                <p class="mt-2 text-xs font-black uppercase tracking-wide text-slate-400">Step ${Math.min(stepIndex + 1, steps.length)} of ${steps.length}</p>
               </div>
               <div class="grid gap-2 sm:grid-cols-3">
-                <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
                   <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Practice</p>
                   <p class="mt-1 text-lg font-black text-emerald-950">${Number(payload.totalMinutes || 0)} min</p>
                 </div>
-                <div class="rounded-md border border-sky-200 bg-sky-50 p-3">
+                <div class="rounded-2xl border border-sky-200 bg-sky-50 p-3">
                   <p class="text-[11px] font-black uppercase tracking-wide text-sky-700">Water breaks</p>
                   <p class="mt-1 text-lg font-black text-sky-950">${payload.includeWaterBreaks ? "Included" : "Off"}</p>
                 </div>
-                <div class="rounded-md border border-amber-200 bg-amber-50 p-3">
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-3">
                   <p class="text-[11px] font-black uppercase tracking-wide text-amber-700">Focus</p>
                   <p class="mt-1 line-clamp-2 text-sm font-bold leading-5 text-amber-950">${escapeHtml(payload.focus || "")}</p>
                 </div>
               </div>
-              <div class="rounded-md border border-slate-200 bg-white p-3">
+              <div class="rounded-2xl border ${isLongRunning ? "border-amber-200 bg-amber-50 text-amber-950" : "border-slate-200 bg-white text-slate-700"} p-3">
                 <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">What happens next</p>
-                <p class="mt-1 text-sm font-semibold leading-6 text-slate-700">When it finishes, the plan will save automatically under this team. You can still ask drill-specific questions afterward without regenerating the full plan.</p>
+                <p class="mt-1 text-sm font-semibold leading-6">When it finishes, the plan will save automatically under this team. If anything fails, Coachify will show the next step instead of leaving this spinner here.</p>
               </div>
             </div>
           </article>
@@ -4075,6 +4474,10 @@
 
       async function buildPracticePlan(event) {
         event.preventDefault();
+        if (state.practiceBuildInFlight) {
+          setPracticeStatus("Practice plan is already building. Coachify will show it here as soon as it finishes.", "info");
+          return;
+        }
         const team = getSelectedTeam();
         if (!team) return;
         if (!(await ensureHeadCoachAccessForPractice())) {
@@ -4125,9 +4528,10 @@
             roster: practiceRosterContext(team, expectedKids)
           }
         };
+        state.practiceBuildInFlight = true;
         els.buildPracticePlanBtn.disabled = true;
-        els.buildPracticePlanBtn.textContent = "Building...";
-        setPracticeStatus("Coachify is building your plan now. Keep this page open until it saves.");
+        els.buildPracticePlanBtn.textContent = "Building Plan...";
+        setPracticeStatus("Practice plan is building. This can take a little time because Coachify is tailoring the blocks and cues.");
         startPracticeBuildLoading(payload);
 
         let timeoutId = null;
@@ -4173,7 +4577,8 @@
         } finally {
           if (timeoutId) window.clearTimeout(timeoutId);
           stopPracticeBuildLoading();
-          els.buildPracticePlanBtn.disabled = false;
+          state.practiceBuildInFlight = false;
+          els.buildPracticePlanBtn.disabled = !isHeadCoach(getSelectedTeam());
           els.buildPracticePlanBtn.textContent = "Build Practice Plan";
         }
       }
@@ -4264,12 +4669,15 @@
         if (changedTeam) {
           state.activePracticePlanId = null;
           state.teamAccess = [];
+          state.practicePlanShares = [];
+          state.practicePlanShareSetupMissing = false;
           stopPracticeBuildLoading();
         }
         saveState();
         render();
         subscribeToSelectedCloudTeam();
         loadTeamAccessForSelectedTeam();
+        loadPracticePlanSharesForSelectedTeam();
       }
 
       function getSelectedMembership() {
@@ -4397,11 +4805,14 @@
           els.setupTabBtn.classList.add("opacity-40");
         }
         if (isPractice) {
-          const plans = getSelectedTeam()?.practicePlans || [];
+          const team = getSelectedTeam();
+          const plans = team?.practicePlans || [];
           const activePlan = state.activePracticePlanId ? plans.find((plan) => plan.id === state.activePracticePlanId) : null;
           const pendingPlan = plans.find((plan) => plan.status === "building");
           renderPracticePlanHistory();
-          renderPracticePlan(activePlan || pendingPlan || null);
+          const planToRender = isHeadCoach(team) ? (activePlan || pendingPlan || null) : (activePlan && canViewPracticePlan(activePlan) ? activePlan : null);
+          renderPracticePlan(planToRender);
+          loadPracticePlanSharesForSelectedTeam({ renderAfter: true });
         }
       }
 
@@ -5374,7 +5785,7 @@
         const team = getSelectedTeam();
         if (!team || !els.practicePlanStudioStats) return;
 
-        const plans = team.practicePlans || [];
+        const plans = visiblePracticePlans();
         const readyPlans = plans.filter((plan) => plan.status === "ready" && Array.isArray(plan.blocks));
         const buildingPlans = plans.filter((plan) => plan.status === "building");
         const latestPlan = readyPlans[0];
@@ -5692,7 +6103,7 @@
             <div class="grid grid-cols-2 gap-3 ${headCoach ? "sm:grid-cols-4" : "sm:grid-cols-3"}">
               ${homeActionTileHtml({ tab: "game", section: headCoach ? "lineupPlannerSection" : "sharedLineupSection", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
               ${homeActionTileHtml({ tab: "game", section: "touchTrackerSection", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
-              ${homeActionTileHtml({ tab: "practice", icon: "PR", title: "Practice plan", detail: "Build or open", tone: "sky" })}
+              ${homeActionTileHtml({ tab: "practice", icon: "PR", title: "Practice plan", detail: headCoach ? "Build or open" : "Shared plans", tone: "sky" })}
               ${rosterActionHtml}
             </div>
           </section>
@@ -5742,11 +6153,15 @@
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
         renderGameTools();
         els.setupTabBtn.disabled = !headCoach;
-        const practiceRolePending = isTeamRolePending(team);
-        const canTryPracticeBuild = headCoach || practiceRolePending;
-        els.buildPracticePlanBtn.disabled = !canTryPracticeBuild;
-        els.buildPracticePlanBtn.classList.toggle("opacity-50", !canTryPracticeBuild);
-        els.buildPracticePlanBtn.textContent = canTryPracticeBuild ? "Build Practice Plan" : "Head Coach Only";
+        els.practiceBuildHeroAction?.classList.toggle("hidden", !headCoach);
+        els.practiceCreatePlanTile?.classList.toggle("hidden", !headCoach);
+        els.practiceBuilderCard?.classList.toggle("hidden", !headCoach);
+        els.practiceAssistantIntro?.classList.toggle("hidden", headCoach);
+        els.practiceQuickActionsGrid?.classList.toggle("sm:grid-cols-3", headCoach);
+        els.practiceQuickActionsGrid?.classList.toggle("sm:grid-cols-2", !headCoach);
+        els.buildPracticePlanBtn.disabled = !headCoach || state.practiceBuildInFlight;
+        els.buildPracticePlanBtn.classList.toggle("opacity-50", !headCoach || state.practiceBuildInFlight);
+        els.buildPracticePlanBtn.textContent = state.practiceBuildInFlight ? "Building Plan..." : "Build Practice Plan";
         els.inviteCodePanel.classList.toggle("hidden", !team.cloudId || !headCoach);
         renderTeamAccess();
         if (!headCoach && normalizeTeamTab(state.activeTeamTab) === "team") {
@@ -5913,11 +6328,22 @@
         });
 
         els.practicePlanHistory.addEventListener("click", (event) => {
-          const button = event.target.closest("button[data-action='open-practice-plan']");
+          const button = event.target.closest("button[data-action]");
           if (!button) return;
-          const plan = (getSelectedTeam()?.practicePlans || []).find((item) => item.id === button.dataset.planId);
-          renderPracticePlan(plan);
-          renderPracticePlanHistory();
+          const action = button.dataset.action;
+          if (action === "open-practice-plan") {
+            openPracticePlan(button.dataset.planId);
+          }
+          if (action === "open-practice-share") {
+            openPracticePlan(button.dataset.planId);
+            setPracticeStatus("Share options are open inside this practice plan.", "info");
+          }
+          if (action === "quick-delete-practice-plan") {
+            deletePracticePlanById(button.dataset.planId);
+          }
+          if (action === "remove-shared-practice-plan") {
+            removeSharedPracticePlanFromView(button.dataset.planId);
+          }
         });
 
         els.practicePlanResults.addEventListener("click", (event) => {
@@ -5962,6 +6388,7 @@
 
           if (button.dataset.action === "close-practice-plan") {
             renderPracticePlan(null);
+            window.setTimeout(() => els.practicePlanHistory?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
           }
 
           if (button.dataset.action === "retry-practice-build") {
@@ -5989,6 +6416,18 @@
 
           if (button.dataset.action === "ai-swap-drill") {
             swapPracticeDrillWithAi(Number(button.dataset.blockIndex));
+          }
+
+          if (button.dataset.action === "share-practice-plan") {
+            sharePracticePlanWithAssistant(button.dataset.planId, button.dataset.userId, button.dataset.email);
+          }
+
+          if (button.dataset.action === "revoke-practice-plan-share") {
+            revokePracticePlanShare(button.dataset.shareId, button.dataset.email);
+          }
+
+          if (button.dataset.action === "remove-shared-practice-plan") {
+            removeSharedPracticePlanFromView(button.dataset.planId);
           }
         });
 
