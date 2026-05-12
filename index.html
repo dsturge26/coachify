@@ -1033,7 +1033,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.16.0";
+      const APP_VERSION = "v0.16.1";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -4077,8 +4077,7 @@
         event.preventDefault();
         const team = getSelectedTeam();
         if (!team) return;
-        if (!isHeadCoach(team)) {
-          setPracticeStatus("Only the head coach can generate and save practice plans.", "error");
+        if (!(await ensureHeadCoachAccessForPractice())) {
           return;
         }
 
@@ -4290,6 +4289,28 @@
         if (!team?.cloudId) return false;
         const membership = state.memberships.find((item) => item.team_id === team.cloudId);
         return membership?.role === "assistant";
+      }
+
+      function isTeamRolePending(team = getSelectedTeam()) {
+        if (!team?.cloudId || !state.user) return false;
+        if (team.createdBy && team.createdBy === state.user.id) return false;
+        return !state.memberships.some((membership) => membership.team_id === team.cloudId);
+      }
+
+      async function ensureHeadCoachAccessForPractice() {
+        const team = getSelectedTeam();
+        if (!team) return false;
+        if (isHeadCoach(team)) return true;
+
+        if (isTeamRolePending(team)) {
+          setPracticeStatus("Checking your coach access...", "info");
+          await loadCloudTeams();
+          const refreshedTeam = getSelectedTeam();
+          if (isHeadCoach(refreshedTeam)) return true;
+        }
+
+        setPracticeStatus("Only the head coach can generate and save practice plans.", "error");
+        return false;
       }
 
       function roleLabel(team = getSelectedTeam()) {
@@ -5721,8 +5742,11 @@
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
         renderGameTools();
         els.setupTabBtn.disabled = !headCoach;
-        els.buildPracticePlanBtn.disabled = !headCoach;
-        els.buildPracticePlanBtn.classList.toggle("opacity-50", !headCoach);
+        const practiceRolePending = isTeamRolePending(team);
+        const canTryPracticeBuild = headCoach || practiceRolePending;
+        els.buildPracticePlanBtn.disabled = !canTryPracticeBuild;
+        els.buildPracticePlanBtn.classList.toggle("opacity-50", !canTryPracticeBuild);
+        els.buildPracticePlanBtn.textContent = canTryPracticeBuild ? "Build Practice Plan" : "Head Coach Only";
         els.inviteCodePanel.classList.toggle("hidden", !team.cloudId || !headCoach);
         renderTeamAccess();
         if (!headCoach && normalizeTeamTab(state.activeTeamTab) === "team") {
