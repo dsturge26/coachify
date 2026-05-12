@@ -635,7 +635,7 @@
         </section>
 
         <section id="practicePlanPanel" class="hidden space-y-5">
-          <section class="soft-card overflow-hidden border-0 bg-gradient-to-br from-white via-emerald-50 to-sky-50 shadow-xl">
+          <section id="practiceHeroCard" class="soft-card overflow-hidden border-0 bg-gradient-to-br from-white via-emerald-50 to-sky-50 shadow-xl">
             <div class="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr] lg:p-6">
               <div>
                 <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Practice Copilot</p>
@@ -846,7 +846,7 @@
             </section>
 
             <section class="space-y-4">
-              <section class="soft-card p-4 shadow-lg sm:p-5">
+              <section id="practiceFoundationCard" class="soft-card p-4 shadow-lg sm:p-5">
                 <div class="flex items-start justify-between gap-3">
                   <div>
                     <p class="text-xs font-black uppercase tracking-wide text-slate-500">Saved work</p>
@@ -1040,7 +1040,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.16.2";
+      const APP_VERSION = "v0.16.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1410,11 +1410,13 @@
         gameNotesInput: document.querySelector("#gameNotesInput"),
         practicePlanPanel: document.querySelector("#practicePlanPanel"),
         setupPanel: document.querySelector("#setupPanel"),
+        practiceHeroCard: document.querySelector("#practiceHeroCard"),
         practiceBuildHeroAction: document.querySelector("#practiceBuildHeroAction"),
         practiceQuickActionsGrid: document.querySelector("#practiceQuickActionsGrid"),
         practiceCreatePlanTile: document.querySelector("#practiceCreatePlanTile"),
         practiceAssistantIntro: document.querySelector("#practiceAssistantIntro"),
         practiceBuilderCard: document.querySelector("#practiceBuilderCard"),
+        practiceFoundationCard: document.querySelector("#practiceFoundationCard"),
         practicePlanForm: document.querySelector("#practicePlanForm"),
         practiceNameInput: document.querySelector("#practiceNameInput"),
         practiceSportInput: document.querySelector("#practiceSportInput"),
@@ -6153,9 +6155,12 @@
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
         renderGameTools();
         els.setupTabBtn.disabled = !headCoach;
+        els.practiceHeroCard?.classList.toggle("hidden", !headCoach);
         els.practiceBuildHeroAction?.classList.toggle("hidden", !headCoach);
+        els.practiceQuickActionsGrid?.classList.toggle("hidden", !headCoach);
         els.practiceCreatePlanTile?.classList.toggle("hidden", !headCoach);
         els.practiceBuilderCard?.classList.toggle("hidden", !headCoach);
+        els.practiceFoundationCard?.classList.toggle("hidden", !headCoach);
         els.practiceAssistantIntro?.classList.toggle("hidden", headCoach);
         els.practiceQuickActionsGrid?.classList.toggle("sm:grid-cols-3", headCoach);
         els.practiceQuickActionsGrid?.classList.toggle("sm:grid-cols-2", !headCoach);
