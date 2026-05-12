@@ -21,46 +21,85 @@ function extractText(response) {
 const practicePlanSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["title", "totalMinutes", "summary", "blocks"],
+  required: [
+    "planTitle",
+    "sport",
+    "ageGroup",
+    "totalDurationMinutes",
+    "practiceFocus",
+    "summary",
+    "equipmentNeeded",
+    "setupNotes",
+    "blocks",
+    "coachingEmphasis",
+    "safetyNotes",
+    "adaptations",
+    "suggestedFollowUp",
+    "generatedAt"
+  ],
   properties: {
-    title: { type: "string" },
-    totalMinutes: { type: "number" },
+    planTitle: { type: "string" },
+    sport: { type: "string" },
+    ageGroup: { type: "string" },
+    totalDurationMinutes: { type: "number" },
+    practiceFocus: { type: "string" },
     summary: { type: "string" },
+    equipmentNeeded: { type: "array", items: { type: "string" } },
+    setupNotes: { type: "string" },
     blocks: {
       type: "array",
       items: {
         type: "object",
         additionalProperties: false,
         required: [
-          "blockType",
-          "minutes",
-          "name",
-          "goal",
+          "id",
+          "type",
+          "title",
+          "durationMinutes",
+          "objective",
           "setup",
           "instructions",
-          "coachScript",
-          "coachingPoints",
-          "successLooksLike",
-          "commonMistakes",
-          "makeEasier",
-          "makeHarder"
+          "equipment",
+          "coachingCues",
+          "grouping",
+          "modifications",
+          "tags",
+          "positionFocus",
+          "safetyNotes",
+          "whyThisDrillMatters"
         ],
         properties: {
-          blockType: { type: "string", enum: ["drill", "water"] },
-          minutes: { type: "number" },
-          name: { type: "string" },
-          goal: { type: "string" },
+          id: { type: "string" },
+          type: { type: "string", enum: ["arrival", "warmup", "skill", "position", "team", "scrimmage", "cooldown", "water", "custom"] },
+          title: { type: "string" },
+          durationMinutes: { type: "number" },
+          objective: { type: "string" },
           setup: { type: "string" },
           instructions: { type: "string" },
-          coachScript: { type: "string" },
-          coachingPoints: { type: "string" },
-          successLooksLike: { type: "string" },
-          commonMistakes: { type: "string" },
-          makeEasier: { type: "string" },
-          makeHarder: { type: "string" }
+          equipment: { type: "array", items: { type: "string" } },
+          coachingCues: { type: "array", items: { type: "string" } },
+          grouping: { type: "string" },
+          modifications: {
+            type: "object",
+            additionalProperties: false,
+            required: ["easier", "harder"],
+            properties: {
+              easier: { type: "string" },
+              harder: { type: "string" }
+            }
+          },
+          tags: { type: "array", items: { type: "string" } },
+          positionFocus: { type: "array", items: { type: "string" } },
+          safetyNotes: { type: "string" },
+          whyThisDrillMatters: { type: "string" }
         }
       }
-    }
+    },
+    coachingEmphasis: { type: "array", items: { type: "string" } },
+    safetyNotes: { type: "array", items: { type: "string" } },
+    adaptations: { type: "array", items: { type: "string" } },
+    suggestedFollowUp: { type: "string" },
+    generatedAt: { type: "string" }
   }
 };
 
@@ -80,14 +119,38 @@ function distributeFiveMinuteBlocks(totalMinutes, blockCount) {
   return blocks;
 }
 
+function stableId(value) {
+  return String(value || "practice-block")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 48) || "practice-block";
+}
+
 function makeDrill(minutes, name, goal, setup, instructions, coachScript, coachingPoints, successLooksLike, commonMistakes, makeEasier, makeHarder) {
   return {
+    id: stableId(name),
+    type: /warmup|prep/i.test(name) ? "warmup" : /scrimmage|drive|play/i.test(name) ? "team" : "skill",
     blockType: "drill",
+    durationMinutes: minutes,
     minutes,
+    title: name,
     name,
+    objective: goal,
     goal,
     setup,
     instructions,
+    equipment: [],
+    coachingCues: [coachScript, coachingPoints].filter(Boolean),
+    grouping: setup,
+    modifications: {
+      easier: makeEasier,
+      harder: makeHarder
+    },
+    tags: [],
+    positionFocus: [],
+    safetyNotes: commonMistakes,
+    whyThisDrillMatters: successLooksLike,
     coachScript,
     coachingPoints,
     successLooksLike,
@@ -99,12 +162,28 @@ function makeDrill(minutes, name, goal, setup, instructions, coachScript, coachi
 
 function makeWaterBreak() {
   return {
+    id: stableId("Water break and reset"),
+    type: "water",
     blockType: "water",
+    durationMinutes: 2,
     minutes: 2,
+    title: "Water break and reset",
     name: "Water break and reset",
+    objective: "Let kids drink, breathe, and know exactly where to go next.",
     goal: "Let kids drink, breathe, and know exactly where to go next.",
     setup: "Send players to bottles. Coach stands where the next drill will start.",
     instructions: "Give kids 60-90 seconds for water, then use the last 30 seconds to point to the next starting spot.",
+    equipment: ["water bottles"],
+    coachingCues: ["Great work. Grab water, then jog back to me by the cones."],
+    grouping: "All players drink, then return to the next starting spot.",
+    modifications: {
+      easier: "Call one group at a time back to the field.",
+      harder: "Ask one player to repeat the next focus before the team starts."
+    },
+    tags: ["reset"],
+    positionFocus: [],
+    safetyNotes: "Keep the break short enough that players do not scatter.",
+    whyThisDrillMatters: "Players recover without losing the practice rhythm.",
     coachScript: "Great work. Grab water, then jog back to me by the cones. Next we are going to go faster and cleaner.",
     coachingPoints: "Keep it moving. Praise one specific thing from the last drill and name the next focus before they scatter.",
     successLooksLike: "Players get water quickly and are back at the next drill spot before the break runs long.",
@@ -124,13 +203,96 @@ function parsePlanResponse(data, input) {
   }
 
   try {
-    return { plan: ensurePracticePlanQuality(JSON.parse(text), input) };
+    return { plan: ensurePracticePlanQuality(normalizeStructuredPracticePlan(JSON.parse(text), input), input) };
   } catch (error) {
     return {
       plan: fallbackPlan(input),
       warning: "OpenAI returned a plan in an unexpected format, so Coachify used a built-in backup plan."
     };
   }
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).map((item) => String(item).trim()).filter(Boolean);
+  if (value == null || value === "") return [];
+  return String(value)
+    .split(/\n|[,;]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function asText(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(" ");
+  return String(value || "").trim();
+}
+
+function normalizeBlock(block, index) {
+  const rawType = block?.type || block?.blockType || "skill";
+  const type = rawType === "drill" ? "skill" : rawType;
+  const duration = Number(block?.durationMinutes || block?.minutes || 0);
+  const title = block?.title || block?.name || (type === "water" ? "Water break and reset" : `Practice Block ${index + 1}`);
+  const objective = block?.objective || block?.goal || "";
+  const cues = asArray(block?.coachingCues || block?.coachScript || block?.coachingPoints).slice(0, 6);
+  const modifications = block?.modifications || {};
+  const easier = modifications.easier || block?.makeEasier || "";
+  const harder = modifications.harder || block?.makeHarder || "";
+
+  return {
+    ...block,
+    id: block?.id || `${stableId(title)}-${index + 1}`,
+    type,
+    blockType: type === "water" ? "water" : "drill",
+    title,
+    name: title,
+    durationMinutes: duration,
+    minutes: duration,
+    objective,
+    goal: objective,
+    setup: asText(block?.setup),
+    instructions: asText(block?.instructions),
+    equipment: asArray(block?.equipment),
+    coachingCues: cues,
+    coachScript: block?.coachScript || cues[0] || "",
+    coachingPoints: block?.coachingPoints || cues.join(" "),
+    grouping: asText(block?.grouping),
+    modifications: {
+      easier: asText(easier),
+      harder: asText(harder)
+    },
+    makeEasier: asText(easier),
+    makeHarder: asText(harder),
+    tags: asArray(block?.tags).slice(0, 8),
+    positionFocus: asArray(block?.positionFocus),
+    safetyNotes: asText(block?.safetyNotes || block?.commonMistakes),
+    whyThisDrillMatters: asText(block?.whyThisDrillMatters || block?.successLooksLike),
+    successLooksLike: asText(block?.successLooksLike || block?.whyThisDrillMatters),
+    commonMistakes: asText(block?.commonMistakes || block?.safetyNotes)
+  };
+}
+
+function normalizeStructuredPracticePlan(plan, input) {
+  const blocks = Array.isArray(plan?.blocks) ? plan.blocks.map(normalizeBlock) : [];
+  const total = Number(plan?.totalDurationMinutes || plan?.totalMinutes || blocks.reduce((sum, block) => sum + Number(block.durationMinutes || 0), 0) || input.totalMinutes || 0);
+  const title = plan?.planTitle || plan?.title || input.practiceName || `${input.sport || "Team"} Practice Plan`;
+  return {
+    ...plan,
+    planTitle: title,
+    title,
+    sport: plan?.sport || input.sport || "Team",
+    ageGroup: plan?.ageGroup || input.ageGroup || input.team?.divisionName || "",
+    totalDurationMinutes: total,
+    totalMinutes: total,
+    practiceFocus: plan?.practiceFocus || input.focus || "",
+    summary: plan?.summary || `Focused on ${input.focus || "team fundamentals"}.`,
+    equipmentNeeded: asArray(plan?.equipmentNeeded),
+    setupNotes: asText(plan?.setupNotes),
+    blocks,
+    coachingEmphasis: asArray(plan?.coachingEmphasis),
+    safetyNotes: asArray(plan?.safetyNotes),
+    adaptations: asArray(plan?.adaptations),
+    suggestedFollowUp: asText(plan?.suggestedFollowUp),
+    generatedAt: plan?.generatedAt || new Date().toISOString()
+  };
 }
 
 function seededIndex(seed, length, offset = 0) {
@@ -325,7 +487,7 @@ function concreteThemeDrill(theme, minutes, input, seed, offset) {
 }
 
 function vaguePracticeBlock(block) {
-  if (!block || block.blockType === "water") return false;
+  if (!block || ["water", "arrival", "cooldown"].includes(block.type || block.blockType)) return false;
   const text = [block.name, block.goal, block.setup, block.instructions, block.coachingPoints, block.successLooksLike, block.commonMistakes].join(" ").toLowerCase();
   const vaguePhrases = [
     "small-group coach checkpoints",
@@ -457,12 +619,28 @@ function fallbackPlan(input) {
   const plannedTotal = blocks.reduce((sum, block) => sum + Number(block.minutes || 0), 0);
   const wrapNote = plannedTotal < total ? ` This plan wraps ${total - plannedTotal} minutes early so drills stay in 5-minute chunks with water breaks.` : "";
 
-  return {
-    title: `${input.sport || "Team"} Practice Plan`,
-    totalMinutes: plannedTotal,
-    summary: `Focused on ${focus}.${wrapNote}`,
-    blocks
-  };
+  return normalizeStructuredPracticePlan(
+    {
+      planTitle: input.practiceName || `${input.sport || "Team"} Practice Plan`,
+      sport: input.sport || "Team",
+      ageGroup: input.ageGroup || input.team?.divisionName || "",
+      totalDurationMinutes: plannedTotal,
+      practiceFocus: focus,
+      summary: `Focused on ${focus}.${wrapNote}`,
+      equipmentNeeded: asArray(input.equipment),
+      setupNotes: input.space ? `Space available: ${input.space}.` : "Use the space and landmarks available at practice.",
+      blocks,
+      coachingEmphasis: ["Keep players moving", "Use one correction at a time", "Progress from simple reps to game-like reps"],
+      safetyNotes: ["Avoid collisions, long lines, and drills that require kids to dive."],
+      adaptations: [
+        "If fewer players arrive, shrink the space and keep two active players per rep.",
+        "If more helpers are available, split into stations to increase reps."
+      ],
+      suggestedFollowUp: "After practice, save the two drills that worked best as a future template.",
+      generatedAt: new Date().toISOString()
+    },
+    input
+  );
 }
 
 function buildPracticePrompt(input) {
@@ -474,7 +652,6 @@ function buildPracticePrompt(input) {
   const recentPlans = Array.isArray(input.recentPlans) ? input.recentPlans.slice(0, 4) : [];
   const rosterSize = Number(input.team?.roster?.totalPlayers || input.team?.rosterSize || 0);
   const fullRosterSize = Number(input.team?.roster?.fullRosterSize || input.team?.fullRosterSize || rosterSize || 0);
-  const playerNames = Array.isArray(input.team?.roster?.names) ? input.team.roster.names.filter(Boolean) : [];
   const playerCountText = rosterSize > 0 ? `${rosterSize}` : "unknown";
   const groupHint =
     rosterSize > 0
@@ -506,15 +683,22 @@ function buildPracticePrompt(input) {
 Create a youth sports practice plan as JSON only.
 
 Sport: ${input.sport}
+Age group / level: ${input.ageGroup || input.team?.divisionName || "unknown"}
 Practice length: ${input.totalMinutes} minutes
 Include 2-minute water breaks between drills: ${input.includeWaterBreaks ? "yes" : "no"}
 Team: ${input.team?.name || "Team"} (${input.team?.divisionName || "division unknown"}, ${input.team?.playersOnField || "unknown"} on field, ${fullRosterSize || "unknown"} on full roster)
-Expected kids at this practice: ${playerCountText} players${fullRosterSize && rosterSize && fullRosterSize !== rosterSize ? ` out of ${fullRosterSize} rostered` : ""}${playerNames.length ? ` (${playerNames.join(", ")})` : ""}
+Expected kids at this practice: ${playerCountText} players${fullRosterSize && rosterSize && fullRosterSize !== rosterSize ? ` out of ${fullRosterSize} rostered` : ""}
+Coaches/helpers available: ${input.coachCount || 1}
 Coach focus: ${input.focus}
+Practice priority: ${input.priority || "equal reps"}
+Desired intensity: ${input.intensity || "balanced"}
+Coach style/preference: ${input.coachStyle || "balanced and practical"}
 Drill mix preference: ${drillMix}
 Practice blueprint for this request: ${practiceBlueprint}
 Variation seed for novelty: ${variationSeed}
-Space/equipment: ${input.equipment || "not specified"}
+Space constraints: ${input.space || "not specified"}
+Equipment: ${input.equipment || "not specified"}
+Upcoming game/context: ${input.gameContext || "not specified"}
 Recent drills for this team:
 ${recentDrillLines || "- No recent drills saved yet."}
 Recent drill names to consider:
@@ -528,29 +712,45 @@ ${coachingReferencesPrompt(coachingReferences)}
 
 Return exactly this JSON shape:
 {
-  "title": "string",
-  "totalMinutes": number,
+  "planTitle": "string",
+  "sport": "string",
+  "ageGroup": "string",
+  "totalDurationMinutes": number,
+  "practiceFocus": "string",
   "summary": "string",
+  "equipmentNeeded": ["string"],
+  "setupNotes": "string",
   "blocks": [
     {
-      "blockType": "drill",
-      "minutes": number,
-      "name": "string",
-      "goal": "string",
+      "id": "string",
+      "type": "arrival|warmup|skill|position|team|scrimmage|cooldown|water|custom",
+      "title": "string",
+      "durationMinutes": number,
+      "objective": "string",
       "setup": "string",
       "instructions": "string",
-      "coachScript": "string",
-      "coachingPoints": "string",
-      "successLooksLike": "string",
-      "commonMistakes": "string",
-      "makeEasier": "string",
-      "makeHarder": "string"
+      "equipment": ["string"],
+      "coachingCues": ["string"],
+      "grouping": "string",
+      "modifications": { "easier": "string", "harder": "string" },
+      "tags": ["string"],
+      "positionFocus": ["string"],
+      "safetyNotes": "string",
+      "whyThisDrillMatters": "string"
     }
-  ]
+  ],
+  "coachingEmphasis": ["string"],
+  "safetyNotes": ["string"],
+  "adaptations": ["string"],
+  "suggestedFollowUp": "string",
+  "generatedAt": "ISO timestamp string"
 }
 
 Rules:
 - Assume the coach is a brand-new volunteer who has never run these drills before.
+- Treat every block as an editable card in Coachify, not a paragraph in a chat response.
+- Build a full practice arc: quick arrival/setup or warmup, focused skill work, position/group work when useful, team/game-like reps, competition or scrimmage scenario, and a short cooldown/wrap-up when time allows.
+- Keep the plan skimmable. Put the most important field instructions in setup, instructions, coachingCues, and grouping.
 - If a team coaching profile is provided, treat it as the strongest source of context. The plan should feel like it was written for that team, not a generic team.
 - Use the Coachify coaching reference library for all flag football teams, even when the selected team is a different age group or division. Borrow patterns, cues, constraints, and drill concepts when they fit the roster count, age, and focus.
 - Do not copy a reference blindly. Adapt it to the selected team's age, player count, practice length, and requested focus.
@@ -560,16 +760,17 @@ Rules:
 - For offensive play-rep blocks, do not substitute generic skill stations. Use the coach's own playbook/play names if provided. If no play names are provided, tell the coach to use "Play 1 / Play 2 / Play 3" or their printed play card.
 - If the coach asks for "real game reps on offense," include game-day mechanics: huddle, line of scrimmage, QB, Center, runner/receivers, cadence/snap, play finish, sideline sub/reset, and a 10-second reset or huddle clock.
 - Each drill setup must include: cone layout or field landmark, approximate distance/size, exact starting spots, and how to split the expected player count.
-- Each drill instructions field must include: what happens on the coach's command, what one rep looks like, and exactly how players rotate after the rep.
-- Each coachScript must be a real sentence the coach can say out loud to kids. Do not write strategy notes there.
-- Each coachingPoints field must tell the coach what to watch with their eyes and what single correction to make first.
+- Each block instructions field must include: what happens on the coach's command, what one rep looks like, and exactly how players rotate after the rep.
+- Each block coachingCues array must include short real phrases the coach can say out loud to kids.
+- Each block grouping field must specify exactly how to split the expected player count and what any waiting players do.
+- Each block whyThisDrillMatters field must explain why this activity connects to the coach's focus.
 - Ban vague filler. Do not use phrases like "use small-group coach checkpoints", "quick teach-rep-reset cycles", "create small working groups", "one clear job tied to the focus", "run short rounds", "practice the focus", "game-like reps", or "players understand where to stand".
 - If you cannot picture where every player is standing before the rep starts, the drill is not specific enough. Rewrite it before returning JSON.
 - The whole practice should visibly follow this blueprint: ${practiceBlueprint}.
 - Use the variation seed to choose different drill names, setups, scoring rules, and progressions than another request with the same focus.
 - Drill blocks must use 5-minute increments only.
-- If water breaks are requested, insert a separate {"blockType":"water"} 2-minute block between drill blocks only. Do not put water before the first drill or after the last drill.
-- Count water breaks in totalMinutes.
+- If water breaks are requested, insert a separate block with "type":"water" and durationMinutes 2 between drill blocks only. Do not put water before the first drill or after the last drill.
+- Count water breaks in totalDurationMinutes.
 - If the requested practice length cannot be matched exactly with 5-minute drill blocks plus 2-minute water breaks, use the closest total below the requested time and mention the early wrap in the summary.
 - Use 4-6 drill blocks, plus water breaks if requested.
 - The first drill block must be a standalone 5-minute warmup-only block with a specific name. Do not name it "Dynamic warmup" unless no other name fits.
@@ -584,7 +785,7 @@ Rules:
 - Every drill must have a clear unique purpose. Do not create multiple drills that are just "practice the focus with cones" using different wording.
 - When the team profile includes favorite cues or concepts, use them naturally when they fit the requested focus. Do not force every favorite drill into every plan.
 - For 6U teams, prefer single-step jobs, short cues, fast reps, and assistant-coach stations. Push back inside the plan if an idea would create collisions, long lines, or too much thinking.
-- If the team profile asks for printable cheat-sheet style, color-coded positions, or position emojis, reflect that inside drill names, setup, coachScript, or coachingPoints where useful.
+- If the team profile asks for printable cheat-sheet style, color-coded positions, or position emojis, reflect that inside titles, setup, coachingCues, or grouping where useful.
 - Include assistant-coach delegation inside setup or instructions when stations are useful.
 - Player-count rule: ${groupHint}
 - Treat the expected practice count as the real number for today's drills. Do not design around the full roster if fewer kids are expected.
@@ -610,7 +811,7 @@ async function generatePracticePlan(input, env) {
       body: JSON.stringify({
         model: env.OPENAI_MODEL || "gpt-5-mini",
         input: prompt,
-        max_output_tokens: 4200,
+        max_output_tokens: 6000,
         text: {
           format: {
             type: "json_schema",
@@ -719,7 +920,8 @@ async function completePracticePlanInBackground(input, env, authHeader) {
     await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
       ...(result.plan || fallbackPlan(input)),
       id: input.planId,
-      title: existingPlan?.title || input.practiceName || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
+      title: existingPlan?.title || input.practiceName || result.plan?.planTitle || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
+      planTitle: existingPlan?.planTitle || existingPlan?.title || input.practiceName || result.plan?.planTitle || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
       status: "ready",
       createdAt: existingPlan?.createdAt || now,
       updatedAt: now,
@@ -733,6 +935,8 @@ async function completePracticePlanInBackground(input, env, authHeader) {
         ...(existingPlan || {
           id: input.planId,
           title: `${input.sport || "Team"} Practice Plan`,
+          planTitle: `${input.sport || "Team"} Practice Plan`,
+          totalDurationMinutes: Number(input.totalMinutes || 0),
           totalMinutes: Number(input.totalMinutes || 0),
           summary: `Building a plan focused on ${input.focus || "team fundamentals"}.`,
           blocks: [],
@@ -795,7 +999,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
       await mutatePracticePlans(input, env, authHeader, (existingPlan) => ({
         ...(result.plan || fallbackPlan(input)),
         id: input.planId,
-        title: existingPlan?.title || input.practiceName || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
+        title: existingPlan?.title || input.practiceName || result.plan?.planTitle || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
+        planTitle: existingPlan?.planTitle || existingPlan?.title || input.practiceName || result.plan?.planTitle || result.plan?.title || `${input.sport || "Team"} Practice Plan`,
         status: "ready",
         createdAt: existingPlan?.createdAt || now,
         updatedAt: now,
@@ -815,6 +1020,8 @@ export async function onRequestPost({ request, env, waitUntil }) {
           ...(existingPlan || {
             id: input.planId,
             title: `${input.sport || "Team"} Practice Plan`,
+            planTitle: `${input.sport || "Team"} Practice Plan`,
+            totalDurationMinutes: Number(input.totalMinutes || 0),
             totalMinutes: Number(input.totalMinutes || 0),
             summary: `Building a plan focused on ${input.focus || "team fundamentals"}.`,
             blocks: [],

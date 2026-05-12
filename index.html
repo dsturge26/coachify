@@ -634,49 +634,81 @@
           </details>
         </section>
 
-        <section id="practicePlanPanel" class="hidden space-y-4">
-          <section class="overflow-hidden rounded-md border border-slate-900 bg-slate-950 text-white shadow-sm">
-            <div class="grid gap-4 p-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <section id="practicePlanPanel" class="hidden space-y-5">
+          <section class="soft-card overflow-hidden border-0 bg-gradient-to-br from-white via-emerald-50 to-sky-50 shadow-xl">
+            <div class="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr] lg:p-6">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-emerald-300">Practice studio</p>
-                <h2 class="mt-1 text-3xl font-black leading-tight">Build a coach-ready plan</h2>
-                <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">Start with what the team needs. Coachify turns it into a timed plan with setup, cues, adjustments, and saved drill help.</p>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Practice Copilot</p>
+                <h2 class="mt-2 text-3xl font-black leading-tight text-slate-950">Build practices your team can actually run.</h2>
+                <p class="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-600">Tell Coachify the roster reality, field setup, and coaching goal. It turns that into editable practice blocks with setup, cues, groups, and adjustments.</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <a class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white active:bg-slate-800" href="#practicePlanForm">
+                    Build Practice Plan
+                  </a>
+                  <button id="copyPracticePlanBtn" class="hidden min-h-12 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-sm active:bg-slate-50" type="button">
+                    Copy Open Plan
+                  </button>
+                </div>
               </div>
               <div id="practicePlanStudioStats" class="grid gap-2 sm:grid-cols-3 lg:grid-cols-1"></div>
             </div>
-            <div class="border-t border-white/10 bg-white/5 p-3">
-              <button id="copyPracticePlanBtn" class="hidden min-h-11 rounded-md bg-white px-4 py-2 text-sm font-black text-slate-950 active:bg-slate-100" type="button">
-                Copy Open Plan
-              </button>
+          </section>
+
+          <section class="grid gap-3 sm:grid-cols-3">
+            <a class="soft-card p-4 active:bg-slate-50" href="#practicePlanForm">
+              <span class="feature-icon h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-700">+</span>
+              <span class="mt-3 block text-base font-black text-slate-950">Create plan</span>
+              <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Guided, editable, saved to this team</span>
+            </a>
+            <a class="soft-card p-4 active:bg-slate-50" href="#practicePlanHistory">
+              <span class="feature-icon h-11 w-11 rounded-2xl bg-indigo-50 text-indigo-700">PL</span>
+              <span class="mt-3 block text-base font-black text-slate-950">Saved plans</span>
+              <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Open, rename, copy, or reuse</span>
+            </a>
+            <div class="soft-card p-4">
+              <span class="feature-icon h-11 w-11 rounded-2xl bg-amber-50 text-amber-700">DR</span>
+              <span class="mt-3 block text-base font-black text-slate-950">Drills & templates</span>
+              <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Swap drills inside any generated plan</span>
             </div>
           </section>
 
-          <section class="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-            <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-              <div>
-                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Guided builder</p>
-                <h2 class="text-2xl font-black">New Practice Plan</h2>
-                <p class="text-sm text-slate-600">Three quick steps: time, focus, field reality.</p>
+          <section class="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
+            <section class="soft-card p-4 shadow-lg sm:p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Guided builder</p>
+                  <h2 class="text-2xl font-black text-slate-950">New Practice Plan</h2>
+                  <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">A few details make the plan feel custom instead of generic.</p>
+                </div>
               </div>
 
-              <form id="practicePlanForm" class="mt-4 space-y-4">
-                <div class="rounded-md border border-slate-200 bg-slate-50 p-3">
-                  <p class="text-xs font-black uppercase tracking-wide text-slate-500">Step 1</p>
-                  <h3 class="text-lg font-black">Name and time</h3>
-                  <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <form id="practicePlanForm" class="mt-5 space-y-4">
+                <section class="rounded-3xl bg-slate-50 p-3 sm:p-4">
+                  <div class="flex items-center gap-3">
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-slate-900 shadow-sm">1</span>
+                    <div>
+                      <h3 class="text-base font-black text-slate-950">Basics</h3>
+                      <p class="text-sm font-semibold text-slate-500">Name, sport, time, and attendance.</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 grid gap-3 sm:grid-cols-2">
                     <label class="block sm:col-span-2">
                       <span class="text-sm font-bold text-slate-700">Practice name</span>
-                      <input id="practiceNameInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Example: Redbirds - Flag Pulling and Handoffs" />
+                      <input id="practiceNameInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" placeholder="Example: Redbirds - Flag Pulling and Handoffs" />
                     </label>
                     <label class="block">
                       <span class="text-sm font-bold text-slate-700">Sport</span>
-                      <select id="practiceSportInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                      <select id="practiceSportInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm">
                         <option value="Flag Football">Flag Football</option>
                       </select>
                     </label>
                     <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Age / level</span>
+                      <input id="practiceAgeGroupInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" placeholder="Example: 6U beginners" />
+                    </label>
+                    <label class="block">
                       <span class="text-sm font-bold text-slate-700">Practice length</span>
-                      <select id="practiceLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                      <select id="practiceLengthInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm">
                         <option value="45">45 minutes</option>
                         <option value="55">55 minutes</option>
                         <option value="60" selected>60 minutes</option>
@@ -687,81 +719,158 @@
                     </label>
                     <label id="customPracticeLengthLabel" class="hidden">
                       <span class="text-sm font-bold text-slate-700">Custom minutes</span>
-                      <input id="customPracticeLengthInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="15" max="180" step="5" placeholder="55" />
+                      <input id="customPracticeLengthInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" type="number" min="15" max="180" step="5" placeholder="55" />
                     </label>
                     <label class="block">
                       <span class="text-sm font-bold text-slate-700">Kids expected</span>
-                      <input id="practiceExpectedKidsInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="1" max="40" placeholder="Roster" />
+                      <input id="practiceExpectedKidsInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" type="number" min="1" max="40" placeholder="Roster" />
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Coaches / helpers</span>
+                      <input id="practiceCoachCountInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" type="number" min="1" max="12" placeholder="1" />
                     </label>
                   </div>
-                </div>
+                </section>
 
-                <div class="rounded-md border border-emerald-200 bg-emerald-50 p-3">
-                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Step 2</p>
-                  <h3 class="text-lg font-black text-emerald-950">What needs work?</h3>
-                  <label class="mt-3 block">
-                    <span class="text-sm font-bold text-emerald-950">Team focus</span>
-                    <textarea id="practiceFocusInput" class="mt-1 min-h-32 w-full rounded-md border border-emerald-200 bg-white px-3 py-2 text-base" placeholder="Example: flag pulling, staying spread out on defense, cleaner snaps, getting shy kids involved"></textarea>
-                  </label>
-                  <div class="mt-3">
-                    <h4 class="mb-2 text-sm font-black uppercase tracking-wide text-emerald-700">Tap to add</h4>
-                    <div id="practiceFocusChips" class="flex flex-wrap gap-2">
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="flag pulling">Flag pulling</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="routes">Routes</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="snaps">Snaps</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="handoffs">Handoffs</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="real game reps on offense">Offensive play reps</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="defensive spacing">Defensive spacing</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="catching">Catching</button>
-                      <button class="rounded-md border border-emerald-200 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="confidence">Confidence</button>
+                <section class="rounded-3xl bg-emerald-50 p-3 sm:p-4">
+                  <div class="flex items-center gap-3">
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-emerald-900 shadow-sm">2</span>
+                    <div>
+                      <h3 class="text-base font-black text-emerald-950">Focus</h3>
+                      <p class="text-sm font-semibold text-emerald-800/70">What should be better after practice?</p>
                     </div>
                   </div>
-                </div>
-
-                <div class="rounded-md border border-sky-200 bg-sky-50 p-3">
-                  <p class="text-xs font-black uppercase tracking-wide text-sky-700">Step 3</p>
-                  <h3 class="text-lg font-black text-sky-950">Field reality</h3>
+                  <label class="mt-4 block">
+                    <span class="text-sm font-bold text-emerald-950">Team needs</span>
+                    <textarea id="practiceFocusInput" class="mt-1 min-h-28 w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-base font-semibold leading-6 shadow-sm" placeholder="Example: flag pulling, staying spread out, cleaner snaps, real game reps on offense"></textarea>
+                  </label>
+                  <div class="mt-3">
+                    <h4 class="mb-2 text-xs font-black uppercase tracking-wide text-emerald-700">Quick focus</h4>
+                    <div id="practiceFocusChips" class="flex flex-wrap gap-2">
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="flag pulling">Flag pulling</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="routes">Routes</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="snaps">Snaps</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="handoffs">Handoffs</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="real game reps on offense">Offense reps</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="defensive spacing">Defense</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="catching">Catching</button>
+                      <button class="rounded-2xl border border-emerald-100 bg-white px-3 py-2 text-sm font-bold text-emerald-900 active:bg-emerald-100" type="button" data-focus="confidence">Confidence</button>
+                    </div>
+                  </div>
                   <div class="mt-3 grid gap-3 sm:grid-cols-2">
                     <label class="block">
+                      <span class="text-sm font-bold text-emerald-950">Priority</span>
+                      <select id="practicePriorityInput" class="mt-1 min-h-12 w-full rounded-2xl border border-emerald-100 bg-white px-4 text-base font-semibold shadow-sm">
+                        <option value="equal reps" selected>Equal reps</option>
+                        <option value="fundamentals">Fundamentals</option>
+                        <option value="fun and confidence">Fun + confidence</option>
+                        <option value="competition">Competition</option>
+                        <option value="game prep">Upcoming game prep</option>
+                        <option value="specific positions">Specific positions</option>
+                      </select>
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-emerald-950">Intensity</span>
+                      <select id="practiceIntensityInput" class="mt-1 min-h-12 w-full rounded-2xl border border-emerald-100 bg-white px-4 text-base font-semibold shadow-sm">
+                        <option value="balanced" selected>Balanced</option>
+                        <option value="calm fundamentals">Calm fundamentals</option>
+                        <option value="high energy">High energy</option>
+                        <option value="competitive">Competitive</option>
+                      </select>
+                    </label>
+                  </div>
+                </section>
+
+                <section class="rounded-3xl bg-sky-50 p-3 sm:p-4">
+                  <div class="flex items-center gap-3">
+                    <span class="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-sky-900 shadow-sm">3</span>
+                    <div>
+                      <h3 class="text-base font-black text-sky-950">Field reality</h3>
+                      <p class="text-sm font-semibold text-sky-800/70">Space, gear, style, and game context.</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                    <label class="block">
                       <span class="text-sm font-bold text-slate-700">Drill mix</span>
-                      <select id="practiceDrillMixInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base">
+                      <select id="practiceDrillMixInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm">
                         <option value="mix" selected>Mix old and new</option>
                         <option value="new">Mostly new drills</option>
                         <option value="repeat">Repeat past drills</option>
                       </select>
                     </label>
                     <label class="block">
-                      <span class="text-sm font-bold text-slate-700">Space and equipment</span>
-                      <input id="practiceEquipmentInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base" placeholder="Half field, cones, footballs, flags" />
+                      <span class="text-sm font-bold text-slate-700">Coach style</span>
+                      <select id="practiceCoachStyleInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm">
+                        <option value="balanced and practical" selected>Balanced + practical</option>
+                        <option value="high-rep stations">High-rep stations</option>
+                        <option value="simple fundamentals">Simple fundamentals</option>
+                        <option value="game-like competition">Game-like competition</option>
+                        <option value="clipboard cheat sheet">Clipboard cheat sheet</option>
+                      </select>
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Space</span>
+                      <input id="practiceSpaceInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" placeholder="Example: half field, one end zone, small gym" />
+                    </label>
+                    <label class="block">
+                      <span class="text-sm font-bold text-slate-700">Equipment</span>
+                      <input id="practiceEquipmentInput" class="mt-1 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-base font-semibold shadow-sm" placeholder="Cones, footballs, flags, pinnies" />
+                    </label>
+                    <label class="block sm:col-span-2">
+                      <span class="text-sm font-bold text-slate-700">Upcoming game or extra context</span>
+                      <textarea id="practiceGameContextInput" class="mt-1 min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-semibold leading-6 shadow-sm" placeholder="Example: opponent is fast outside; need to run plays cleanly from the huddle"></textarea>
                     </label>
                   </div>
-                  <label class="mt-3 flex items-start gap-3 rounded-md border border-sky-200 bg-white p-3">
+                  <label class="mt-3 flex items-start gap-3 rounded-2xl border border-sky-100 bg-white p-3 shadow-sm">
                     <input id="practiceWaterBreaksInput" class="mt-1 h-5 w-5 rounded border-slate-300" type="checkbox" />
                     <span>
                       <span class="block text-sm font-black text-slate-800">Include water breaks</span>
-                      <span class="block text-sm text-slate-600">Adds 2-minute breaks between drills and keeps drill time in 5-minute chunks.</span>
+                      <span class="block text-sm font-semibold leading-5 text-slate-500">Adds short reset breaks between drills while keeping activity blocks in 5-minute chunks.</span>
                     </span>
                   </label>
-                </div>
+                </section>
 
-                <button id="buildPracticePlanBtn" class="min-h-14 w-full rounded-md bg-emerald-700 px-5 py-3 text-base font-black text-white active:bg-emerald-800" type="submit">
+                <button id="buildPracticePlanBtn" class="min-h-14 w-full rounded-2xl bg-emerald-700 px-5 py-3 text-base font-black text-white shadow-lg shadow-emerald-900/10 active:bg-emerald-800" type="submit">
                   Build Practice Plan
                 </button>
               </form>
             </section>
 
-            <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
-              <div>
-                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Library</p>
-                <h2 class="text-2xl font-black">Saved Plans</h2>
-                <p class="text-sm text-slate-600">Open, rename, copy, or reuse a plan.</p>
-              </div>
-              <div id="practicePlanHistory" class="mt-3 grid gap-3"></div>
+            <section class="space-y-4">
+              <section class="soft-card p-4 shadow-lg sm:p-5">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-black uppercase tracking-wide text-slate-500">Saved work</p>
+                    <h2 class="text-2xl font-black text-slate-950">Practice Plans</h2>
+                    <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">Open a plan, edit blocks, or copy it for the field.</p>
+                  </div>
+                </div>
+                <div id="practicePlanHistory" class="mt-4 grid gap-3"></div>
+              </section>
+
+              <section class="soft-card p-4 shadow-lg sm:p-5">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">Copilot foundation</p>
+                <h2 class="text-xl font-black text-slate-950">What Coachify builds</h2>
+                <div class="mt-3 grid gap-2">
+                  <div class="rounded-2xl bg-slate-50 p-3">
+                    <p class="text-sm font-black text-slate-950">Editable blocks</p>
+                    <p class="mt-1 text-sm font-semibold leading-5 text-slate-500">Warmup, skill work, team reps, competition, and wrap-up.</p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-50 p-3">
+                    <p class="text-sm font-black text-slate-950">Coach-ready details</p>
+                    <p class="mt-1 text-sm font-semibold leading-5 text-slate-500">Setup, equipment, groups, cues, safety, and easier/harder options.</p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-50 p-3">
+                    <p class="text-sm font-black text-slate-950">Reusable ideas</p>
+                    <p class="mt-1 text-sm font-semibold leading-5 text-slate-500">Swap activities from the drill library and save updates to the team.</p>
+                  </div>
+                </div>
+              </section>
             </section>
           </section>
 
-          <section id="practicePlanStatus" class="hidden rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"></section>
-          <section id="practicePlanResults" class="space-y-3"></section>
+          <section id="practicePlanStatus" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-900"></section>
+          <section id="practicePlanResults" class="space-y-4"></section>
         </section>
 
         <section id="setupPanel" class="hidden space-y-4">
@@ -924,7 +1033,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.15.3";
+      const APP_VERSION = "v0.16.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1297,11 +1406,18 @@
         practiceLengthInput: document.querySelector("#practiceLengthInput"),
         customPracticeLengthLabel: document.querySelector("#customPracticeLengthLabel"),
         customPracticeLengthInput: document.querySelector("#customPracticeLengthInput"),
+        practiceAgeGroupInput: document.querySelector("#practiceAgeGroupInput"),
+        practiceCoachCountInput: document.querySelector("#practiceCoachCountInput"),
         practiceDrillMixInput: document.querySelector("#practiceDrillMixInput"),
         practiceExpectedKidsInput: document.querySelector("#practiceExpectedKidsInput"),
         practiceFocusInput: document.querySelector("#practiceFocusInput"),
         practiceFocusChips: document.querySelector("#practiceFocusChips"),
+        practicePriorityInput: document.querySelector("#practicePriorityInput"),
+        practiceIntensityInput: document.querySelector("#practiceIntensityInput"),
+        practiceCoachStyleInput: document.querySelector("#practiceCoachStyleInput"),
+        practiceSpaceInput: document.querySelector("#practiceSpaceInput"),
         practiceEquipmentInput: document.querySelector("#practiceEquipmentInput"),
+        practiceGameContextInput: document.querySelector("#practiceGameContextInput"),
         practiceWaterBreaksInput: document.querySelector("#practiceWaterBreaksInput"),
         buildPracticePlanBtn: document.querySelector("#buildPracticePlanBtn"),
         copyPracticePlanBtn: document.querySelector("#copyPracticePlanBtn"),
@@ -2315,7 +2431,127 @@
         return plan?.status === "building" && ageSeconds >= 20 && ageSeconds < 120 && !state.resumingPracticePlanIds.has(plan.id);
       }
 
-      function renderPracticePlan(plan) {
+      function planTitle(plan) {
+        return plan?.planTitle || plan?.title || "Practice Plan";
+      }
+
+      function planTotalMinutes(plan) {
+        return Number(plan?.totalDurationMinutes || plan?.totalMinutes || plan?.request?.totalMinutes || 0);
+      }
+
+      function planFocusText(plan) {
+        return plan?.practiceFocus || plan?.request?.focus || plan?.summary || "";
+      }
+
+      function blockType(block) {
+        return block?.type || block?.blockType || "drill";
+      }
+
+      function blockDuration(block) {
+        return Number(block?.durationMinutes || block?.minutes || 0);
+      }
+
+      function blockTitle(block) {
+        return block?.title || block?.name || (blockType(block) === "water" ? "Water Break" : "Practice Activity");
+      }
+
+      function blockObjective(block) {
+        return block?.objective || block?.goal || "";
+      }
+
+      function blockText(value) {
+        if (Array.isArray(value)) return value.filter(Boolean).join(" ");
+        return String(value || "").trim();
+      }
+
+      function blockListText(value) {
+        if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+        return String(value || "").trim();
+      }
+
+      function blockInstructions(block) {
+        return blockText(block?.instructions);
+      }
+
+      function blockCues(block) {
+        return blockListText(block?.coachingCues || block?.coachScript || block?.coachingPoints);
+      }
+
+      function blockEquipment(block) {
+        return blockListText(block?.equipment);
+      }
+
+      function blockGrouping(block) {
+        return blockText(block?.grouping);
+      }
+
+      function blockEasier(block) {
+        return blockText(block?.modifications?.easier || block?.makeEasier);
+      }
+
+      function blockHarder(block) {
+        return blockText(block?.modifications?.harder || block?.makeHarder);
+      }
+
+      function blockSafety(block) {
+        return blockText(block?.safetyNotes);
+      }
+
+      function blockWhy(block) {
+        return blockText(block?.whyThisDrillMatters || block?.successLooksLike);
+      }
+
+      function blockTags(block) {
+        return Array.isArray(block?.tags) ? block.tags.filter(Boolean) : [];
+      }
+
+      function syncPracticePlanAliases(plan) {
+        if (!plan) return plan;
+        plan.title = plan.title || plan.planTitle || "Practice Plan";
+        plan.planTitle = plan.planTitle || plan.title;
+        plan.totalMinutes = Number(plan.totalMinutes || plan.totalDurationMinutes || plan.request?.totalMinutes || 0);
+        plan.totalDurationMinutes = Number(plan.totalDurationMinutes || plan.totalMinutes || 0);
+        plan.practiceFocus = plan.practiceFocus || plan.request?.focus || plan.summary || "";
+        plan.blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
+        plan.blocks.forEach((block, index) => {
+          const rawType = blockType(block);
+          const type = rawType === "drill" ? "skill" : rawType;
+          const duration = blockDuration(block);
+          block.id = block.id || makeId("practice-block");
+          block.type = type;
+          block.blockType = type;
+          block.durationMinutes = duration;
+          block.minutes = duration;
+          block.title = block.title || block.name || (type === "water" ? "Water break and reset" : `Activity ${index + 1}`);
+          block.name = block.name || block.title;
+          block.objective = block.objective || block.goal || "";
+          block.goal = block.goal || block.objective;
+          block.coachingCues = Array.isArray(block.coachingCues)
+            ? block.coachingCues
+            : blockListText(block.coachingCues || block.coachScript || block.coachingPoints)
+                .split(/[,.;]\s*/)
+                .map((item) => item.trim())
+                .filter(Boolean)
+                .slice(0, 4);
+          block.coachScript = block.coachScript || block.coachingCues[0] || "";
+          block.coachingPoints = block.coachingPoints || block.coachingCues.join(" ");
+          block.modifications = block.modifications || {
+            easier: block.makeEasier || "",
+            harder: block.makeHarder || ""
+          };
+          block.makeEasier = block.makeEasier || block.modifications.easier || "";
+          block.makeHarder = block.makeHarder || block.modifications.harder || "";
+          block.tags = Array.isArray(block.tags) ? block.tags : [];
+        });
+        const blockTotal = plan.blocks.reduce((sum, block) => sum + blockDuration(block), 0);
+        if (blockTotal) {
+          plan.totalMinutes = blockTotal;
+          plan.totalDurationMinutes = blockTotal;
+        }
+        return plan;
+      }
+
+      function renderPracticePlanLegacy(plan) {
         if (!plan) {
           els.practicePlanResults.innerHTML = "";
           els.copyPracticePlanBtn.classList.add("hidden");
@@ -2693,24 +2929,378 @@
         `;
       }
 
+      function renderPracticePlan(plan) {
+        if (!plan) {
+          els.practicePlanResults.innerHTML = "";
+          els.copyPracticePlanBtn.classList.add("hidden");
+          state.activePracticePlanId = null;
+          return;
+        }
+
+        syncPracticePlanAliases(plan);
+        state.activePracticePlanId = plan.id || null;
+        if (plan.status === "building") {
+          els.copyPracticePlanBtn.classList.add("hidden");
+          renderPracticePlanQueued(plan);
+          if (shouldAutoResumePracticePlan(plan)) {
+            resumePendingPracticePlan(plan);
+          }
+          return;
+        }
+
+        if (plan.status === "failed" || plan.status === "needs_retry") {
+          els.copyPracticePlanBtn.classList.add("hidden");
+          els.practicePlanResults.innerHTML = `
+            <article class="soft-card border border-amber-100 bg-amber-50 p-4">
+              <p class="text-xs font-black uppercase tracking-wide text-amber-700">Draft needs attention</p>
+              <h2 class="mt-1 text-2xl font-black text-amber-950">${escapeHtml(planTitle(plan))}</h2>
+              <p class="mt-2 text-sm font-semibold leading-6 text-amber-900">${escapeHtml(plan.error || "This draft did not complete. Remove it and build a fresh plan when you are ready.")}</p>
+              <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                <button class="min-h-11 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="retry-practice-from-draft" data-plan-id="${plan.id}">
+                  Build Fresh Plan
+                </button>
+                <button class="min-h-11 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="remove-practice-draft" data-plan-id="${plan.id}">
+                  Remove Draft
+                </button>
+              </div>
+            </article>
+          `;
+          return;
+        }
+
+        const blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
+        const drillBlocks = blocks.filter((block) => blockType(block) !== "water");
+        const waterCount = blocks.filter((block) => blockType(block) === "water").length;
+        const canEditPlan = isHeadCoach(getSelectedTeam());
+        const planEquipment = Array.isArray(plan.equipmentNeeded) ? plan.equipmentNeeded.join(", ") : plan.equipmentNeeded || "";
+        const planEmphasis = Array.isArray(plan.coachingEmphasis) ? plan.coachingEmphasis.join(", ") : plan.coachingEmphasis || "";
+        const planSafety = Array.isArray(plan.safetyNotes) ? plan.safetyNotes.join(" ") : plan.safetyNotes || "";
+        const nextBlock = drillBlocks[0];
+
+        const managementControls = canEditPlan
+          ? `
+            <details class="soft-card p-3">
+              <summary class="cursor-pointer list-none">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-black uppercase tracking-wide text-slate-500">Manage</p>
+                    <h3 class="text-base font-black text-slate-950">Rename, add, or delete</h3>
+                  </div>
+                  <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
+                </div>
+              </summary>
+              <div class="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+                <input id="activePracticeNameInput" class="min-h-11 rounded-2xl border border-slate-200 px-3 text-base font-bold shadow-sm" value="${escapeHtml(planTitle(plan))}" aria-label="Practice name" />
+                <button class="min-h-11 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="rename-practice-plan">
+                  Rename
+                </button>
+                <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="add-custom-practice-block">
+                  Add Activity
+                </button>
+                <button class="min-h-11 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="delete-practice-plan">
+                  Delete
+                </button>
+              </div>
+            </details>
+          `
+          : "";
+
+        const renderInfoTile = (label, value, tone = "slate") => {
+          if (!String(value || "").trim()) return "";
+          const toneClasses = {
+            emerald: "bg-emerald-50 text-emerald-950",
+            amber: "bg-amber-50 text-amber-950",
+            sky: "bg-sky-50 text-sky-950",
+            rose: "bg-rose-50 text-rose-950",
+            slate: "bg-slate-50 text-slate-900"
+          };
+          return `
+            <div class="rounded-2xl ${toneClasses[tone] || toneClasses.slate} p-3">
+              <p class="text-[11px] font-black uppercase tracking-wide opacity-70">${label}</p>
+              <p class="mt-1 text-sm font-semibold leading-6">${escapeHtml(value)}</p>
+            </div>
+          `;
+        };
+
+        const renderBlock = (block, index) => {
+          const isWater = blockType(block) === "water";
+          const stepNumber = blocks.slice(0, index + 1).filter((item) => blockType(item) !== "water").length;
+          const title = blockTitle(block);
+          const duration = blockDuration(block);
+          const libraryHtml = practiceDrillLibrary
+            .map(
+              (drill) => `
+                <article class="rounded-3xl border border-slate-100 bg-white p-3 shadow-sm">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">${escapeHtml(drill.category)}</p>
+                  <h5 class="mt-1 text-sm font-black text-slate-950">${escapeHtml(drill.name)}</h5>
+                  <p class="mt-1 text-sm font-semibold leading-5 text-slate-500">${escapeHtml(drill.description)}</p>
+                  <button class="mt-3 min-h-10 w-full rounded-2xl bg-slate-950 px-3 py-2 text-sm font-bold text-white active:bg-slate-800" type="button" data-action="swap-drill-library" data-block-index="${index}" data-drill-id="${drill.id}">
+                    Use Activity
+                  </button>
+                </article>
+              `
+            )
+            .join("");
+          const aiHistory = Array.isArray(block.aiCoach) ? block.aiCoach.slice(-3).reverse() : [];
+          const aiHistoryHtml = aiHistory.length
+            ? aiHistory
+                .map(
+                  (entry) => `
+                    <div class="rounded-2xl bg-white p-3">
+                      <p class="text-[11px] font-black uppercase tracking-wide text-violet-700">${entry.mode === "reframe" ? "Simplified version" : "Coachify answer"}</p>
+                      <p class="mt-1 text-sm font-bold text-slate-950">${escapeHtml(entry.question || "")}</p>
+                      <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${escapeHtml(entry.answer || "")}</p>
+                      ${entry.reframedBlock ? `
+                        <button class="mt-2 min-h-10 rounded-2xl bg-emerald-700 px-3 py-2 text-sm font-bold text-white active:bg-emerald-800" type="button" data-action="apply-drill-reframe" data-block-index="${index}" data-entry-id="${entry.id}">
+                          Use This Version
+                        </button>
+                      ` : ""}
+                    </div>
+                  `
+                )
+                .join("")
+            : `<p class="rounded-2xl bg-white p-3 text-sm font-semibold leading-6 text-slate-500">Ask a question when the drill needs a clearer setup, easier version, or different grouping.</p>`;
+
+          if (isWater) {
+            return `
+              <article class="rounded-3xl border border-sky-100 bg-sky-50 px-4 py-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-black uppercase tracking-wide text-sky-700">Reset</p>
+                    <h3 class="text-sm font-black text-sky-950">${escapeHtml(title)}</h3>
+                  </div>
+                  <span class="rounded-2xl bg-white px-3 py-1 text-xs font-black text-sky-900">${duration} min</span>
+                </div>
+              </article>
+            `;
+          }
+
+          const tagsHtml = blockTags(block).slice(0, 4).map((tag) => `<span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">${escapeHtml(tag)}</span>`).join("");
+
+          return `
+            <article class="soft-card overflow-hidden border-0 shadow-lg">
+              <div class="p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Block ${stepNumber}</p>
+                    <h3 class="mt-1 text-xl font-black leading-tight text-slate-950">${escapeHtml(title)}</h3>
+                    ${blockObjective(block) ? `<p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${escapeHtml(blockObjective(block))}</p>` : ""}
+                  </div>
+                  <span class="shrink-0 rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white">${duration} min</span>
+                </div>
+                ${tagsHtml ? `<div class="mt-3 flex flex-wrap gap-1.5">${tagsHtml}</div>` : ""}
+              </div>
+
+              <div class="grid gap-2 border-t border-slate-100 bg-slate-50/70 p-3">
+                ${renderInfoTile("Set it up", block.setup, "slate")}
+                ${renderInfoTile("Run it", blockInstructions(block), "sky")}
+                ${renderInfoTile("Say / watch", blockCues(block), "emerald")}
+
+                <details class="rounded-2xl bg-white p-3">
+                  <summary class="cursor-pointer list-none">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-sm font-black text-slate-950">More detail</span>
+                      <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
+                    </div>
+                  </summary>
+                  <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                    ${renderInfoTile("Equipment", blockEquipment(block), "amber")}
+                    ${renderInfoTile("Groups", blockGrouping(block), "slate")}
+                    ${renderInfoTile("Make easier", blockEasier(block), "amber")}
+                    ${renderInfoTile("Make harder", blockHarder(block), "slate")}
+                    ${renderInfoTile("Safety", blockSafety(block), "rose")}
+                    ${renderInfoTile("Why it matters", blockWhy(block), "emerald")}
+                  </div>
+                </details>
+
+                ${canEditPlan ? `
+                  <details class="rounded-2xl border border-amber-100 bg-amber-50 p-3">
+                    <summary class="cursor-pointer list-none">
+                      <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm font-black text-amber-950">Edit this block</span>
+                        <span class="chevron text-xl font-bold text-amber-800">&rsaquo;</span>
+                      </div>
+                    </summary>
+                    <div class="mt-3 grid gap-3">
+                      <div class="grid gap-3 sm:grid-cols-[1fr_120px]">
+                        <label class="block">
+                          <span class="text-xs font-black uppercase tracking-wide text-slate-500">Title</span>
+                          <input class="mt-1 min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold" data-edit-block="${index}" data-edit-field="title" value="${escapeHtml(title)}" />
+                        </label>
+                        <label class="block">
+                          <span class="text-xs font-black uppercase tracking-wide text-slate-500">Minutes</span>
+                          <input class="mt-1 min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm font-bold" data-edit-block="${index}" data-edit-field="duration" type="number" min="5" max="60" step="5" value="${duration}" />
+                        </label>
+                      </div>
+                      <label class="block">
+                        <span class="text-xs font-black uppercase tracking-wide text-slate-500">Objective</span>
+                        <textarea class="mt-1 min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold" data-edit-block="${index}" data-edit-field="objective">${escapeHtml(blockObjective(block))}</textarea>
+                      </label>
+                      <label class="block">
+                        <span class="text-xs font-black uppercase tracking-wide text-slate-500">Setup</span>
+                        <textarea class="mt-1 min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold" data-edit-block="${index}" data-edit-field="setup">${escapeHtml(block.setup || "")}</textarea>
+                      </label>
+                      <label class="block">
+                        <span class="text-xs font-black uppercase tracking-wide text-slate-500">Instructions</span>
+                        <textarea class="mt-1 min-h-24 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold" data-edit-block="${index}" data-edit-field="instructions">${escapeHtml(blockInstructions(block))}</textarea>
+                      </label>
+                      <div class="grid gap-3 sm:grid-cols-2">
+                        <label class="block">
+                          <span class="text-xs font-black uppercase tracking-wide text-slate-500">Cues</span>
+                          <textarea class="mt-1 min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold" data-edit-block="${index}" data-edit-field="cues">${escapeHtml(blockCues(block))}</textarea>
+                        </label>
+                        <label class="block">
+                          <span class="text-xs font-black uppercase tracking-wide text-slate-500">Groups</span>
+                          <textarea class="mt-1 min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold" data-edit-block="${index}" data-edit-field="grouping">${escapeHtml(blockGrouping(block))}</textarea>
+                        </label>
+                      </div>
+                      <div class="grid gap-2 sm:grid-cols-4">
+                        <button class="min-h-11 rounded-2xl bg-emerald-700 px-3 py-2 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="save-practice-block" data-block-index="${index}">
+                          Save Block
+                        </button>
+                        <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 active:bg-slate-50" type="button" data-action="move-practice-block" data-block-index="${index}" data-direction="-1" ${index === 0 ? "disabled" : ""}>
+                          Move Up
+                        </button>
+                        <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-black text-slate-700 active:bg-slate-50" type="button" data-action="move-practice-block" data-block-index="${index}" data-direction="1" ${index === blocks.length - 1 ? "disabled" : ""}>
+                          Move Down
+                        </button>
+                        <button class="min-h-11 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-black text-red-700 active:bg-red-50" type="button" data-action="remove-practice-block" data-block-index="${index}">
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+
+                  <details class="rounded-2xl border border-slate-100 bg-white p-3">
+                    <summary class="cursor-pointer list-none">
+                      <div class="flex items-center justify-between gap-3">
+                        <span class="text-sm font-black text-slate-950">Swap activity</span>
+                        <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
+                      </div>
+                    </summary>
+                    <div class="mt-3 grid gap-3">
+                      <div class="grid gap-3 lg:grid-cols-2">${libraryHtml}</div>
+                      <div class="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                        <p class="text-[11px] font-black uppercase tracking-wide text-violet-700">Ask for a replacement</p>
+                        <textarea class="mt-2 min-h-20 w-full rounded-2xl border border-violet-100 px-3 py-2 text-sm font-semibold" data-ai-swap-input="${index}" placeholder="Example: Replace this with a no-contact drill in a small space."></textarea>
+                        <button class="mt-2 min-h-11 w-full rounded-2xl bg-violet-700 px-4 py-2 text-sm font-black text-white active:bg-violet-800 sm:w-auto" type="button" data-action="ai-swap-drill" data-block-index="${index}">
+                          Create Replacement
+                        </button>
+                        <p class="mt-2 hidden rounded-2xl border border-violet-200 bg-white p-2 text-sm font-semibold text-violet-900" data-ai-swap-status="${index}"></p>
+                      </div>
+                    </div>
+                  </details>
+                ` : ""}
+
+                <details class="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                  <summary class="cursor-pointer list-none">
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-sm font-black text-violet-950">Ask Coachify about this drill</span>
+                      <span class="chevron text-xl font-bold text-violet-800">&rsaquo;</span>
+                    </div>
+                  </summary>
+                  <textarea class="mt-3 min-h-20 w-full rounded-2xl border border-violet-100 bg-white px-3 py-2 text-sm font-semibold" data-practice-question="${index}" placeholder="Example: How do I explain this to 6-year-olds?"></textarea>
+                  <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                    <button class="min-h-11 rounded-2xl bg-violet-700 px-4 py-2 text-sm font-bold text-white active:bg-violet-800" type="button" data-action="ask-drill-question" data-block-index="${index}">
+                      Ask Coachify
+                    </button>
+                    <button class="min-h-11 rounded-2xl border border-violet-200 bg-white px-4 py-2 text-sm font-bold text-violet-900 active:bg-violet-100" type="button" data-action="reframe-drill" data-block-index="${index}">
+                      Simplify
+                    </button>
+                  </div>
+                  <p class="mt-2 hidden rounded-2xl border border-violet-200 bg-white p-2 text-sm font-semibold text-violet-900" data-practice-ai-status="${index}"></p>
+                  <div class="mt-3 grid gap-2">${aiHistoryHtml}</div>
+                </details>
+              </div>
+            </article>
+          `;
+        };
+
+        els.copyPracticePlanBtn.classList.remove("hidden");
+        els.practicePlanResults.innerHTML = `
+          <article class="soft-card overflow-hidden border-0 shadow-xl">
+            <div class="bg-gradient-to-br from-slate-950 via-emerald-950 to-emerald-800 p-5 text-white">
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Practice plan</p>
+                  <h2 class="mt-1 text-3xl font-black leading-tight">${escapeHtml(planTitle(plan))}</h2>
+                  <p class="mt-2 max-w-2xl text-sm font-semibold leading-6 text-emerald-50">${escapeHtml(plan.summary || planFocusText(plan) || "Coach-ready practice plan.")}</p>
+                </div>
+                <span class="shrink-0 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950">${planTotalMinutes(plan)} min</span>
+              </div>
+              <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                <div class="rounded-2xl bg-white/10 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Activities</p>
+                  <p class="mt-1 text-xl font-black">${drillBlocks.length}</p>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Water</p>
+                  <p class="mt-1 text-xl font-black">${waterCount ? `${waterCount} breaks` : "Optional"}</p>
+                </div>
+                <div class="rounded-2xl bg-white/10 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Focus</p>
+                  <p class="mt-1 line-clamp-2 text-sm font-black leading-5">${escapeHtml(planFocusText(plan) || "Team development")}</p>
+                </div>
+              </div>
+            </div>
+            <div class="grid gap-3 p-4">
+              ${nextBlock ? `
+                <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Run practice preview</p>
+                  <h3 class="mt-1 text-lg font-black text-emerald-950">${escapeHtml(blockTitle(nextBlock))}</h3>
+                  <p class="mt-1 text-sm font-semibold leading-6 text-emerald-900">Start here, then tap into each activity card for setup and cues.</p>
+                </div>
+              ` : ""}
+              <div class="grid gap-2 sm:grid-cols-2">
+                ${renderInfoTile("Equipment", planEquipment, "amber")}
+                ${renderInfoTile("Setup notes", plan.setupNotes, "slate")}
+                ${renderInfoTile("Coaching emphasis", planEmphasis, "emerald")}
+                ${renderInfoTile("Safety", planSafety, "rose")}
+              </div>
+              ${managementControls}
+            </div>
+          </article>
+          <details class="soft-card p-3">
+            <summary class="cursor-pointer list-none">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-sm font-black text-slate-950">Timeline</span>
+                <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
+              </div>
+            </summary>
+            <div class="mt-3 flex flex-wrap gap-2">
+              ${blocks
+                .map((block, index) => `<span class="rounded-2xl ${blockType(block) === "water" ? "bg-sky-100 text-sky-900" : "bg-slate-100 text-slate-900"} px-3 py-2 text-xs font-black">${index + 1}. ${blockDuration(block)}m ${escapeHtml(blockTitle(block))}</span>`)
+                .join("")}
+            </div>
+          </details>
+          <div class="grid gap-4">
+            ${blocks.map(renderBlock).join("")}
+          </div>
+        `;
+      }
+
       function practicePlanToText(plan) {
         if (!plan) return "";
+        syncPracticePlanAliases(plan);
         const blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
         return [
-          `${plan.title || "Practice Plan"} (${plan.totalMinutes || ""} minutes)`,
+          `${planTitle(plan)} (${planTotalMinutes(plan) || ""} minutes)`,
           plan.summary || "",
+          plan.equipmentNeeded ? `Equipment: ${Array.isArray(plan.equipmentNeeded) ? plan.equipmentNeeded.join(", ") : plan.equipmentNeeded}` : "",
+          plan.setupNotes ? `Setup notes: ${plan.setupNotes}` : "",
           "",
           ...blocks.flatMap((block) => [
-            `${block.minutes || 0} min - ${block.name || (block.blockType === "water" ? "Water Break" : "Drill")}`,
-            block.goal ? `Goal: ${block.goal}` : "",
+            `${blockDuration(block) || 0} min - ${blockTitle(block)}`,
+            blockObjective(block) ? `Objective: ${blockObjective(block)}` : "",
             `Setup: ${block.setup || ""}`,
-            `Run it: ${block.instructions || ""}`,
-            block.coachScript ? `Say this: ${block.coachScript}` : "",
-            `Coaching tips: ${block.coachingPoints || ""}`,
-            block.successLooksLike ? `Success looks like: ${block.successLooksLike}` : "",
-            block.commonMistakes ? `Common mistakes: ${block.commonMistakes}` : "",
-            `Easier: ${block.makeEasier || ""}`,
-            `Harder: ${block.makeHarder || ""}`,
+            `Run it: ${blockInstructions(block)}`,
+            blockCues(block) ? `Cues: ${blockCues(block)}` : "",
+            blockGrouping(block) ? `Groups: ${blockGrouping(block)}` : "",
+            blockEquipment(block) ? `Equipment: ${blockEquipment(block)}` : "",
+            blockWhy(block) ? `Why it matters: ${blockWhy(block)}` : "",
+            blockSafety(block) ? `Safety: ${blockSafety(block)}` : "",
+            blockEasier(block) ? `Easier: ${blockEasier(block)}` : "",
+            blockHarder(block) ? `Harder: ${blockHarder(block)}` : "",
             ""
           ])
         ].join("\n");
@@ -2725,6 +3315,7 @@
 
       async function savePracticePlanChange(plan, message = "Practice plan changes saved.") {
         if (!plan) return;
+        syncPracticePlanAliases(plan);
         plan.updatedAt = new Date().toISOString();
         renderPracticePlan(plan);
         renderPracticePlanHistory();
@@ -2735,18 +3326,30 @@
       function practiceBlockTemplateFromLibrary(drill, minutes, existingBlock = {}) {
         return {
           ...existingBlock,
+          id: existingBlock.id || makeId("practice-block"),
+          type: "drill",
           blockType: "drill",
+          durationMinutes: minutes,
           minutes,
+          title: drill.name,
           name: drill.name,
+          objective: drill.goal,
           goal: drill.goal,
           setup: drill.setup,
           instructions: drill.instructions,
+          equipment: existingBlock.equipment || [],
+          coachingCues: [drill.coachScript, drill.coachingPoints].filter(Boolean),
           coachScript: drill.coachScript,
           coachingPoints: drill.coachingPoints,
           successLooksLike: drill.successLooksLike,
           commonMistakes: drill.commonMistakes,
+          modifications: {
+            easier: drill.makeEasier,
+            harder: drill.makeHarder
+          },
           makeEasier: drill.makeEasier,
           makeHarder: drill.makeHarder,
+          tags: existingBlock.tags || [drill.category].filter(Boolean),
           aiCoach: [
             ...(existingBlock.aiCoach || []),
             {
@@ -2764,9 +3367,9 @@
         const plan = getActivePracticePlan();
         const block = plan?.blocks?.[blockIndex];
         const change = Number(delta);
-        if (!plan || !block || block.blockType === "water" || !change) return;
+        if (!plan || !block || blockType(block) === "water" || !change) return;
 
-        if (change < 0 && Number(block.minutes || 0) <= 5) {
+        if (change < 0 && blockDuration(block) <= 5) {
           setPracticeStatus("That activity is already at the 5-minute minimum.", "error");
           return;
         }
@@ -2777,8 +3380,8 @@
         ];
         const partnerIndex = directionIndexes.find((index) => {
           const partner = plan.blocks[index];
-          if (!partner || partner.blockType === "water") return false;
-          return change > 0 ? Number(partner.minutes || 0) > 5 : true;
+          if (!partner || blockType(partner) === "water") return false;
+          return change > 0 ? blockDuration(partner) > 5 : true;
         });
 
         if (partnerIndex == null) {
@@ -2786,8 +3389,12 @@
           return;
         }
 
-        plan.blocks[blockIndex].minutes = Number(plan.blocks[blockIndex].minutes || 0) + change;
-        plan.blocks[partnerIndex].minutes = Number(plan.blocks[partnerIndex].minutes || 0) - change;
+        const nextBlockMinutes = blockDuration(plan.blocks[blockIndex]) + change;
+        const nextPartnerMinutes = blockDuration(plan.blocks[partnerIndex]) - change;
+        plan.blocks[blockIndex].minutes = nextBlockMinutes;
+        plan.blocks[blockIndex].durationMinutes = nextBlockMinutes;
+        plan.blocks[partnerIndex].minutes = nextPartnerMinutes;
+        plan.blocks[partnerIndex].durationMinutes = nextPartnerMinutes;
         await savePracticePlanChange(plan, `Time updated. ${Math.abs(change)} minutes moved ${change > 0 ? "into" : "out of"} this activity.`);
       }
 
@@ -2795,9 +3402,9 @@
         const plan = getActivePracticePlan();
         const block = plan?.blocks?.[blockIndex];
         const drill = practiceDrillLibrary.find((item) => item.id === drillId);
-        if (!plan || !block || !drill || block.blockType === "water") return;
+        if (!plan || !block || !drill || blockType(block) === "water") return;
 
-        plan.blocks[blockIndex] = practiceBlockTemplateFromLibrary(drill, block.minutes, block);
+        plan.blocks[blockIndex] = practiceBlockTemplateFromLibrary(drill, blockDuration(block), block);
         await savePracticePlanChange(plan, `${drill.name} swapped into the practice plan.`);
       }
 
@@ -2805,7 +3412,7 @@
         const team = getSelectedTeam();
         const plan = getActivePracticePlan();
         const block = plan?.blocks?.[blockIndex];
-        if (!team || !plan || !block || block.blockType === "water") return;
+        if (!team || !plan || !block || blockType(block) === "water") return;
 
         const input = els.practicePlanResults.querySelector(`[data-ai-swap-input="${blockIndex}"]`);
         const request = input?.value.trim();
@@ -2830,9 +3437,9 @@
               mode: "swap",
               question: `Replace this activity with this coach request: ${request}. If the coach says "2 min drill" or "two-minute drill", interpret that as a football two-minute/game-clock situation drill, not as a request to make the activity two minutes long.`,
               plan: {
-                title: plan.title,
+                title: planTitle(plan),
                 summary: plan.summary,
-                totalMinutes: plan.totalMinutes
+                totalMinutes: planTotalMinutes(plan)
               },
               drill: block,
               recentConversation: (block.aiCoach || []).slice(-4),
@@ -2850,8 +3457,10 @@
           plan.blocks[blockIndex] = {
             ...block,
             ...data.reframedBlock,
-            blockType: block.blockType,
-            minutes: block.minutes,
+            type: blockType(block),
+            blockType: blockType(block),
+            durationMinutes: blockDuration(block),
+            minutes: blockDuration(block),
             aiCoach: [
               ...(block.aiCoach || []),
               {
@@ -2910,7 +3519,7 @@
         const team = getSelectedTeam();
         const plan = getActivePracticePlan();
         const block = plan?.blocks?.[blockIndex];
-        if (!team || !plan || !block || block.blockType === "water") return;
+        if (!team || !plan || !block || blockType(block) === "water") return;
 
         const questionInput = els.practicePlanResults.querySelector(`[data-practice-question="${blockIndex}"]`);
         const question = questionInput?.value.trim();
@@ -2935,9 +3544,9 @@
               mode,
               question,
               plan: {
-                title: plan.title,
+                title: planTitle(plan),
                 summary: plan.summary,
-                totalMinutes: plan.totalMinutes
+                totalMinutes: planTotalMinutes(plan)
               },
               drill: block,
               recentConversation: (block.aiCoach || []).slice(-4),
@@ -2983,8 +3592,10 @@
         plan.blocks[blockIndex] = {
           ...block,
           ...entry.reframedBlock,
-          blockType: block.blockType,
-          minutes: block.minutes,
+          type: blockType(block),
+          blockType: blockType(block),
+          durationMinutes: blockDuration(block),
+          minutes: blockDuration(block),
           aiCoach: [
             ...(block.aiCoach || []),
             {
@@ -3010,6 +3621,7 @@
         }
 
         plan.title = nextName;
+        plan.planTitle = nextName;
         await savePracticePlanChange(plan, "Practice renamed.");
       }
 
@@ -3029,6 +3641,93 @@
         setPracticeStatus("Practice plan deleted.", "success");
       }
 
+      async function savePracticeBlockEdit(blockIndex) {
+        const plan = getActivePracticePlan();
+        const block = plan?.blocks?.[blockIndex];
+        if (!plan || !block || blockType(block) === "water") return;
+
+        const readField = (field) =>
+          els.practicePlanResults.querySelector(`[data-edit-block="${blockIndex}"][data-edit-field="${field}"]`)?.value.trim() || "";
+        const nextDuration = Math.max(5, Math.min(60, Math.round((Number(readField("duration")) || blockDuration(block) || 5) / 5) * 5));
+        block.title = readField("title") || blockTitle(block);
+        block.name = block.title;
+        block.durationMinutes = nextDuration;
+        block.minutes = nextDuration;
+        block.objective = readField("objective");
+        block.goal = block.objective;
+        block.setup = readField("setup");
+        block.instructions = readField("instructions");
+        const cues = readField("cues");
+        block.coachingCues = cues
+          .split(/\n|[,;]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 6);
+        block.coachScript = block.coachingCues[0] || "";
+        block.coachingPoints = cues;
+        block.grouping = readField("grouping");
+        syncPracticePlanAliases(plan);
+        await savePracticePlanChange(plan, "Activity updated.");
+      }
+
+      async function movePracticeBlock(blockIndex, direction) {
+        const plan = getActivePracticePlan();
+        if (!plan?.blocks?.length) return;
+        const nextIndex = blockIndex + Number(direction);
+        if (nextIndex < 0 || nextIndex >= plan.blocks.length) return;
+        const [block] = plan.blocks.splice(blockIndex, 1);
+        plan.blocks.splice(nextIndex, 0, block);
+        await savePracticePlanChange(plan, "Practice order updated.");
+      }
+
+      async function removePracticeBlock(blockIndex) {
+        const plan = getActivePracticePlan();
+        if (!plan?.blocks?.[blockIndex]) return;
+        const remainingDrills = plan.blocks.filter((block, index) => index !== blockIndex && blockType(block) !== "water").length;
+        if (remainingDrills < 1) {
+          setPracticeStatus("Keep at least one activity in the practice plan.", "error");
+          return;
+        }
+        plan.blocks.splice(blockIndex, 1);
+        syncPracticePlanAliases(plan);
+        await savePracticePlanChange(plan, "Activity removed.");
+      }
+
+      async function addCustomPracticeBlock() {
+        const plan = getActivePracticePlan();
+        if (!plan) return;
+        const title = prompt("Name this activity:", "Custom activity");
+        if (!title) return;
+        plan.blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
+        plan.blocks.push({
+          id: makeId("practice-block"),
+          type: "drill",
+          blockType: "drill",
+          title: title.trim(),
+          name: title.trim(),
+          durationMinutes: 10,
+          minutes: 10,
+          objective: "Coach-created activity.",
+          goal: "Coach-created activity.",
+          setup: "Add the setup notes before practice.",
+          instructions: "Add the steps and rotation before practice.",
+          equipment: [],
+          coachingCues: ["Keep it simple and give one correction at a time."],
+          coachScript: "Watch one rep, then we will get a lot of tries.",
+          coachingPoints: "Keep players moving and adjust the spacing as needed.",
+          grouping: "Split players into small groups based on attendance.",
+          modifications: {
+            easier: "Slow the rep down or remove pressure.",
+            harder: "Add a defender, score, timer, or smaller space."
+          },
+          makeEasier: "Slow the rep down or remove pressure.",
+          makeHarder: "Add a defender, score, timer, or smaller space.",
+          tags: ["custom"]
+        });
+        syncPracticePlanAliases(plan);
+        await savePracticePlanChange(plan, "Custom activity added.");
+      }
+
       function renderPracticePlanHistory() {
         const team = getSelectedTeam();
         const plans = team?.practicePlans || [];
@@ -3046,6 +3745,7 @@
           .slice(0, 6)
           .map(
             (plan) => {
+              syncPracticePlanAliases(plan);
               const isActive = state.activePracticePlanId === plan.id;
               const created = plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "";
               const statusLabel = plan.status === "building" ? "Building" : plan.status === "ready" ? "Ready" : "Draft";
@@ -3055,15 +3755,15 @@
                   : plan.status === "ready"
                     ? "bg-emerald-100 text-emerald-900"
                     : "bg-slate-100 text-slate-700";
-              const focus = plan.request?.focus || plan.summary || "Open this saved plan.";
+              const focus = planFocusText(plan) || "Open this saved plan.";
               return `
-                <button class="rounded-md border ${isActive ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-slate-50"} p-3 text-left active:bg-slate-100" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
+                <button class="rounded-3xl border ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-slate-50"} p-3 text-left shadow-sm active:bg-slate-100" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
                   <span class="flex items-start justify-between gap-3">
                     <span>
-                      <span class="block text-base font-black text-slate-950">${escapeHtml(plan.title || "Practice Plan")}</span>
-                      <span class="mt-1 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(created)} - ${Number(plan.totalMinutes || plan.request?.totalMinutes || 0)} minutes</span>
+                      <span class="block text-base font-black text-slate-950">${escapeHtml(planTitle(plan))}</span>
+                      <span class="mt-1 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(created)} - ${planTotalMinutes(plan)} minutes</span>
                     </span>
-                    <span class="shrink-0 rounded-md px-2 py-1 text-[11px] font-black uppercase tracking-wide ${statusClasses}">${statusLabel}</span>
+                    <span class="shrink-0 rounded-2xl px-2 py-1 text-[11px] font-black uppercase tracking-wide ${statusClasses}">${statusLabel}</span>
                   </span>
                   <span class="mt-2 line-clamp-2 block text-sm font-semibold leading-5 text-slate-700">${escapeHtml(focus)}</span>
                 </button>
@@ -3263,6 +3963,7 @@
         if (!request) return;
         els.practiceNameInput.value = request.practiceName || plan.title || "";
         els.practiceSportInput.value = request.sport || "Flag Football";
+        if (els.practiceAgeGroupInput) els.practiceAgeGroupInput.value = request.ageGroup || "";
         const totalMinutes = Number(request.totalMinutes || 60);
         const option = [...els.practiceLengthInput.options].find((item) => Number(item.value) === totalMinutes);
         els.practiceLengthInput.value = option ? String(totalMinutes) : "custom";
@@ -3270,8 +3971,14 @@
         renderPracticeLengthInput();
         els.practiceDrillMixInput.value = request.drillMix || "mix";
         els.practiceExpectedKidsInput.value = request.expectedKids || "";
+        if (els.practiceCoachCountInput) els.practiceCoachCountInput.value = request.coachCount || "";
         els.practiceFocusInput.value = request.focus || "";
+        if (els.practicePriorityInput) els.practicePriorityInput.value = request.priority || "equal reps";
+        if (els.practiceIntensityInput) els.practiceIntensityInput.value = request.intensity || "balanced";
+        if (els.practiceCoachStyleInput) els.practiceCoachStyleInput.value = request.coachStyle || "balanced and practical";
+        if (els.practiceSpaceInput) els.practiceSpaceInput.value = request.space || "";
         els.practiceEquipmentInput.value = request.equipment || "";
+        if (els.practiceGameContextInput) els.practiceGameContextInput.value = request.gameContext || "";
         els.practiceWaterBreaksInput.checked = Boolean(request.includeWaterBreaks);
         els.practiceFocusInput.focus();
       }
@@ -3280,18 +3987,21 @@
         return (team.practicePlans || [])
           .filter((plan) => plan.status !== "building" && Array.isArray(plan.blocks))
           .slice(0, 4)
-          .map((plan) => ({
-            title: plan.title || "Practice Plan",
-            focus: plan.request?.focus || plan.summary || "",
-            drills: plan.blocks
-              .filter((block) => block.blockType !== "water")
-              .map((block) => ({
-                name: block.name || "Drill",
-                goal: block.goal || "",
-                minutes: Number(block.minutes || 0)
-              }))
-              .slice(0, 6)
-          }));
+          .map((plan) => {
+            syncPracticePlanAliases(plan);
+            return {
+              title: planTitle(plan),
+              focus: planFocusText(plan) || "",
+              drills: plan.blocks
+                .filter((block) => blockType(block) !== "water")
+                .map((block) => ({
+                  name: blockTitle(block),
+                  goal: blockObjective(block),
+                  minutes: blockDuration(block)
+                }))
+                .slice(0, 6)
+            };
+          });
       }
 
       function practiceRosterContext(team, expectedKids = null) {
@@ -3301,7 +4011,6 @@
         return {
           totalPlayers: attendingEstimate,
           fullRosterSize: rosterSize,
-          names: players.map((player) => player.name).filter(Boolean).slice(0, 16),
           skillCounts: players.reduce(
             (counts, player) => {
               const skill = Number(player.skill || 3);
@@ -3384,17 +4093,26 @@
         if (!session) return;
 
         const expectedKids = getExpectedPracticeKids(team);
+        const coachCount = Math.max(1, Math.min(12, Number(els.practiceCoachCountInput?.value) || 1));
+        const ageGroup = els.practiceAgeGroupInput?.value.trim() || getTeamDivision(team).divisionName || "";
         const variationSeed = makeId("practice-seed");
         const payload = {
           practiceName: els.practiceNameInput.value.trim(),
           sport: els.practiceSportInput.value,
+          ageGroup,
           totalMinutes: getPracticeLengthMinutes(),
           focus,
           drillMix: els.practiceDrillMixInput.value,
+          priority: els.practicePriorityInput?.value || "equal reps",
+          intensity: els.practiceIntensityInput?.value || "balanced",
+          coachStyle: els.practiceCoachStyleInput?.value || "balanced and practical",
           practiceBlueprint: pickPracticeBlueprint(),
           variationSeed,
           expectedKids,
+          coachCount,
+          space: els.practiceSpaceInput?.value.trim() || "",
           equipment: els.practiceEquipmentInput.value.trim(),
+          gameContext: els.practiceGameContextInput?.value.trim() || "",
           includeWaterBreaks: els.practiceWaterBreaksInput.checked,
           recentPlans: recentPracticeContext(team),
           coachingProfile: getTeamCoachingProfile(team),
@@ -3405,7 +4123,6 @@
             playersOnField: getTeamDivision(team).playersOnField,
             rosterSize: expectedKids,
             fullRosterSize: team.roster.length,
-            skillMix: team.roster.map((player) => Number(player.skill || 3)),
             roster: practiceRosterContext(team, expectedKids)
           }
         };
@@ -3432,13 +4149,15 @@
           const completedPlan = {
             ...(data.plan || {}),
             id: makeId("practice"),
-            title: payload.practiceName || data.plan?.title || `${payload.sport || "Team"} Practice Plan`,
+            title: payload.practiceName || data.plan?.planTitle || data.plan?.title || `${payload.sport || "Team"} Practice Plan`,
+            planTitle: payload.practiceName || data.plan?.planTitle || data.plan?.title || `${payload.sport || "Team"} Practice Plan`,
             status: "ready",
             createdAt: now,
             updatedAt: now,
             request: payload,
             warning: data.warning || null
           };
+          syncPracticePlanAliases(completedPlan);
 
           team.practicePlans = [completedPlan, ...(team.practicePlans || []).filter((plan) => plan.status !== "building")].slice(0, 20);
           await saveSelectedCloudTeam();
@@ -4650,10 +5369,10 @@
         els.practicePlanStudioStats.innerHTML = cards
           .map(
             (card) => `
-              <div class="rounded-md bg-white/10 p-3">
-                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">${card.label}</p>
-                <p class="mt-1 text-xl font-black text-white">${escapeHtml(card.value)}</p>
-                <p class="mt-1 line-clamp-2 text-xs font-bold leading-5 text-slate-300">${escapeHtml(card.sub)}</p>
+              <div class="rounded-3xl border border-white/70 bg-white/80 p-3 shadow-sm backdrop-blur">
+                <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">${card.label}</p>
+                <p class="mt-1 text-xl font-black text-slate-950">${escapeHtml(card.value)}</p>
+                <p class="mt-1 line-clamp-2 text-xs font-bold leading-5 text-slate-500">${escapeHtml(card.sub)}</p>
               </div>
             `
           )
@@ -4978,6 +5697,12 @@
         if (!els.practiceExpectedKidsInput.value) {
           els.practiceExpectedKidsInput.placeholder = `${team.roster.length || 0}`;
         }
+        if (els.practiceAgeGroupInput && !els.practiceAgeGroupInput.value) {
+          els.practiceAgeGroupInput.placeholder = getTeamDivision(team).divisionName || "Age group / level";
+        }
+        if (els.practiceCoachCountInput && !els.practiceCoachCountInput.value) {
+          els.practiceCoachCountInput.placeholder = "1";
+        }
         renderTeamSetupSummary();
         const headCoach = isHeadCoach(team);
         els.coachRoleBadge.textContent = roleLabel(team);
@@ -5147,6 +5872,7 @@
         });
         els.customPracticeLengthInput.addEventListener("input", renderPracticeStudioStats);
         els.practiceExpectedKidsInput.addEventListener("input", renderPracticeStudioStats);
+        els.practiceCoachCountInput?.addEventListener("input", renderPracticeStudioStats);
         renderPracticeLengthInput();
 
         els.practicePlanForm.addEventListener("submit", buildPracticePlan);
@@ -5192,6 +5918,22 @@
 
           if (button.dataset.action === "delete-practice-plan") {
             deleteActivePracticePlan();
+          }
+
+          if (button.dataset.action === "add-custom-practice-block") {
+            addCustomPracticeBlock();
+          }
+
+          if (button.dataset.action === "save-practice-block") {
+            savePracticeBlockEdit(Number(button.dataset.blockIndex));
+          }
+
+          if (button.dataset.action === "move-practice-block") {
+            movePracticeBlock(Number(button.dataset.blockIndex), Number(button.dataset.direction));
+          }
+
+          if (button.dataset.action === "remove-practice-block") {
+            removePracticeBlock(Number(button.dataset.blockIndex));
           }
 
           if (button.dataset.action === "close-practice-plan") {
