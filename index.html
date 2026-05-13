@@ -1060,7 +1060,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.16.4";
+      const APP_VERSION = "v0.16.5";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -3313,18 +3313,61 @@
         const drillBlocks = blocks.filter((block) => blockType(block) !== "water");
         const waterCount = blocks.filter((block) => blockType(block) === "water").length;
         const canEditPlan = isHeadCoach(getSelectedTeam());
+        const team = getSelectedTeam();
+        const division = getTeamDivision(team);
+        const planTotal = planTotalMinutes(plan);
+        const planFocus = planFocusText(plan) || "Team development";
         const planEquipment = Array.isArray(plan.equipmentNeeded) ? plan.equipmentNeeded.join(", ") : plan.equipmentNeeded || "";
         const planEmphasis = Array.isArray(plan.coachingEmphasis) ? plan.coachingEmphasis.join(", ") : plan.coachingEmphasis || "";
         const planSafety = Array.isArray(plan.safetyNotes) ? plan.safetyNotes.join(" ") : plan.safetyNotes || "";
+        const planContext = [team?.name, division?.divisionName || plan.ageGroup, plan.sport || plan.request?.sport || "Practice"].filter(Boolean).join(" - ");
         const nextBlock = drillBlocks[0];
+
+        const asList = (value) => {
+          if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+          return String(value || "")
+            .split(/\n|;|,/)
+            .map((item) => item.replace(/^[-*]\s*/, "").trim())
+            .filter(Boolean);
+        };
+
+        const getBlockStart = (targetIndex) =>
+          blocks.slice(0, targetIndex).reduce((total, item) => total + Number(blockDuration(item) || 0), 0);
+
+        const renderPills = (items, tone = "slate", max = 4) => {
+          const values = asList(items).slice(0, max);
+          if (!values.length) return "";
+          const toneClasses = {
+            emerald: "bg-emerald-50 text-emerald-800",
+            amber: "bg-amber-50 text-amber-800",
+            sky: "bg-sky-50 text-sky-800",
+            violet: "bg-violet-50 text-violet-800",
+            rose: "bg-rose-50 text-rose-800",
+            slate: "bg-slate-100 text-slate-700"
+          };
+          return `
+            <div class="flex flex-wrap gap-1.5">
+              ${values.map((item) => `<span class="rounded-full ${toneClasses[tone] || toneClasses.slate} px-2.5 py-1 text-[11px] font-black leading-none">${escapeHtml(item)}</span>`).join("")}
+            </div>
+          `;
+        };
+
+        const blockCueItems = (block) => {
+          const cues = asList(block.coachingCues || block.cues || block.coach || blockCues(block));
+          return cues
+            .flatMap((cue) => cue.split(/\s+\|\s+/))
+            .map((cue) => cue.replace(/\.$/, "").trim())
+            .filter(Boolean)
+            .slice(0, 3);
+        };
 
         const managementControls = canEditPlan
           ? `
-            <details class="soft-card p-3">
+            <details class="rounded-3xl bg-slate-50 p-3">
               <summary class="cursor-pointer list-none">
                 <div class="flex items-center justify-between gap-3">
                   <div>
-                    <p class="text-xs font-black uppercase tracking-wide text-slate-500">Manage</p>
+                    <p class="text-xs font-black uppercase tracking-wide text-slate-500">Plan actions</p>
                     <h3 class="text-base font-black text-slate-950">Rename, add, or delete</h3>
                   </div>
                   <span class="chevron text-2xl font-bold text-slate-500">&rsaquo;</span>
@@ -3419,41 +3462,57 @@
             `;
           }
 
-          const tagsHtml = blockTags(block).slice(0, 4).map((tag) => `<span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">${escapeHtml(tag)}</span>`).join("");
+          const tagsHtml = renderPills(blockTags(block), "slate", 4);
+          const equipmentHtml = renderPills(blockEquipment(block), "amber", 3);
+          const cuesHtml = renderPills(blockCueItems(block), "emerald", 3);
+          const startMinute = getBlockStart(index);
+          const endMinute = startMinute + duration;
+          const timeRange = `${startMinute}-${endMinute} min`;
 
           return `
-            <article class="soft-card overflow-hidden border-0 shadow-lg">
-              <div class="p-4">
+            <article class="soft-card overflow-hidden border-0 shadow-lg" data-practice-block-card="${index}">
+              <div class="grid gap-3 p-4">
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
-                    <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Block ${stepNumber}</p>
+                    <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">${timeRange}</p>
                     <h3 class="mt-1 text-xl font-black leading-tight text-slate-950">${escapeHtml(title)}</h3>
-                    ${blockObjective(block) ? `<p class="mt-2 text-sm font-semibold leading-6 text-slate-600">${escapeHtml(blockObjective(block))}</p>` : ""}
                   </div>
                   <span class="shrink-0 rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white">${duration} min</span>
                 </div>
-                ${tagsHtml ? `<div class="mt-3 flex flex-wrap gap-1.5">${tagsHtml}</div>` : ""}
+                ${blockObjective(block) ? `<p class="line-clamp-2 text-sm font-semibold leading-6 text-slate-600">${escapeHtml(blockObjective(block))}</p>` : ""}
+                <div class="grid gap-2 rounded-3xl bg-emerald-50 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Coach cues</p>
+                  ${cuesHtml || `<p class="text-sm font-bold text-emerald-950">${escapeHtml(blockCues(block) || "Keep reps moving and give one clear correction.")}</p>`}
+                </div>
+                <div class="grid gap-2 sm:grid-cols-2">
+                  ${equipmentHtml ? `<div class="rounded-3xl bg-amber-50 p-3"><p class="mb-2 text-[11px] font-black uppercase tracking-wide text-amber-700">Equipment</p>${equipmentHtml}</div>` : ""}
+                  ${tagsHtml ? `<div class="rounded-3xl bg-slate-50 p-3"><p class="mb-2 text-[11px] font-black uppercase tracking-wide text-slate-500">Focus</p>${tagsHtml}</div>` : ""}
+                </div>
               </div>
 
-              <div class="grid gap-2 border-t border-slate-100 bg-slate-50/70 p-3">
-                ${renderInfoTile("Set it up", block.setup, "slate")}
-                ${renderInfoTile("Run it", blockInstructions(block), "sky")}
-                ${renderInfoTile("Say / watch", blockCues(block), "emerald")}
-
+              <div class="grid gap-2 border-t border-slate-100 bg-slate-50/60 p-3">
                 <details class="rounded-2xl bg-white p-3">
                   <summary class="cursor-pointer list-none">
                     <div class="flex items-center justify-between gap-3">
-                      <span class="text-sm font-black text-slate-950">More detail</span>
+                      <span>
+                        <span class="block text-xs font-black uppercase tracking-wide text-slate-500">Details</span>
+                        <span class="block text-sm font-black text-slate-950">Setup, reps, groups</span>
+                      </span>
                       <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
                     </div>
                   </summary>
-                  <div class="mt-3 grid gap-2 sm:grid-cols-2">
-                    ${renderInfoTile("Equipment", blockEquipment(block), "amber")}
-                    ${renderInfoTile("Groups", blockGrouping(block), "slate")}
-                    ${renderInfoTile("Make easier", blockEasier(block), "amber")}
-                    ${renderInfoTile("Make harder", blockHarder(block), "slate")}
-                    ${renderInfoTile("Safety", blockSafety(block), "rose")}
-                    ${renderInfoTile("Why it matters", blockWhy(block), "emerald")}
+                  <div class="mt-3 grid gap-2">
+                    <div class="grid gap-2 sm:grid-cols-2">
+                      ${renderInfoTile("Set it up", block.setup, "slate")}
+                      ${renderInfoTile("Run it", blockInstructions(block), "sky")}
+                      ${renderInfoTile("Groups", blockGrouping(block), "slate")}
+                      ${renderInfoTile("Why it matters", blockWhy(block), "emerald")}
+                    </div>
+                    <div class="grid gap-2 sm:grid-cols-2">
+                      ${renderInfoTile("Make easier", blockEasier(block), "amber")}
+                      ${renderInfoTile("Make harder", blockHarder(block), "slate")}
+                      ${renderInfoTile("Safety", blockSafety(block), "rose")}
+                    </div>
                   </div>
                 </details>
 
@@ -3565,67 +3624,87 @@
         els.copyPracticePlanBtn.classList.remove("hidden");
         els.practicePlanResults.innerHTML = `
           <article class="soft-card overflow-hidden border-0 shadow-xl">
-            <div class="bg-gradient-to-br from-slate-950 via-emerald-950 to-emerald-800 p-5 text-white">
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Practice plan</p>
-                  <h2 class="mt-1 text-3xl font-black leading-tight">${escapeHtml(planTitle(plan))}</h2>
-                  <p class="mt-2 max-w-2xl text-sm font-semibold leading-6 text-emerald-50">${escapeHtml(plan.summary || planFocusText(plan) || "Coach-ready practice plan.")}</p>
+            <div class="bg-white p-4 sm:p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">${escapeHtml(planContext || "Practice plan")}</p>
+                  <h2 class="mt-1 text-3xl font-black leading-tight text-slate-950">${escapeHtml(planTitle(plan))}</h2>
+                  <p class="mt-2 line-clamp-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">${escapeHtml(plan.summary || planFocus || "Coach-ready practice plan.")}</p>
                 </div>
-                <span class="shrink-0 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950">${planTotalMinutes(plan)} min</span>
+                <span class="shrink-0 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white">${planTotal} min</span>
               </div>
-              <div class="mt-4 grid gap-2 sm:grid-cols-3">
-                <div class="rounded-2xl bg-white/10 p-3">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Activities</p>
-                  <p class="mt-1 text-xl font-black">${drillBlocks.length}</p>
+              <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div class="rounded-3xl bg-slate-50 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">Blocks</p>
+                  <p class="mt-1 text-xl font-black text-slate-950">${drillBlocks.length}</p>
                 </div>
-                <div class="rounded-2xl bg-white/10 p-3">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Water</p>
-                  <p class="mt-1 text-xl font-black">${waterCount ? `${waterCount} breaks` : "Optional"}</p>
+                <div class="rounded-3xl bg-sky-50 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-sky-700">Breaks</p>
+                  <p class="mt-1 text-xl font-black text-sky-950">${waterCount || 0}</p>
                 </div>
-                <div class="rounded-2xl bg-white/10 p-3">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-100">Focus</p>
-                  <p class="mt-1 line-clamp-2 text-sm font-black leading-5">${escapeHtml(planFocusText(plan) || "Team development")}</p>
+                <div class="col-span-2 rounded-3xl bg-emerald-50 p-3 sm:col-span-1">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Focus</p>
+                  <p class="mt-1 line-clamp-2 text-sm font-black leading-5 text-emerald-950">${escapeHtml(planFocus)}</p>
                 </div>
               </div>
-            </div>
-            <div class="grid gap-3 p-4">
-              <div class="flex flex-wrap gap-2">
-                <button class="min-h-11 rounded-2xl border border-white/0 bg-slate-100 px-4 py-2 text-sm font-black text-slate-900 active:bg-slate-200" type="button" data-action="close-practice-plan">
+              ${renderPills(planEquipment, "amber", 5) ? `<div class="mt-4">${renderPills(planEquipment, "amber", 5)}</div>` : ""}
+              <div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
+                <button class="min-h-12 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="start-practice-plan">
+                  Start Practice
+                </button>
+                <button class="min-h-12 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-900 active:bg-slate-50" type="button" data-action="close-practice-plan">
                   Back to Plans
                 </button>
               </div>
+            </div>
+            <div class="border-y border-slate-100 bg-slate-50/80 p-4">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-slate-500">Schedule</p>
+                  <p class="text-sm font-semibold text-slate-600">A quick map for the field.</p>
+                </div>
+              </div>
+              <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
+                ${blocks
+                  .map((block, index) => {
+                    const start = getBlockStart(index);
+                    const end = start + blockDuration(block);
+                    const isBreak = blockType(block) === "water";
+                    return `<span class="shrink-0 rounded-2xl ${isBreak ? "bg-sky-100 text-sky-900" : "bg-white text-slate-900"} px-3 py-2 text-xs font-black shadow-sm">${start}-${end}m ${escapeHtml(blockTitle(block))}</span>`;
+                  })
+                  .join("")}
+              </div>
+            </div>
+            <div class="grid gap-3 p-4">
               ${nextBlock ? `
                 <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
-                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Run practice preview</p>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">First up</p>
                   <h3 class="mt-1 text-lg font-black text-emerald-950">${escapeHtml(blockTitle(nextBlock))}</h3>
-                  <p class="mt-1 text-sm font-semibold leading-6 text-emerald-900">Start here, then tap into each activity card for setup and cues.</p>
+                  <p class="mt-1 text-sm font-semibold leading-6 text-emerald-900">${escapeHtml(blockObjective(nextBlock) || "Start here, then open details only when you need setup help.")}</p>
                 </div>
               ` : ""}
-              <div class="grid gap-2 sm:grid-cols-2">
-                ${renderInfoTile("Equipment", planEquipment, "amber")}
-                ${renderInfoTile("Setup notes", plan.setupNotes, "slate")}
-                ${renderInfoTile("Coaching emphasis", planEmphasis, "emerald")}
-                ${renderInfoTile("Safety", planSafety, "rose")}
-              </div>
+              <details class="rounded-3xl bg-slate-50 p-3">
+                <summary class="cursor-pointer list-none">
+                  <div class="flex items-center justify-between gap-3">
+                    <span>
+                      <span class="block text-xs font-black uppercase tracking-wide text-slate-500">Plan notes</span>
+                      <span class="block text-sm font-black text-slate-950">Equipment, emphasis, safety</span>
+                    </span>
+                    <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
+                  </div>
+                </summary>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                  ${renderInfoTile("Equipment", planEquipment, "amber")}
+                  ${renderInfoTile("Setup notes", plan.setupNotes, "slate")}
+                  ${renderInfoTile("Coaching emphasis", planEmphasis, "emerald")}
+                  ${renderInfoTile("Safety", planSafety, "rose")}
+                </div>
+              </details>
               ${managementControls}
               ${renderPracticeSharePanel(plan, canEditPlan)}
             </div>
           </article>
-          <details class="soft-card p-3">
-            <summary class="cursor-pointer list-none">
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-sm font-black text-slate-950">Timeline</span>
-                <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
-              </div>
-            </summary>
-            <div class="mt-3 flex flex-wrap gap-2">
-              ${blocks
-                .map((block, index) => `<span class="rounded-2xl ${blockType(block) === "water" ? "bg-sky-100 text-sky-900" : "bg-slate-100 text-slate-900"} px-3 py-2 text-xs font-black">${index + 1}. ${blockDuration(block)}m ${escapeHtml(blockTitle(block))}</span>`)
-                .join("")}
-            </div>
-          </details>
-          <div class="grid gap-4">
+          <div class="grid gap-3">
             ${blocks.map(renderBlock).join("")}
           </div>
         `;
@@ -4118,7 +4197,7 @@
             (plan) => {
               syncPracticePlanAliases(plan);
               const isActive = state.activePracticePlanId === plan.id;
-              const created = plan.createdAt ? new Date(plan.createdAt).toLocaleString() : "";
+              const created = plan.createdAt ? new Date(plan.createdAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "";
               const statusLabel = plan.status === "building" ? "Building" : plan.status === "ready" ? "Ready" : "Draft";
               const statusClasses =
                 plan.status === "building"
@@ -4127,25 +4206,30 @@
                     ? "bg-emerald-100 text-emerald-900"
                     : "bg-slate-100 text-slate-700";
               const focus = planFocusText(plan) || "Open this saved plan.";
+              const sportLabel = plan.sport || plan.request?.sport || getTeamDivision(team).divisionName || "Practice";
               const shareCount = activePracticePlanShares(plan.id).length;
               const shareLabel = headCoach
                 ? shareCount ? `${shareCount} shared` : "Not shared"
                 : "Shared with me";
               return `
-                <article class="rounded-3xl border ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-slate-50"} p-3 shadow-sm">
+                <article class="rounded-3xl border ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-white"} p-3 shadow-sm">
                   <button class="block w-full text-left active:opacity-80" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
                     <span class="flex items-start justify-between gap-3">
                       <span class="min-w-0">
                         <span class="block truncate text-base font-black text-slate-950">${escapeHtml(planTitle(plan))}</span>
-                        <span class="mt-1 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(created)} - ${planTotalMinutes(plan)} minutes</span>
+                        <span class="mt-1 flex flex-wrap gap-1.5">
+                          <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-700">${planTotalMinutes(plan)} min</span>
+                          <span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-700">${escapeHtml(sportLabel)}</span>
+                          ${created ? `<span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-700">${escapeHtml(created)}</span>` : ""}
+                        </span>
                       </span>
                       <span class="shrink-0 rounded-2xl px-2 py-1 text-[11px] font-black uppercase tracking-wide ${statusClasses}">${statusLabel}</span>
                     </span>
-                    <span class="mt-2 line-clamp-2 block text-sm font-semibold leading-5 text-slate-700">${escapeHtml(focus)}</span>
+                    <span class="mt-3 line-clamp-2 block text-sm font-semibold leading-5 text-slate-600">${escapeHtml(focus)}</span>
                   </button>
-                  <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-white/70 pt-3">
-                    <span class="rounded-2xl bg-white px-2 py-1 text-[11px] font-black text-slate-600">${escapeHtml(shareLabel)}</span>
-                    <button class="min-h-10 rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
+                  <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+                    <span class="rounded-2xl bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">${escapeHtml(shareLabel)}</span>
+                    <button class="min-h-10 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
                       Open
                     </button>
                     ${headCoach ? `
@@ -6452,6 +6536,11 @@
           if (button.dataset.action === "close-practice-plan") {
             renderPracticePlan(null);
             window.setTimeout(() => els.practicePlanHistory?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+          }
+
+          if (button.dataset.action === "start-practice-plan") {
+            const firstBlock = els.practicePlanResults.querySelector("[data-practice-block-card]");
+            if (firstBlock) firstBlock.scrollIntoView({ behavior: "smooth", block: "start" });
           }
 
           if (button.dataset.action === "retry-practice-build") {
