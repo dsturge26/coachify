@@ -654,15 +654,15 @@
           </details>
         </section>
 
-        <section id="practicePlanPanel" class="hidden space-y-5">
-          <section id="practiceHeroCard" class="soft-card overflow-hidden border-0 bg-gradient-to-br from-white via-emerald-50 to-sky-50 shadow-xl">
+        <section id="practicePlanPanel" class="hidden space-y-5 rounded-[32px] bg-[#f4f1e8]/70 p-2 sm:p-3">
+          <section id="practiceHeroCard" class="overflow-hidden rounded-[32px] border border-slate-900/10 bg-slate-950 shadow-2xl shadow-slate-900/10">
             <div class="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr] lg:p-6">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Practice Copilot</p>
-                <h2 class="mt-2 text-3xl font-black leading-tight text-slate-950">Build practices your team can actually run.</h2>
-                <p class="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-600">Tell Coachify the roster reality, field setup, and coaching goal. It turns that into editable practice blocks with setup, cues, groups, and adjustments.</p>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Practice Copilot</p>
+                <h2 class="mt-2 text-3xl font-black leading-tight text-white">Build practices your team can actually run.</h2>
+                <p class="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-300">Tell Coachify the roster reality, field setup, and coaching goal. It turns that into editable practice blocks with setup, cues, groups, and adjustments.</p>
                 <div class="mt-4 flex flex-wrap gap-2">
-                  <a id="practiceBuildHeroAction" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white active:bg-slate-800" href="#practicePlanForm">
+                  <a id="practiceBuildHeroAction" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-slate-950 active:bg-emerald-400" href="#practicePlanForm">
                     Build Practice Plan
                   </a>
                   <button id="copyPracticePlanBtn" class="hidden min-h-12 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-sm active:bg-slate-50" type="button">
@@ -1060,7 +1060,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.16.5";
+      const APP_VERSION = "v0.17.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1370,6 +1370,9 @@
         cloudChannel: null,
         deferredInstallPrompt: null,
         activePracticePlanId: null,
+        practiceSessionDraft: null,
+        practiceLiveSession: null,
+        practiceSessionTimer: null,
         practiceBuildTimer: null,
         practiceBuildStartedAt: null,
         practiceBuildInFlight: false,
@@ -2547,6 +2550,34 @@
         return Array.isArray(block?.tags) ? block.tags.filter(Boolean) : [];
       }
 
+      function practiceValueList(value) {
+        if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+        return String(value || "")
+          .split(/\n|;|,/)
+          .map((item) => item.replace(/^[-*]\s*/, "").trim())
+          .filter(Boolean);
+      }
+
+      function practiceCueList(block) {
+        return practiceValueList(block?.coachingCues || block?.cues || block?.coach || blockCues(block))
+          .flatMap((cue) => cue.split(/\s+\|\s+/))
+          .map((cue) => cue.replace(/\.$/, "").trim())
+          .filter(Boolean)
+          .slice(0, 3);
+      }
+
+      function clonePracticeBlocks(blocks) {
+        return JSON.parse(JSON.stringify(Array.isArray(blocks) ? blocks : []));
+      }
+
+      function practiceBlocksTotalMinutes(blocks) {
+        return (Array.isArray(blocks) ? blocks : []).reduce((total, block) => total + Number(blockDuration(block) || 0), 0);
+      }
+
+      function practiceBlockStartMinute(blocks, targetIndex) {
+        return (Array.isArray(blocks) ? blocks : []).slice(0, targetIndex).reduce((total, block) => total + Number(blockDuration(block) || 0), 0);
+      }
+
       function syncPracticePlanAliases(plan) {
         if (!plan) return plan;
         plan.title = plan.title || plan.planTitle || "Practice Plan";
@@ -3265,6 +3296,9 @@
 
       function renderPracticePlan(plan) {
         if (!plan) {
+          stopPracticeSessionTimer();
+          state.practiceLiveSession = null;
+          state.practiceSessionDraft = null;
           els.practicePlanResults.innerHTML = "";
           els.copyPracticePlanBtn.classList.add("hidden");
           state.activePracticePlanId = null;
@@ -3280,6 +3314,12 @@
           return;
         }
         state.activePracticePlanId = plan.id || null;
+        if (state.practiceLiveSession?.planId === plan.id) {
+          els.copyPracticePlanBtn.classList.add("hidden");
+          renderPracticeLiveSession();
+          startPracticeSessionTimer();
+          return;
+        }
         if (plan.status === "building") {
           els.copyPracticePlanBtn.classList.add("hidden");
           renderPracticePlanQueued(plan);
@@ -3310,12 +3350,14 @@
         }
 
         const blocks = Array.isArray(plan.blocks) ? plan.blocks : [];
-        const drillBlocks = blocks.filter((block) => blockType(block) !== "water");
-        const waterCount = blocks.filter((block) => blockType(block) === "water").length;
+        const sessionDraft = getPracticeSessionDraft(plan);
+        const sessionBlocks = sessionDraft?.blocks?.length ? sessionDraft.blocks : blocks;
+        const drillBlocks = sessionBlocks.filter((block) => blockType(block) !== "water");
+        const waterCount = sessionBlocks.filter((block) => blockType(block) === "water").length;
         const canEditPlan = isHeadCoach(getSelectedTeam());
         const team = getSelectedTeam();
         const division = getTeamDivision(team);
-        const planTotal = planTotalMinutes(plan);
+        const planTotal = practiceBlocksTotalMinutes(sessionBlocks) || planTotalMinutes(plan);
         const planFocus = planFocusText(plan) || "Team development";
         const planEquipment = Array.isArray(plan.equipmentNeeded) ? plan.equipmentNeeded.join(", ") : plan.equipmentNeeded || "";
         const planEmphasis = Array.isArray(plan.coachingEmphasis) ? plan.coachingEmphasis.join(", ") : plan.coachingEmphasis || "";
@@ -3324,15 +3366,14 @@
         const nextBlock = drillBlocks[0];
 
         const asList = (value) => {
-          if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
-          return String(value || "")
-            .split(/\n|;|,/)
-            .map((item) => item.replace(/^[-*]\s*/, "").trim())
-            .filter(Boolean);
+          return practiceValueList(value);
         };
 
         const getBlockStart = (targetIndex) =>
           blocks.slice(0, targetIndex).reduce((total, item) => total + Number(blockDuration(item) || 0), 0);
+
+        const getSessionBlockStart = (targetIndex) =>
+          practiceBlockStartMinute(sessionBlocks, targetIndex);
 
         const renderPills = (items, tone = "slate", max = 4) => {
           const values = asList(items).slice(0, max);
@@ -3353,12 +3394,7 @@
         };
 
         const blockCueItems = (block) => {
-          const cues = asList(block.coachingCues || block.cues || block.coach || blockCues(block));
-          return cues
-            .flatMap((cue) => cue.split(/\s+\|\s+/))
-            .map((cue) => cue.replace(/\.$/, "").trim())
-            .filter(Boolean)
-            .slice(0, 3);
+          return practiceCueList(block);
         };
 
         const managementControls = canEditPlan
@@ -3621,30 +3657,97 @@
           `;
         };
 
-        els.copyPracticePlanBtn.classList.remove("hidden");
-        els.practicePlanResults.innerHTML = `
-          <article class="soft-card overflow-hidden border-0 shadow-xl">
-            <div class="bg-white p-4 sm:p-5">
+        const renderPrepBlock = (block, index) => {
+          const isWater = blockType(block) === "water";
+          const title = blockTitle(block);
+          const duration = blockDuration(block);
+          const startMinute = getSessionBlockStart(index);
+          const endMinute = startMinute + duration;
+          const cuesHtml = renderPills(blockCueItems(block), "emerald", 3);
+          const equipmentHtml = renderPills(blockEquipment(block), "amber", 3);
+          const tagsHtml = renderPills(blockTags(block), "slate", 3);
+          const cardTone = isWater
+            ? "border-sky-100 bg-sky-50"
+            : "border-slate-100 bg-white";
+
+          return `
+            <article class="rounded-3xl border ${cardTone} p-3 shadow-sm">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">${escapeHtml(planContext || "Practice plan")}</p>
-                  <h2 class="mt-1 text-3xl font-black leading-tight text-slate-950">${escapeHtml(planTitle(plan))}</h2>
-                  <p class="mt-2 line-clamp-2 max-w-2xl text-sm font-semibold leading-6 text-slate-600">${escapeHtml(plan.summary || planFocus || "Coach-ready practice plan.")}</p>
+                  <p class="text-[11px] font-black uppercase tracking-wide ${isWater ? "text-sky-700" : "text-emerald-700"}">${startMinute}-${endMinute} min</p>
+                  <h3 class="mt-1 text-lg font-black leading-tight text-slate-950">${escapeHtml(title)}</h3>
+                  ${blockObjective(block) ? `<p class="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-slate-600">${escapeHtml(blockObjective(block))}</p>` : ""}
                 </div>
-                <span class="shrink-0 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-black text-white">${planTotal} min</span>
+                <span class="shrink-0 rounded-2xl bg-slate-950 px-3 py-2 text-sm font-black text-white">${duration} min</span>
+              </div>
+              <div class="mt-3 grid gap-2">
+                ${cuesHtml ? `<div><p class="mb-1 text-[10px] font-black uppercase tracking-wide text-emerald-700">Cues</p>${cuesHtml}</div>` : ""}
+                <div class="grid gap-2 sm:grid-cols-2">
+                  ${equipmentHtml ? `<div>${equipmentHtml}</div>` : ""}
+                  ${tagsHtml ? `<div>${tagsHtml}</div>` : ""}
+                </div>
+              </div>
+              ${canEditPlan ? `
+                <div class="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-5">
+                  <button class="min-h-10 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 active:bg-slate-50" type="button" data-action="move-practice-prep-block" data-prep-index="${index}" data-direction="-1" ${index === 0 ? "disabled" : ""}>
+                    Up
+                  </button>
+                  <button class="min-h-10 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 active:bg-slate-50" type="button" data-action="move-practice-prep-block" data-prep-index="${index}" data-direction="1" ${index === sessionBlocks.length - 1 ? "disabled" : ""}>
+                    Down
+                  </button>
+                  <button class="min-h-10 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 active:bg-slate-50" type="button" data-action="adjust-practice-prep-duration" data-prep-index="${index}" data-delta="-5">
+                    -5 min
+                  </button>
+                  <button class="min-h-10 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 active:bg-slate-50" type="button" data-action="adjust-practice-prep-duration" data-prep-index="${index}" data-delta="5">
+                    +5 min
+                  </button>
+                  <button class="min-h-10 rounded-2xl border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 active:bg-red-50" type="button" data-action="remove-practice-prep-block" data-prep-index="${index}">
+                    Remove
+                  </button>
+                </div>
+              ` : ""}
+              <details class="mt-3 rounded-2xl bg-slate-50 p-3">
+                <summary class="cursor-pointer list-none">
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-sm font-black text-slate-950">Field details</span>
+                    <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
+                  </div>
+                </summary>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                  ${renderInfoTile("Set it up", block.setup, "slate")}
+                  ${renderInfoTile("Run it", blockInstructions(block), "sky")}
+                  ${renderInfoTile("Groups", blockGrouping(block), "slate")}
+                  ${renderInfoTile("Safety", blockSafety(block), "rose")}
+                </div>
+              </details>
+            </article>
+          `;
+        };
+
+        els.copyPracticePlanBtn.classList.remove("hidden");
+        els.practicePlanResults.innerHTML = `
+          <article class="overflow-hidden rounded-[32px] border border-slate-900/5 bg-[#f7f3eb] shadow-2xl shadow-slate-900/10">
+            <div class="bg-slate-950 p-4 text-white sm:p-5">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">${escapeHtml(planContext || "Practice plan")}</p>
+                  <h2 class="mt-1 text-3xl font-black leading-tight">${escapeHtml(planTitle(plan))}</h2>
+                  <p class="mt-2 line-clamp-2 max-w-2xl text-sm font-semibold leading-6 text-slate-200">${escapeHtml(plan.summary || planFocus || "Coach-ready practice plan.")}</p>
+                </div>
+                <span class="shrink-0 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950">${planTotal} min</span>
               </div>
               <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <div class="rounded-3xl bg-slate-50 p-3">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">Blocks</p>
-                  <p class="mt-1 text-xl font-black text-slate-950">${drillBlocks.length}</p>
+                <div class="rounded-3xl bg-white/10 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Blocks</p>
+                  <p class="mt-1 text-xl font-black">${drillBlocks.length}</p>
                 </div>
-                <div class="rounded-3xl bg-sky-50 p-3">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-sky-700">Breaks</p>
-                  <p class="mt-1 text-xl font-black text-sky-950">${waterCount || 0}</p>
+                <div class="rounded-3xl bg-white/10 p-3">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Breaks</p>
+                  <p class="mt-1 text-xl font-black">${waterCount || 0}</p>
                 </div>
-                <div class="col-span-2 rounded-3xl bg-emerald-50 p-3 sm:col-span-1">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Focus</p>
-                  <p class="mt-1 line-clamp-2 text-sm font-black leading-5 text-emerald-950">${escapeHtml(planFocus)}</p>
+                <div class="col-span-2 rounded-3xl bg-emerald-400/15 p-3 sm:col-span-1">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-200">Focus</p>
+                  <p class="mt-1 line-clamp-2 text-sm font-black leading-5 text-white">${escapeHtml(planFocus)}</p>
                 </div>
               </div>
               ${renderPills(planEquipment, "amber", 5) ? `<div class="mt-4">${renderPills(planEquipment, "amber", 5)}</div>` : ""}
@@ -3665,9 +3768,9 @@
                 </div>
               </div>
               <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
-                ${blocks
+                ${sessionBlocks
                   .map((block, index) => {
-                    const start = getBlockStart(index);
+                    const start = getSessionBlockStart(index);
                     const end = start + blockDuration(block);
                     const isBreak = blockType(block) === "water";
                     return `<span class="shrink-0 rounded-2xl ${isBreak ? "bg-sky-100 text-sky-900" : "bg-white text-slate-900"} px-3 py-2 text-xs font-black shadow-sm">${start}-${end}m ${escapeHtml(blockTitle(block))}</span>`;
@@ -3704,9 +3807,45 @@
               ${renderPracticeSharePanel(plan, canEditPlan)}
             </div>
           </article>
-          <div class="grid gap-3">
-            ${blocks.map(renderBlock).join("")}
-          </div>
+          <section class="rounded-[32px] border border-emerald-100 bg-[#f7f3eb] p-4 shadow-xl shadow-slate-900/5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Practice prep</p>
+                <h2 class="mt-1 text-2xl font-black text-slate-950">Review the run sheet</h2>
+                <p class="mt-1 text-sm font-semibold leading-6 text-slate-600">${canEditPlan ? "Reorder or tweak this run without changing the saved plan." : "Review the shared run sheet, then start practice."}</p>
+              </div>
+              <div class="grid grid-cols-2 gap-2 sm:flex">
+                ${canEditPlan ? `
+                  <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-action="add-practice-prep-block">
+                    Add Block
+                  </button>
+                ` : ""}
+                <button class="min-h-11 rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button" data-action="start-practice-plan">
+                  Start Practice
+                </button>
+              </div>
+            </div>
+            <div class="mt-4 grid gap-3">
+              ${sessionBlocks.map(renderPrepBlock).join("")}
+            </div>
+          </section>
+          ${canEditPlan ? `
+            <details class="soft-card p-3">
+              <summary class="cursor-pointer list-none">
+                <div class="flex items-center justify-between gap-3">
+                  <span>
+                    <span class="block text-xs font-black uppercase tracking-wide text-slate-500">Advanced</span>
+                    <span class="block text-sm font-black text-slate-950">Edit the saved plan</span>
+                  </span>
+                  <span class="chevron text-xl font-bold text-slate-500">&rsaquo;</span>
+                </div>
+              </summary>
+              <div class="mt-3 grid gap-3">
+                <p class="rounded-2xl bg-amber-50 p-3 text-sm font-bold leading-6 text-amber-950">Changes here save back to the team plan. Prep changes above are session-only.</p>
+                ${blocks.map(renderBlock).join("")}
+              </div>
+            </details>
+          ` : ""}
         `;
       }
 
@@ -3745,6 +3884,93 @@
         return canViewPracticePlan(plan) ? plan : null;
       }
 
+      function getPracticeSessionDraft(plan) {
+        if (!plan) return null;
+        if (!state.practiceSessionDraft || state.practiceSessionDraft.planId !== plan.id) {
+          state.practiceSessionDraft = {
+            planId: plan.id,
+            createdFrom: plan.updatedAt || plan.createdAt || "",
+            blocks: clonePracticeBlocks(plan.blocks)
+          };
+        }
+        return state.practiceSessionDraft;
+      }
+
+      function refreshPracticeSessionDraft(plan) {
+        state.practiceSessionDraft = null;
+        return getPracticeSessionDraft(plan);
+      }
+
+      function getPracticeSessionBlock(plan, blockIndex) {
+        const draft = getPracticeSessionDraft(plan);
+        return draft?.blocks?.[blockIndex] || null;
+      }
+
+      function movePracticePrepBlock(blockIndex, direction) {
+        const plan = getActivePracticePlan();
+        if (!plan || !isHeadCoach(getSelectedTeam())) return;
+        const draft = getPracticeSessionDraft(plan);
+        const nextIndex = blockIndex + Number(direction);
+        if (!draft?.blocks?.[blockIndex] || nextIndex < 0 || nextIndex >= draft.blocks.length) return;
+        const [block] = draft.blocks.splice(blockIndex, 1);
+        draft.blocks.splice(nextIndex, 0, block);
+        renderPracticePlan(plan);
+        setPracticeStatus("Session order updated for this run. The saved plan was not changed.", "info");
+      }
+
+      function adjustPracticePrepDuration(blockIndex, delta) {
+        const plan = getActivePracticePlan();
+        if (!plan || !isHeadCoach(getSelectedTeam())) return;
+        const block = getPracticeSessionBlock(plan, blockIndex);
+        if (!block) return;
+        const minimum = blockType(block) === "water" ? 1 : 5;
+        const nextMinutes = Math.max(minimum, Math.min(90, blockDuration(block) + Number(delta || 0)));
+        block.durationMinutes = nextMinutes;
+        block.minutes = nextMinutes;
+        renderPracticePlan(plan);
+        setPracticeStatus("Session time updated for this run. The saved plan was not changed.", "info");
+      }
+
+      function removePracticePrepBlock(blockIndex) {
+        const plan = getActivePracticePlan();
+        if (!plan || !isHeadCoach(getSelectedTeam())) return;
+        const draft = getPracticeSessionDraft(plan);
+        if (!draft?.blocks?.[blockIndex]) return;
+        const remainingActivities = draft.blocks.filter((block, index) => index !== blockIndex && blockType(block) !== "water").length;
+        if (remainingActivities < 1) {
+          setPracticeStatus("Keep at least one activity in the practice session.", "error");
+          return;
+        }
+        draft.blocks.splice(blockIndex, 1);
+        renderPracticePlan(plan);
+        setPracticeStatus("Activity removed from this session only. The saved plan was not changed.", "info");
+      }
+
+      function addPracticePrepCustomBlock() {
+        const plan = getActivePracticePlan();
+        if (!plan || !isHeadCoach(getSelectedTeam())) return;
+        const title = prompt("Name this session activity:", "Quick coaching block");
+        if (!title) return;
+        const draft = getPracticeSessionDraft(plan);
+        draft.blocks.push({
+          id: makeId("session-block"),
+          type: "drill",
+          blockType: "drill",
+          title: title.trim(),
+          name: title.trim(),
+          durationMinutes: 10,
+          minutes: 10,
+          objective: "Coach-added session activity.",
+          setup: "Use the space and equipment already available.",
+          instructions: "Explain the activity, run fast reps, and reset quickly.",
+          coachingCues: ["Keep it simple", "Lots of reps", "One correction"],
+          equipment: [],
+          tags: ["custom"]
+        });
+        renderPracticePlan(plan);
+        setPracticeStatus("Quick block added for this session only. The saved plan was not changed.", "info");
+      }
+
       async function savePracticePlanChange(plan, message = "Practice plan changes saved.") {
         if (!plan) return;
         if (!isHeadCoach(getSelectedTeam())) {
@@ -3753,6 +3979,7 @@
         }
         syncPracticePlanAliases(plan);
         plan.updatedAt = new Date().toISOString();
+        state.practiceSessionDraft = null;
         renderPracticePlan(plan);
         renderPracticePlanHistory();
         await saveSelectedCloudTeam();
@@ -4171,6 +4398,313 @@
         });
         syncPracticePlanAliases(plan);
         await savePracticePlanChange(plan, "Custom activity added.");
+      }
+
+      function formatPracticeSessionTime(ms) {
+        const totalSeconds = Math.max(0, Math.floor(Number(ms || 0) / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = String(totalSeconds % 60).padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function practiceSessionElapsedMs() {
+        const session = state.practiceLiveSession;
+        if (!session) return 0;
+        const end = session.paused ? session.pausedAt || Date.now() : Date.now();
+        return Math.max(0, end - session.blockStartedAt - (session.blockPausedMs || 0));
+      }
+
+      function stopPracticeSessionTimer() {
+        if (state.practiceSessionTimer) {
+          window.clearInterval(state.practiceSessionTimer);
+          state.practiceSessionTimer = null;
+        }
+      }
+
+      function startPracticeSessionTimer() {
+        stopPracticeSessionTimer();
+        state.practiceSessionTimer = window.setInterval(updatePracticeSessionClock, 1000);
+        updatePracticeSessionClock();
+      }
+
+      function resetPracticeSessionBlockTimer() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        session.blockStartedAt = Date.now();
+        session.blockPausedMs = 0;
+        session.pausedAt = null;
+        session.paused = false;
+      }
+
+      function updatePracticeSessionClock() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        const block = session.blocks[session.currentIndex];
+        if (!block) return;
+        const elapsedMs = practiceSessionElapsedMs();
+        const plannedMs = Math.max(1, blockDuration(block)) * 60000;
+        const remainingMs = Math.max(0, plannedMs - elapsedMs);
+        const progress = Math.min(100, Math.round((elapsedMs / plannedMs) * 100));
+        const elapsedEl = document.querySelector("#practiceSessionElapsed");
+        const remainingEl = document.querySelector("#practiceSessionRemaining");
+        const progressEl = document.querySelector("#practiceSessionProgress");
+        const pauseEl = document.querySelector("[data-action='toggle-practice-session-pause']");
+        if (elapsedEl) elapsedEl.textContent = formatPracticeSessionTime(elapsedMs);
+        if (remainingEl) remainingEl.textContent = formatPracticeSessionTime(remainingMs);
+        if (progressEl) progressEl.style.width = `${progress}%`;
+        if (pauseEl) pauseEl.textContent = session.paused ? "Resume" : "Pause";
+      }
+
+      function completePracticeSessionBlock(status = "completed") {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        const block = session.blocks[session.currentIndex];
+        if (!block) return;
+        session.blockResults[session.currentIndex] = {
+          id: block.id || `${session.currentIndex}`,
+          title: blockTitle(block),
+          status,
+          actualDurationMinutes: Math.max(1, Math.round(practiceSessionElapsedMs() / 60000)),
+          completedAt: new Date().toISOString()
+        };
+      }
+
+      function startPracticeSession() {
+        const plan = getActivePracticePlan();
+        if (!plan || !canViewPracticePlan(plan)) {
+          setPracticeStatus("Open a practice plan first.", "error");
+          return;
+        }
+        const draft = getPracticeSessionDraft(plan);
+        const blocks = clonePracticeBlocks(draft?.blocks || plan.blocks).filter((block) => blockDuration(block) > 0);
+        if (!blocks.length) {
+          setPracticeStatus("Add at least one block before starting practice.", "error");
+          return;
+        }
+        state.practiceLiveSession = {
+          id: makeId("practice-session"),
+          planId: plan.id,
+          title: planTitle(plan),
+          teamName: getSelectedTeam()?.name || "",
+          focus: planFocusText(plan) || "Team development",
+          startedAt: new Date().toISOString(),
+          currentIndex: 0,
+          blocks,
+          blockStartedAt: Date.now(),
+          blockPausedMs: 0,
+          pausedAt: null,
+          paused: false,
+          blockResults: {},
+          notes: ""
+        };
+        els.copyPracticePlanBtn.classList.add("hidden");
+        renderPracticeLiveSession();
+        startPracticeSessionTimer();
+        window.setTimeout(() => els.practicePlanResults?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+      }
+
+      function renderPracticeSessionPills(items, tone = "slate", max = 4) {
+        const values = practiceValueList(items).slice(0, max);
+        if (!values.length) return "";
+        const toneClasses = {
+          emerald: "bg-emerald-100 text-emerald-900",
+          amber: "bg-amber-100 text-amber-900",
+          sky: "bg-sky-100 text-sky-900",
+          slate: "bg-white/80 text-slate-800"
+        };
+        return values.map((item) => `<span class="rounded-full ${toneClasses[tone] || toneClasses.slate} px-3 py-1 text-xs font-black">${escapeHtml(item)}</span>`).join("");
+      }
+
+      function renderPracticeLiveSession() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        const current = session.blocks[session.currentIndex];
+        if (!current) {
+          endPracticeSession(false);
+          return;
+        }
+        const next = session.blocks[session.currentIndex + 1];
+        const cuesHtml = renderPracticeSessionPills(practiceCueList(current), "emerald", 3)
+          || `<span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">Keep reps moving</span>`;
+        const equipmentHtml = renderPracticeSessionPills(blockEquipment(current), "amber", 4)
+          || `<span class="rounded-full bg-white/80 px-3 py-1 text-xs font-black text-slate-700">No special gear</span>`;
+        const setupText = blockText(current.setup || blockGrouping(current) || "Use the space you have and keep the group moving.");
+        const isLast = session.currentIndex >= session.blocks.length - 1;
+
+        els.practicePlanResults.innerHTML = `
+          <section class="fixed inset-0 z-[80] overflow-y-auto bg-[#f4f1e8] px-4 pb-6 pt-4 text-slate-950 sm:px-6" data-practice-session-shell>
+            <div class="mx-auto max-w-3xl">
+              <div class="flex items-center justify-between gap-3">
+                <button class="min-h-11 rounded-2xl bg-white/80 px-4 py-2 text-sm font-black text-slate-900 shadow-sm active:bg-white" type="button" data-action="exit-practice-session">
+                  Back
+                </button>
+                <div class="text-center">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Live practice</p>
+                  <p class="text-sm font-black text-slate-900">${session.currentIndex + 1} of ${session.blocks.length}</p>
+                </div>
+                <button class="min-h-11 rounded-2xl bg-red-50 px-4 py-2 text-sm font-black text-red-700 shadow-sm active:bg-red-100" type="button" data-action="end-practice-session">
+                  End
+                </button>
+              </div>
+
+              <article class="mt-4 overflow-hidden rounded-[32px] bg-slate-950 text-white shadow-2xl shadow-slate-900/20">
+                <div class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-5">
+                  <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                      <p class="text-xs font-black uppercase tracking-wide text-emerald-200">${escapeHtml(session.teamName || "Practice session")}</p>
+                      <h2 class="mt-2 text-3xl font-black leading-tight">${escapeHtml(blockTitle(current))}</h2>
+                      <p class="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-slate-200">${escapeHtml(blockObjective(current) || session.focus)}</p>
+                    </div>
+                    <span class="shrink-0 rounded-2xl bg-white px-4 py-3 text-sm font-black text-slate-950">${blockDuration(current)} min</span>
+                  </div>
+
+                  <div class="mt-6 grid grid-cols-2 gap-3">
+                    <div class="rounded-3xl bg-white/10 p-4">
+                      <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Elapsed</p>
+                      <p id="practiceSessionElapsed" class="mt-1 text-4xl font-black tabular-nums">0:00</p>
+                    </div>
+                    <div class="rounded-3xl bg-white/10 p-4">
+                      <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Remaining</p>
+                      <p id="practiceSessionRemaining" class="mt-1 text-4xl font-black tabular-nums">${formatPracticeSessionTime(blockDuration(current) * 60000)}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 h-3 overflow-hidden rounded-full bg-white/15">
+                    <div id="practiceSessionProgress" class="h-full rounded-full bg-emerald-400 transition-all" style="width: 0%"></div>
+                  </div>
+                </div>
+
+                <div class="grid gap-3 bg-white p-4 text-slate-950">
+                  <div class="rounded-3xl bg-emerald-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Say this</p>
+                    <div class="mt-3 flex flex-wrap gap-2">${cuesHtml}</div>
+                  </div>
+                  <div class="rounded-3xl bg-amber-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-wide text-amber-700">Setup / equipment</p>
+                    <p class="mt-2 text-sm font-bold leading-6 text-amber-950">${escapeHtml(setupText)}</p>
+                    <div class="mt-3 flex flex-wrap gap-2">${equipmentHtml}</div>
+                  </div>
+                  ${next ? `
+                    <div class="rounded-3xl bg-slate-50 p-4">
+                      <p class="text-xs font-black uppercase tracking-wide text-slate-500">Next up</p>
+                      <p class="mt-1 text-base font-black text-slate-950">${escapeHtml(blockTitle(next))}</p>
+                      <p class="mt-1 text-sm font-semibold text-slate-500">${blockDuration(next)} min</p>
+                    </div>
+                  ` : `
+                    <div class="rounded-3xl bg-emerald-50 p-4">
+                      <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Last block</p>
+                      <p class="mt-1 text-base font-black text-emerald-950">Finish strong, then end practice.</p>
+                    </div>
+                  `}
+                  <label class="block rounded-3xl bg-slate-50 p-4">
+                    <span class="text-xs font-black uppercase tracking-wide text-slate-500">Quick note</span>
+                    <textarea class="mt-2 min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold leading-6" data-practice-session-note placeholder="What worked? What needs follow-up?">${escapeHtml(session.notes || "")}</textarea>
+                    <span class="mt-2 block text-xs font-bold text-slate-500">Session notes are kept while this practice is running.</span>
+                  </label>
+                </div>
+              </article>
+
+              <div class="sticky bottom-3 mt-4 rounded-[28px] bg-white/90 p-3 shadow-2xl shadow-slate-900/15 backdrop-blur">
+                <div class="grid grid-cols-2 gap-2">
+                  <button class="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="previous-practice-session-block" ${session.currentIndex === 0 ? "disabled" : ""}>
+                    Previous
+                  </button>
+                  <button class="min-h-12 rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-black text-white active:bg-emerald-800" type="button" data-action="next-practice-session-block">
+                    ${isLast ? "Finish" : "Next Block"}
+                  </button>
+                  <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="toggle-practice-session-pause">
+                    ${session.paused ? "Resume" : "Pause"}
+                  </button>
+                  <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="extend-practice-session-block">
+                    +5 min
+                  </button>
+                  <button class="col-span-2 min-h-11 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-black text-amber-900 active:bg-amber-100" type="button" data-action="skip-practice-session-block">
+                    Skip this block
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        `;
+        updatePracticeSessionClock();
+      }
+
+      function exitPracticeSession() {
+        if (!state.practiceLiveSession) return;
+        const leave = confirm("Leave the live practice session? Your in-progress timer and session notes will stop.");
+        if (!leave) return;
+        stopPracticeSessionTimer();
+        state.practiceLiveSession = null;
+        renderPracticePlan(getActivePracticePlan());
+        setPracticeStatus("Returned to practice review.", "info");
+      }
+
+      function endPracticeSession(ask = true) {
+        if (!state.practiceLiveSession) return;
+        if (ask && !confirm("End this practice session?")) return;
+        stopPracticeSessionTimer();
+        state.practiceLiveSession.endedAt = new Date().toISOString();
+        state.practiceLiveSession = null;
+        renderPracticePlan(getActivePracticePlan());
+        setPracticeStatus("Practice session ended.", "success");
+      }
+
+      function goToNextPracticeSessionBlock() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        completePracticeSessionBlock("completed");
+        if (session.currentIndex >= session.blocks.length - 1) {
+          endPracticeSession(true);
+          return;
+        }
+        session.currentIndex += 1;
+        resetPracticeSessionBlockTimer();
+        renderPracticeLiveSession();
+      }
+
+      function goToPreviousPracticeSessionBlock() {
+        const session = state.practiceLiveSession;
+        if (!session || session.currentIndex === 0) return;
+        session.currentIndex -= 1;
+        resetPracticeSessionBlockTimer();
+        renderPracticeLiveSession();
+      }
+
+      function skipPracticeSessionBlock() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        completePracticeSessionBlock("skipped");
+        if (session.currentIndex >= session.blocks.length - 1) {
+          endPracticeSession(true);
+          return;
+        }
+        session.currentIndex += 1;
+        resetPracticeSessionBlockTimer();
+        renderPracticeLiveSession();
+      }
+
+      function togglePracticeSessionPause() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        if (session.paused) {
+          session.blockPausedMs += Date.now() - (session.pausedAt || Date.now());
+          session.pausedAt = null;
+          session.paused = false;
+        } else {
+          session.pausedAt = Date.now();
+          session.paused = true;
+        }
+        updatePracticeSessionClock();
+      }
+
+      function extendPracticeSessionBlock() {
+        const session = state.practiceLiveSession;
+        if (!session) return;
+        const block = session.blocks[session.currentIndex];
+        if (!block) return;
+        const nextMinutes = blockDuration(block) + 5;
+        block.durationMinutes = nextMinutes;
+        block.minutes = nextMinutes;
+        renderPracticeLiveSession();
       }
 
       function renderPracticePlanHistory() {
@@ -4812,10 +5346,13 @@
         state.activeTeamTab = normalizeTeamTab(tab);
         if (changedTeam) {
           state.activePracticePlanId = null;
+          state.practiceSessionDraft = null;
+          state.practiceLiveSession = null;
           state.teamAccess = [];
           state.practicePlanShares = [];
           state.practicePlanShareSetupMissing = false;
           stopPracticeBuildLoading();
+          stopPracticeSessionTimer();
         }
         saveState();
         render();
@@ -6539,8 +7076,51 @@
           }
 
           if (button.dataset.action === "start-practice-plan") {
-            const firstBlock = els.practicePlanResults.querySelector("[data-practice-block-card]");
-            if (firstBlock) firstBlock.scrollIntoView({ behavior: "smooth", block: "start" });
+            startPracticeSession();
+          }
+
+          if (button.dataset.action === "move-practice-prep-block") {
+            movePracticePrepBlock(Number(button.dataset.prepIndex), Number(button.dataset.direction));
+          }
+
+          if (button.dataset.action === "adjust-practice-prep-duration") {
+            adjustPracticePrepDuration(Number(button.dataset.prepIndex), Number(button.dataset.delta));
+          }
+
+          if (button.dataset.action === "remove-practice-prep-block") {
+            removePracticePrepBlock(Number(button.dataset.prepIndex));
+          }
+
+          if (button.dataset.action === "add-practice-prep-block") {
+            addPracticePrepCustomBlock();
+          }
+
+          if (button.dataset.action === "exit-practice-session") {
+            exitPracticeSession();
+          }
+
+          if (button.dataset.action === "end-practice-session") {
+            endPracticeSession(true);
+          }
+
+          if (button.dataset.action === "next-practice-session-block") {
+            goToNextPracticeSessionBlock();
+          }
+
+          if (button.dataset.action === "previous-practice-session-block") {
+            goToPreviousPracticeSessionBlock();
+          }
+
+          if (button.dataset.action === "toggle-practice-session-pause") {
+            togglePracticeSessionPause();
+          }
+
+          if (button.dataset.action === "extend-practice-session-block") {
+            extendPracticeSessionBlock();
+          }
+
+          if (button.dataset.action === "skip-practice-session-block") {
+            skipPracticeSessionBlock();
           }
 
           if (button.dataset.action === "retry-practice-build") {
@@ -6580,6 +7160,13 @@
 
           if (button.dataset.action === "remove-shared-practice-plan") {
             removeSharedPracticePlanFromView(button.dataset.planId);
+          }
+        });
+
+        els.practicePlanResults.addEventListener("input", (event) => {
+          const noteInput = event.target.closest("[data-practice-session-note]");
+          if (noteInput && state.practiceLiveSession) {
+            state.practiceLiveSession.notes = noteInput.value;
           }
         });
 
