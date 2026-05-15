@@ -28,6 +28,17 @@
         --coach-muted: #667085;
         --coach-line: rgba(226, 232, 240, 0.8);
         --coach-card: rgba(255, 255, 255, 0.94);
+        --practice-bg: #f3efe6;
+        --practice-surface: rgba(255, 253, 248, 0.94);
+        --practice-elevated: rgba(255, 255, 255, 0.98);
+        --practice-muted: #ebe6da;
+        --practice-ink: #111827;
+        --practice-secondary: #5f6b7a;
+        --practice-accent: #137333;
+        --practice-accent-soft: #e7f7ec;
+        --practice-border: rgba(121, 102, 73, 0.14);
+        --practice-shadow: 0 20px 48px rgba(44, 38, 27, 0.12);
+        --practice-shadow-soft: 0 12px 30px rgba(44, 38, 27, 0.08);
       }
 
       html {
@@ -91,6 +102,125 @@
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.9);
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.045);
+      }
+
+      .practice-shell {
+        border: 1px solid var(--practice-border);
+        background:
+          radial-gradient(circle at 10% 0%, rgba(19, 115, 51, 0.08), transparent 26rem),
+          linear-gradient(180deg, #f8f5ee 0%, var(--practice-bg) 44%, #f7f5ef 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      }
+
+      .practice-hero {
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background:
+          radial-gradient(circle at 88% 14%, rgba(52, 211, 153, 0.24), transparent 15rem),
+          linear-gradient(135deg, #0b1220 0%, #10231f 54%, #114c2a 100%);
+        box-shadow: 0 24px 58px rgba(15, 23, 42, 0.22);
+      }
+
+      .practice-panel-card {
+        border: 1px solid var(--practice-border);
+        border-radius: 28px;
+        background: var(--practice-surface);
+        box-shadow: var(--practice-shadow-soft);
+      }
+
+      .practice-action-card {
+        border: 1px solid var(--practice-border);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(252, 249, 241, 0.96));
+        box-shadow: 0 14px 34px rgba(44, 38, 27, 0.09);
+      }
+
+      .practice-builder-step {
+        border: 1px solid var(--practice-border);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+      }
+
+      .practice-builder-step.is-focus {
+        border-color: rgba(19, 115, 51, 0.18);
+        background: linear-gradient(180deg, #eefaf1, #f7fbf6);
+      }
+
+      .practice-builder-step.is-field {
+        border-color: rgba(14, 116, 144, 0.16);
+        background: linear-gradient(180deg, #eef8fb, #f8fbfb);
+      }
+
+      .practice-review-shell {
+        border: 1px solid var(--practice-border);
+        background: linear-gradient(180deg, #fbf7ed, #f5efe4);
+        box-shadow: var(--practice-shadow);
+      }
+
+      .practice-review-header {
+        background:
+          radial-gradient(circle at 88% 0%, rgba(52, 211, 153, 0.22), transparent 16rem),
+          linear-gradient(135deg, #0b1220 0%, #10231f 54%, #123f28 100%);
+      }
+
+      .practice-run-sheet {
+        border: 1px solid rgba(121, 102, 73, 0.12);
+        background: rgba(255, 253, 248, 0.82);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      }
+
+      .practice-step-card {
+        border: 1px solid rgba(121, 102, 73, 0.14);
+        background: linear-gradient(180deg, #fffefd, #fbf8f0);
+        box-shadow: 0 16px 36px rgba(44, 38, 27, 0.1);
+      }
+
+      .practice-step-card.is-active {
+        border-color: rgba(19, 115, 51, 0.26);
+        box-shadow: 0 18px 42px rgba(19, 115, 51, 0.12);
+      }
+
+      .practice-water-card {
+        border: 1px solid rgba(14, 116, 144, 0.16);
+        background: linear-gradient(180deg, #eef9fc, #f7fcfd);
+        box-shadow: 0 10px 24px rgba(14, 116, 144, 0.08);
+      }
+
+      .practice-plan-card {
+        border: 1px solid var(--practice-border);
+        border-radius: 24px;
+        background: linear-gradient(180deg, #fffefd, #faf6ee);
+        box-shadow: 0 14px 34px rgba(44, 38, 27, 0.09);
+      }
+
+      .practice-plan-card.is-active {
+        border-color: rgba(19, 115, 51, 0.32);
+        background: linear-gradient(180deg, #effaf2, #fbf8ef);
+        box-shadow: 0 18px 42px rgba(19, 115, 51, 0.13);
+      }
+
+      .practice-plan-card.is-shared {
+        border-color: rgba(14, 116, 144, 0.2);
+        background: linear-gradient(180deg, #f0f9fc, #fffdf8);
+      }
+
+      .practice-live-shell {
+        background:
+          radial-gradient(circle at 18% 0%, rgba(19, 115, 51, 0.16), transparent 22rem),
+          linear-gradient(180deg, #ece6da 0%, #f7f3ea 52%, #efe8dc 100%);
+      }
+
+      .practice-live-card {
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background:
+          radial-gradient(circle at 86% 0%, rgba(52, 211, 153, 0.24), transparent 16rem),
+          linear-gradient(145deg, #060b14, #10231f 58%, #0d3f25);
+        box-shadow: 0 28px 64px rgba(15, 23, 42, 0.3);
+      }
+
+      .practice-live-controls {
+        border: 1px solid rgba(121, 102, 73, 0.12);
+        background: rgba(255, 253, 248, 0.92);
+        box-shadow: 0 20px 48px rgba(44, 38, 27, 0.18);
       }
 
       .coachify-live-bar {
@@ -654,8 +784,8 @@
           </details>
         </section>
 
-        <section id="practicePlanPanel" class="hidden space-y-5 rounded-[32px] bg-[#f4f1e8]/70 p-2 sm:p-3">
-          <section id="practiceHeroCard" class="overflow-hidden rounded-[32px] border border-slate-900/10 bg-slate-950 shadow-2xl shadow-slate-900/10">
+        <section id="practicePlanPanel" class="practice-shell hidden space-y-5 rounded-[32px] p-2 sm:p-3">
+          <section id="practiceHeroCard" class="practice-hero overflow-hidden rounded-[32px]">
             <div class="grid gap-5 p-5 lg:grid-cols-[1.15fr_0.85fr] lg:p-6">
               <div>
                 <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Practice Copilot</p>
@@ -675,24 +805,24 @@
           </section>
 
           <section id="practiceQuickActionsGrid" class="grid gap-3 sm:grid-cols-3">
-            <a id="practiceCreatePlanTile" class="soft-card p-4 active:bg-slate-50" href="#practicePlanForm">
+            <a id="practiceCreatePlanTile" class="practice-action-card p-4 active:bg-emerald-50" href="#practicePlanForm">
               <span class="feature-icon h-11 w-11 rounded-2xl bg-emerald-50 text-emerald-700">+</span>
               <span class="mt-3 block text-base font-black text-slate-950">Create plan</span>
               <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Guided, editable, saved to this team</span>
             </a>
-            <a class="soft-card p-4 active:bg-slate-50" href="#practicePlanHistory">
+            <a class="practice-action-card p-4 active:bg-indigo-50" href="#practicePlanHistory">
               <span class="feature-icon h-11 w-11 rounded-2xl bg-indigo-50 text-indigo-700">PL</span>
               <span class="mt-3 block text-base font-black text-slate-950">Saved plans</span>
               <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Open, rename, copy, or reuse</span>
             </a>
-            <div class="soft-card p-4">
+            <div class="practice-action-card p-4">
               <span class="feature-icon h-11 w-11 rounded-2xl bg-amber-50 text-amber-700">DR</span>
               <span class="mt-3 block text-base font-black text-slate-950">Drills & templates</span>
               <span class="mt-1 block text-sm font-semibold leading-5 text-slate-500">Swap drills inside any generated plan</span>
             </div>
           </section>
 
-          <section id="practiceAssistantIntro" class="hidden soft-card border-0 bg-gradient-to-br from-white to-sky-50 p-4 shadow-lg sm:p-5">
+          <section id="practiceAssistantIntro" class="practice-panel-card hidden bg-gradient-to-br from-white to-sky-50 p-4 sm:p-5">
             <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared practice plans</p>
             <h2 class="mt-1 text-2xl font-black text-slate-950">Plans from your head coach</h2>
             <p class="mt-2 text-sm font-semibold leading-6 text-slate-600">Open a shared plan, review the blocks, and use it on the field. Creating and editing plans stays with the head coach.</p>
@@ -702,7 +832,7 @@
           <section id="practicePlanResults" class="space-y-4"></section>
 
           <section class="grid gap-4 xl:grid-cols-[1.08fr_0.92fr]">
-            <section id="practiceBuilderCard" class="soft-card p-4 shadow-lg sm:p-5">
+            <section id="practiceBuilderCard" class="practice-panel-card p-4 sm:p-5">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Guided builder</p>
@@ -712,7 +842,7 @@
               </div>
 
               <form id="practicePlanForm" class="mt-5 space-y-4">
-                <section class="rounded-3xl bg-slate-50 p-3 sm:p-4">
+                <section class="practice-builder-step rounded-3xl p-3 sm:p-4">
                   <div class="flex items-center gap-3">
                     <span class="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-slate-900 shadow-sm">1</span>
                     <div>
@@ -761,7 +891,7 @@
                   </div>
                 </section>
 
-                <section class="rounded-3xl bg-emerald-50 p-3 sm:p-4">
+                <section class="practice-builder-step is-focus rounded-3xl p-3 sm:p-4">
                   <div class="flex items-center gap-3">
                     <span class="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-emerald-900 shadow-sm">2</span>
                     <div>
@@ -810,7 +940,7 @@
                   </div>
                 </section>
 
-                <section class="rounded-3xl bg-sky-50 p-3 sm:p-4">
+                <section class="practice-builder-step is-field rounded-3xl p-3 sm:p-4">
                   <div class="flex items-center gap-3">
                     <span class="grid h-8 w-8 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-sky-900 shadow-sm">3</span>
                     <div>
@@ -866,7 +996,7 @@
             </section>
 
             <section class="space-y-4">
-              <section id="practiceFoundationCard" class="soft-card p-4 shadow-lg sm:p-5">
+              <section id="practiceFoundationCard" class="practice-panel-card p-4 sm:p-5">
                 <div class="flex items-start justify-between gap-3">
                   <div>
                     <p class="text-xs font-black uppercase tracking-wide text-slate-500">Saved work</p>
@@ -877,7 +1007,7 @@
                 <div id="practicePlanHistory" class="mt-4 grid gap-3"></div>
               </section>
 
-              <section class="soft-card p-4 shadow-lg sm:p-5">
+              <section class="practice-panel-card p-4 sm:p-5">
                 <p class="text-xs font-black uppercase tracking-wide text-slate-500">Copilot foundation</p>
                 <h2 class="text-xl font-black text-slate-950">What Coachify builds</h2>
                 <div class="mt-3 grid gap-2">
@@ -1060,7 +1190,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.17.0";
+      const APP_VERSION = "v0.17.2";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -2173,11 +2303,14 @@
                       ? "bg-amber-100 text-amber-900"
                       : "bg-slate-100 text-slate-700";
                   const date = row.updated_at || row.created_at;
+                  const needsAccessRepair = !isMember && row.status === "accepted";
                   const action = isMember && !isHead
                     ? `<button class="min-h-10 rounded-md border border-red-200 px-3 py-2 text-sm font-bold text-red-700 active:bg-red-50" type="button" data-action="remove-team-access" data-user-id="${escapeHtml(row.user_id)}" data-email="${escapeHtml(email)}">Remove access</button>`
                     : (!isMember && isPending)
                       ? `<button class="min-h-10 rounded-md border border-amber-300 px-3 py-2 text-sm font-bold text-amber-800 active:bg-amber-50" type="button" data-action="revoke-team-invite" data-invite-id="${escapeHtml(row.invite_id || row.id)}" data-email="${escapeHtml(email)}">Cancel invite</button>`
-                      : "";
+                      : needsAccessRepair
+                        ? `<button class="min-h-10 rounded-md border border-emerald-300 px-3 py-2 text-sm font-bold text-emerald-800 active:bg-emerald-50" type="button" data-action="repair-team-access" data-email="${escapeHtml(email)}">Reconnect access</button>`
+                        : "";
                   return `
                     <div class="flex flex-col gap-2 rounded-md border border-emerald-100 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
@@ -2349,6 +2482,29 @@
 
         setAppStatus(`${email} no longer has access to ${team.name}.`, "success");
         await loadCloudTeams();
+        await loadTeamAccessForSelectedTeam({ renderAfter: true });
+      }
+
+      async function repairTeamAccess(email = "") {
+        const team = getSelectedTeam();
+        const normalizedEmail = normalizeEmail(email);
+        if (!team?.cloudId || !isHeadCoach(team) || !normalizedEmail) return;
+
+        setAppStatus(`Reconnecting ${normalizedEmail} to ${team.name}...`, "info");
+        const { error } = await cloud.rpc("repair_team_invite_access_for_head", {
+          p_team_id: team.cloudId,
+          p_email: normalizedEmail
+        });
+
+        if (error) {
+          console.error("Coachify repair team access failed", { teamId: team.cloudId, email: normalizedEmail, error });
+          setAppStatus(error.message.includes("repair_team_invite_access_for_head")
+            ? "Team access repair needs the latest Supabase SQL update. Run supabase_accept_invite_fix.sql, then try again."
+            : error.message, "danger");
+          return;
+        }
+
+        setAppStatus(`${normalizedEmail} can now access ${team.name}.`, "success");
         await loadTeamAccessForSelectedTeam({ renderAfter: true });
       }
 
@@ -2695,7 +2851,7 @@
           const share = ownPracticePlanShare(plan.id);
           if (!share) return "";
           return `
-            <section class="soft-card border border-sky-100 bg-sky-50 p-3">
+            <section class="practice-panel-card border border-sky-100 bg-sky-50 p-3">
               <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared with you</p>
               <div class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-sm font-semibold leading-6 text-sky-950">You have view access to this practice plan.</p>
@@ -2709,7 +2865,7 @@
 
         if (state.practicePlanShareSetupMissing) {
           return `
-            <section class="soft-card p-3">
+            <section class="practice-panel-card p-3">
               <p class="text-xs font-black uppercase tracking-wide text-amber-700">Sharing setup</p>
               <h3 class="mt-1 text-base font-black text-slate-950">Share with assistant coaches</h3>
               <div class="mt-3">${practiceShareSetupMessageHtml()}</div>
@@ -2720,7 +2876,7 @@
         const assistants = activeAssistantAccessRows();
         if (!assistants.length) {
           return `
-            <section class="soft-card p-3">
+            <section class="practice-panel-card p-3">
               <p class="text-xs font-black uppercase tracking-wide text-slate-500">Sharing</p>
               <h3 class="mt-1 text-base font-black text-slate-950">No assistant coaches yet</h3>
               <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">Invite assistants from the Team screen before sharing practice plans.</p>
@@ -2753,7 +2909,7 @@
           .join("");
 
         return `
-          <section class="soft-card p-3">
+          <section class="practice-panel-card p-3">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Sharing</p>
@@ -3332,7 +3488,7 @@
         if (plan.status === "failed" || plan.status === "needs_retry") {
           els.copyPracticePlanBtn.classList.add("hidden");
           els.practicePlanResults.innerHTML = `
-            <article class="soft-card border border-amber-100 bg-amber-50 p-4">
+            <article class="practice-panel-card border border-amber-100 bg-amber-50 p-4">
               <p class="text-xs font-black uppercase tracking-wide text-amber-700">Draft needs attention</p>
               <h2 class="mt-1 text-2xl font-black text-amber-950">${escapeHtml(planTitle(plan))}</h2>
               <p class="mt-2 text-sm font-semibold leading-6 text-amber-900">${escapeHtml(plan.error || "This draft did not complete. Remove it and build a fresh plan when you are ready.")}</p>
@@ -3399,7 +3555,7 @@
 
         const managementControls = canEditPlan
           ? `
-            <details class="rounded-3xl bg-slate-50 p-3">
+            <details class="practice-run-sheet rounded-3xl p-3">
               <summary class="cursor-pointer list-none">
                 <div class="flex items-center justify-between gap-3">
                   <div>
@@ -3453,7 +3609,7 @@
           const libraryHtml = practiceDrillLibrary
             .map(
               (drill) => `
-                <article class="rounded-3xl border border-slate-100 bg-white p-3 shadow-sm">
+                <article class="practice-action-card p-3">
                   <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">${escapeHtml(drill.category)}</p>
                   <h5 class="mt-1 text-sm font-black text-slate-950">${escapeHtml(drill.name)}</h5>
                   <p class="mt-1 text-sm font-semibold leading-5 text-slate-500">${escapeHtml(drill.description)}</p>
@@ -3486,7 +3642,7 @@
 
           if (isWater) {
             return `
-              <article class="rounded-3xl border border-sky-100 bg-sky-50 px-4 py-3">
+              <article class="practice-water-card rounded-3xl px-4 py-3">
                 <div class="flex items-center justify-between gap-3">
                   <div>
                     <p class="text-[10px] font-black uppercase tracking-wide text-sky-700">Reset</p>
@@ -3506,7 +3662,7 @@
           const timeRange = `${startMinute}-${endMinute} min`;
 
           return `
-            <article class="soft-card overflow-hidden border-0 shadow-lg" data-practice-block-card="${index}">
+            <article class="practice-step-card overflow-hidden rounded-[28px]" data-practice-block-card="${index}">
               <div class="grid gap-3 p-4">
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
@@ -3527,7 +3683,7 @@
               </div>
 
               <div class="grid gap-2 border-t border-slate-100 bg-slate-50/60 p-3">
-                <details class="rounded-2xl bg-white p-3">
+                <details class="rounded-2xl border border-slate-100 bg-white/90 p-3 shadow-sm">
                   <summary class="cursor-pointer list-none">
                     <div class="flex items-center justify-between gap-3">
                       <span>
@@ -3610,7 +3766,7 @@
                     </div>
                   </details>
 
-                  <details class="rounded-2xl border border-slate-100 bg-white p-3">
+                  <details class="rounded-2xl border border-slate-100 bg-white/90 p-3 shadow-sm">
                     <summary class="cursor-pointer list-none">
                       <div class="flex items-center justify-between gap-3">
                         <span class="text-sm font-black text-slate-950">Swap activity</span>
@@ -3632,7 +3788,7 @@
                 ` : ""}
 
                 ${canEditPlan ? `
-                <details class="rounded-2xl border border-violet-100 bg-violet-50 p-3">
+                <details class="rounded-2xl border border-violet-100 bg-violet-50 p-3 shadow-sm">
                   <summary class="cursor-pointer list-none">
                     <div class="flex items-center justify-between gap-3">
                       <span class="text-sm font-black text-violet-950">Ask Coachify about this drill</span>
@@ -3667,11 +3823,13 @@
           const equipmentHtml = renderPills(blockEquipment(block), "amber", 3);
           const tagsHtml = renderPills(blockTags(block), "slate", 3);
           const cardTone = isWater
-            ? "border-sky-100 bg-sky-50"
-            : "border-slate-100 bg-white";
+            ? "practice-water-card"
+            : index === 0
+              ? "practice-step-card is-active"
+              : "practice-step-card";
 
           return `
-            <article class="rounded-3xl border ${cardTone} p-3 shadow-sm">
+            <article class="rounded-3xl ${cardTone} p-3">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-[11px] font-black uppercase tracking-wide ${isWater ? "text-sky-700" : "text-emerald-700"}">${startMinute}-${endMinute} min</p>
@@ -3706,7 +3864,7 @@
                   </button>
                 </div>
               ` : ""}
-              <details class="mt-3 rounded-2xl bg-slate-50 p-3">
+              <details class="mt-3 rounded-2xl border border-slate-100 bg-white/85 p-3 shadow-sm">
                 <summary class="cursor-pointer list-none">
                   <div class="flex items-center justify-between gap-3">
                     <span class="text-sm font-black text-slate-950">Field details</span>
@@ -3726,8 +3884,8 @@
 
         els.copyPracticePlanBtn.classList.remove("hidden");
         els.practicePlanResults.innerHTML = `
-          <article class="overflow-hidden rounded-[32px] border border-slate-900/5 bg-[#f7f3eb] shadow-2xl shadow-slate-900/10">
-            <div class="bg-slate-950 p-4 text-white sm:p-5">
+          <article class="practice-review-shell overflow-hidden rounded-[32px]">
+            <div class="practice-review-header p-4 text-white sm:p-5">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-xs font-black uppercase tracking-wide text-emerald-200">${escapeHtml(planContext || "Practice plan")}</p>
@@ -3760,7 +3918,7 @@
                 </button>
               </div>
             </div>
-            <div class="border-y border-slate-100 bg-slate-50/80 p-4">
+            <div class="practice-run-sheet border-y border-slate-100 p-4">
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Schedule</p>
@@ -3786,7 +3944,7 @@
                   <p class="mt-1 text-sm font-semibold leading-6 text-emerald-900">${escapeHtml(blockObjective(nextBlock) || "Start here, then open details only when you need setup help.")}</p>
                 </div>
               ` : ""}
-              <details class="rounded-3xl bg-slate-50 p-3">
+              <details class="practice-run-sheet rounded-3xl p-3">
                 <summary class="cursor-pointer list-none">
                   <div class="flex items-center justify-between gap-3">
                     <span>
@@ -3807,7 +3965,7 @@
               ${renderPracticeSharePanel(plan, canEditPlan)}
             </div>
           </article>
-          <section class="rounded-[32px] border border-emerald-100 bg-[#f7f3eb] p-4 shadow-xl shadow-slate-900/5">
+          <section class="practice-review-shell rounded-[32px] p-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Practice prep</p>
@@ -3830,7 +3988,7 @@
             </div>
           </section>
           ${canEditPlan ? `
-            <details class="soft-card p-3">
+            <details class="practice-panel-card p-3">
               <summary class="cursor-pointer list-none">
                 <div class="flex items-center justify-between gap-3">
                   <span>
@@ -4532,7 +4690,7 @@
         const isLast = session.currentIndex >= session.blocks.length - 1;
 
         els.practicePlanResults.innerHTML = `
-          <section class="fixed inset-0 z-[80] overflow-y-auto bg-[#f4f1e8] px-4 pb-6 pt-4 text-slate-950 sm:px-6" data-practice-session-shell>
+          <section class="practice-live-shell fixed inset-0 z-[80] overflow-y-auto px-4 pb-6 pt-4 text-slate-950 sm:px-6" data-practice-session-shell>
             <div class="mx-auto max-w-3xl">
               <div class="flex items-center justify-between gap-3">
                 <button class="min-h-11 rounded-2xl bg-white/80 px-4 py-2 text-sm font-black text-slate-900 shadow-sm active:bg-white" type="button" data-action="exit-practice-session">
@@ -4547,8 +4705,8 @@
                 </button>
               </div>
 
-              <article class="mt-4 overflow-hidden rounded-[32px] bg-slate-950 text-white shadow-2xl shadow-slate-900/20">
-                <div class="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 p-5">
+              <article class="practice-live-card mt-4 overflow-hidden rounded-[32px] text-white">
+                <div class="p-5">
                   <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
                       <p class="text-xs font-black uppercase tracking-wide text-emerald-200">${escapeHtml(session.teamName || "Practice session")}</p>
@@ -4573,29 +4731,29 @@
                   </div>
                 </div>
 
-                <div class="grid gap-3 bg-white p-4 text-slate-950">
-                  <div class="rounded-3xl bg-emerald-50 p-4">
+                <div class="grid gap-3 bg-[#fbf8f0] p-4 text-slate-950">
+                  <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
                     <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Say this</p>
                     <div class="mt-3 flex flex-wrap gap-2">${cuesHtml}</div>
                   </div>
-                  <div class="rounded-3xl bg-amber-50 p-4">
+                  <div class="rounded-3xl border border-amber-100 bg-amber-50 p-4 shadow-sm">
                     <p class="text-xs font-black uppercase tracking-wide text-amber-700">Setup / equipment</p>
                     <p class="mt-2 text-sm font-bold leading-6 text-amber-950">${escapeHtml(setupText)}</p>
                     <div class="mt-3 flex flex-wrap gap-2">${equipmentHtml}</div>
                   </div>
                   ${next ? `
-                    <div class="rounded-3xl bg-slate-50 p-4">
+                    <div class="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
                       <p class="text-xs font-black uppercase tracking-wide text-slate-500">Next up</p>
                       <p class="mt-1 text-base font-black text-slate-950">${escapeHtml(blockTitle(next))}</p>
                       <p class="mt-1 text-sm font-semibold text-slate-500">${blockDuration(next)} min</p>
                     </div>
                   ` : `
-                    <div class="rounded-3xl bg-emerald-50 p-4">
+                    <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-4 shadow-sm">
                       <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Last block</p>
                       <p class="mt-1 text-base font-black text-emerald-950">Finish strong, then end practice.</p>
                     </div>
                   `}
-                  <label class="block rounded-3xl bg-slate-50 p-4">
+                  <label class="block rounded-3xl border border-slate-100 bg-white p-4 shadow-sm">
                     <span class="text-xs font-black uppercase tracking-wide text-slate-500">Quick note</span>
                     <textarea class="mt-2 min-h-20 w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold leading-6" data-practice-session-note placeholder="What worked? What needs follow-up?">${escapeHtml(session.notes || "")}</textarea>
                     <span class="mt-2 block text-xs font-bold text-slate-500">Session notes are kept while this practice is running.</span>
@@ -4603,7 +4761,7 @@
                 </div>
               </article>
 
-              <div class="sticky bottom-3 mt-4 rounded-[28px] bg-white/90 p-3 shadow-2xl shadow-slate-900/15 backdrop-blur">
+              <div class="practice-live-controls sticky bottom-3 mt-4 rounded-[28px] p-3 backdrop-blur">
                 <div class="grid grid-cols-2 gap-2">
                   <button class="min-h-12 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-800 active:bg-slate-50" type="button" data-action="previous-practice-session-block" ${session.currentIndex === 0 ? "disabled" : ""}>
                     Previous
@@ -4718,7 +4876,7 @@
         }
         if (!plans.length) {
           els.practicePlanHistory.innerHTML = `
-            <div class="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold leading-6 text-slate-600">
+            <div class="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-4 text-sm font-semibold leading-6 text-slate-600 shadow-sm">
               ${headCoach ? "No saved practice plans yet. Build one here and it will stay attached to this team." : "No practice plans have been shared with you yet."}
             </div>
           `;
@@ -4746,7 +4904,7 @@
                 ? shareCount ? `${shareCount} shared` : "Not shared"
                 : "Shared with me";
               return `
-                <article class="rounded-3xl border ${isActive ? "border-emerald-300 bg-emerald-50" : "border-slate-100 bg-white"} p-3 shadow-sm">
+                <article class="practice-plan-card ${isActive ? "is-active" : ""} ${headCoach ? "" : "is-shared"} p-3">
                   <button class="block w-full text-left active:opacity-80" type="button" data-action="open-practice-plan" data-plan-id="${plan.id}">
                     <span class="flex items-start justify-between gap-3">
                       <span class="min-w-0">
@@ -6950,6 +7108,9 @@
           }
           if (button.dataset.action === "remove-team-access") {
             removeTeamAccess(button.dataset.userId, button.dataset.email);
+          }
+          if (button.dataset.action === "repair-team-access") {
+            repairTeamAccess(button.dataset.email);
           }
         };
         els.gameDaySentInvitesList.addEventListener("click", handleAccessClick);

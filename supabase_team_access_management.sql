@@ -56,14 +56,14 @@ as '
       ti.updated_at
     from public.team_invites ti
     where ti.team_id = p_team_id
-      and ti.status = ''pending''
       and public.is_team_head(p_team_id)
+      and ti.status in (''pending'', ''accepted'')
       and not exists (
         select 1
         from public.team_members tm
         join auth.users u on u.id = tm.user_id
         where tm.team_id = ti.team_id
-          and lower(u.email) = ti.invited_email
+          and lower(trim(u.email)) = lower(trim(ti.invited_email))
       )
   ) access_rows
   order by
@@ -72,6 +72,69 @@ as '
 ';
 
 grant execute on function public.list_team_access_for_head(uuid) to authenticated;
+
+create or replace function public.repair_team_invite_access_for_head(p_team_id uuid, p_email text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as '
+declare
+  normalized_email text;
+  target_user_id uuid;
+  invite_role text;
+begin
+  normalized_email := lower(trim(coalesce(p_email, '''')));
+
+  if normalized_email = '''' then
+    raise exception ''Enter the assistant coach email first.'';
+  end if;
+
+  if not public.is_team_head(p_team_id) then
+    raise exception ''Only the head coach can reconnect assistant access.'';
+  end if;
+
+  select role
+  into invite_role
+  from public.team_invites
+  where team_id = p_team_id
+    and lower(trim(invited_email)) = normalized_email
+    and status in (''pending'', ''accepted'')
+  order by updated_at desc, created_at desc
+  limit 1;
+
+  if invite_role is null then
+    raise exception ''No active invite found for this email. Send a new invite first.'';
+  end if;
+
+  select id
+  into target_user_id
+  from auth.users
+  where lower(trim(email)) = normalized_email
+  order by created_at desc
+  limit 1;
+
+  if target_user_id is null then
+    raise exception ''No Coachify account was found for this email. Ask the assistant to create/sign in first.'';
+  end if;
+
+  insert into public.team_members (team_id, user_id, role)
+  values (p_team_id, target_user_id, ''assistant'')
+  on conflict (team_id, user_id) do update set role = excluded.role;
+
+  update public.team_invites
+  set status = ''accepted'',
+      accepted_by = target_user_id,
+      updated_at = now()
+  where team_id = p_team_id
+    and lower(trim(invited_email)) = normalized_email
+    and status in (''pending'', ''accepted'');
+
+  return target_user_id;
+end;
+';
+
+grant execute on function public.repair_team_invite_access_for_head(uuid, text) to authenticated;
 
 create or replace function public.revoke_team_invite(p_invite_id uuid)
 returns void

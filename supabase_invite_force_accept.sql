@@ -1,6 +1,6 @@
 -- Coachify emergency assistant access helper
 -- Replace assistant@example.com with the assistant's exact login email.
--- This grants assistant access for any pending invite sent to that email.
+-- This grants assistant access for any pending OR already-accepted invite sent to that email.
 
 with params as (
   select lower(trim('assistant@example.com')) as assistant_email
@@ -9,8 +9,8 @@ matching_invites as (
   select ti.*
   from public.team_invites ti
   cross join params p
-  where ti.invited_email = p.assistant_email
-    and ti.status = 'pending'
+  where lower(trim(ti.invited_email)) = p.assistant_email
+    and ti.status in ('pending', 'accepted')
 ),
 matching_user as (
   select u.id, lower(u.email) as email
@@ -32,5 +32,5 @@ set status = 'accepted',
     updated_at = now()
 from added_membership am
 where ti.team_id = am.team_id
-  and ti.invited_email = (select assistant_email from params)
+  and lower(trim(ti.invited_email)) = (select assistant_email from params)
 returning ti.team_name, ti.invited_email, ti.status;
