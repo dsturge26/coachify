@@ -184,6 +184,28 @@
         box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
       }
 
+      .game-mode-step {
+        min-height: 2.75rem;
+        border-radius: 999px;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.78rem;
+        font-weight: 950;
+        color: #475467;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+      }
+
+      .game-mode-step.is-active {
+        background: #137333;
+        color: white;
+        box-shadow: 0 10px 22px rgba(19, 115, 51, 0.18);
+      }
+
+      .game-mode-step:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+
       .soft-card {
         border: 1px solid var(--coach-line);
         border-radius: 18px;
@@ -1280,7 +1302,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.0";
+      const APP_VERSION = "v0.18.1";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -6653,6 +6675,17 @@
         `;
       }
 
+      function gameModeStepButtonHtml({ label, currentMode, targetMode, action, disabled = false }) {
+        const isActive = currentMode === targetMode;
+        const actionAttr = !isActive && !disabled && action ? `data-game-action="${action}"` : "";
+        const disabledAttr = isActive || disabled ? "disabled aria-disabled=\"true\"" : "";
+        return `
+          <button class="game-mode-step ${isActive ? "is-active" : ""}" type="button" ${actionAttr} ${disabledAttr}>
+            ${escapeHtml(label)}
+          </button>
+        `;
+      }
+
       function renderGameDayExperience() {
         const team = getSelectedTeam();
         if (!team || !els.gameDayStage) return;
@@ -6665,6 +6698,15 @@
         const headCoach = isHeadCoach(team);
         const mode = getGameDayMode(team);
         const modeLabel = mode === "live" ? "Live" : mode === "recap" ? "Recap" : "Pregame";
+        const canOpenRecap = headCoach && mode === "live";
+        const modeHelper =
+          mode === "pregame"
+            ? "Use Start Game when you are ready for the sideline tracker."
+            : mode === "live"
+              ? headCoach
+                ? "End Game moves this into a recap."
+                : "You can track touches here. The head coach controls ending the game."
+              : "Recap uses the attendance, touches, and notes already tracked.";
         els.gameDayStage.dataset.mode = mode;
         els.gamePrimaryAction.textContent = mode === "live" ? "Track Touches" : headCoach ? "Build Lineup" : "View Lineup";
         els.gamePrimaryAction.setAttribute("href", mode === "live" ? "#touchTrackerSection" : headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
@@ -6677,13 +6719,13 @@
               : renderPregameSetup(team, headCoach);
 
         els.gameDayStage.innerHTML = `
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap gap-2">
-              <span class="game-section-pill ${mode === "pregame" ? "bg-emerald-700 text-white" : ""}">Pregame</span>
-              <span class="game-section-pill ${mode === "live" ? "bg-emerald-700 text-white" : ""}">Live</span>
-              <span class="game-section-pill ${mode === "recap" ? "bg-emerald-700 text-white" : ""}">Recap</span>
+          <div class="mb-4 grid gap-2">
+            <div class="grid grid-cols-3 gap-2 rounded-full bg-white/70 p-1 shadow-sm">
+              ${gameModeStepButtonHtml({ label: "Pregame", currentMode: mode, targetMode: "pregame", action: "return-pregame" })}
+              ${gameModeStepButtonHtml({ label: mode === "pregame" ? "Start Live" : "Live", currentMode: mode, targetMode: "live", action: "start-game-day" })}
+              ${gameModeStepButtonHtml({ label: "Recap", currentMode: mode, targetMode: "recap", action: "end-game-day", disabled: !canOpenRecap && mode !== "recap" })}
             </div>
-            <span class="game-section-pill">${escapeHtml(modeLabel)} mode</span>
+            <p class="px-2 text-xs font-bold leading-5 text-slate-600">${escapeHtml(modeHelper)} Current mode: ${escapeHtml(modeLabel)}.</p>
           </div>
           ${stageHtml}
         `;
