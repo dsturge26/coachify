@@ -39,6 +39,17 @@
         --practice-border: rgba(121, 102, 73, 0.14);
         --practice-shadow: 0 20px 48px rgba(44, 38, 27, 0.12);
         --practice-shadow-soft: 0 12px 30px rgba(44, 38, 27, 0.08);
+        --game-bg: #f2f6f1;
+        --game-surface: rgba(255, 255, 255, 0.94);
+        --game-elevated: rgba(255, 255, 255, 0.98);
+        --game-muted: #e9f0e8;
+        --game-ink: #0b1220;
+        --game-secondary: #5f6b7a;
+        --game-accent: #137333;
+        --game-accent-soft: #e7f7ec;
+        --game-border: rgba(15, 23, 42, 0.08);
+        --game-shadow: 0 20px 46px rgba(15, 23, 42, 0.1);
+        --game-shadow-soft: 0 12px 28px rgba(15, 23, 42, 0.07);
       }
 
       html {
@@ -95,6 +106,82 @@
         border-radius: 22px;
         background: var(--coach-card);
         box-shadow: 0 12px 30px rgba(15, 23, 42, 0.055);
+      }
+
+      .game-shell {
+        border: 1px solid var(--game-border);
+        background:
+          radial-gradient(circle at 12% 0%, rgba(19, 115, 51, 0.08), transparent 24rem),
+          linear-gradient(180deg, #f8fbf7 0%, var(--game-bg) 46%, #f7faf6 100%);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      }
+
+      .game-hero {
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        background:
+          radial-gradient(circle at 88% 10%, rgba(52, 211, 153, 0.2), transparent 15rem),
+          linear-gradient(135deg, #0b1220 0%, #10231f 55%, #124c2d 100%);
+        box-shadow: 0 24px 58px rgba(15, 23, 42, 0.2);
+      }
+
+      .game-panel-card {
+        border: 1px solid var(--game-border);
+        border-radius: 28px;
+        background: var(--game-surface);
+        box-shadow: var(--game-shadow-soft);
+      }
+
+      .game-stage-card {
+        border: 1px solid rgba(19, 115, 51, 0.16);
+        border-radius: 28px;
+        background: linear-gradient(180deg, #f8fff9, #eef8ef);
+        box-shadow: 0 16px 38px rgba(19, 115, 51, 0.1);
+      }
+
+      .game-live-card {
+        border: 1px solid rgba(15, 23, 42, 0.16);
+        border-radius: 30px;
+        background:
+          radial-gradient(circle at 90% 0%, rgba(52, 211, 153, 0.18), transparent 16rem),
+          linear-gradient(135deg, #07111f 0%, #0f1e1c 54%, #103c28 100%);
+        box-shadow: 0 24px 58px rgba(15, 23, 42, 0.22);
+      }
+
+      .game-recap-card {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 28px;
+        background: linear-gradient(180deg, #fffefd, #f5f8f3);
+        box-shadow: var(--game-shadow-soft);
+      }
+
+      .game-check-card {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.055);
+      }
+
+      .game-check-card.is-ready {
+        border-color: rgba(19, 115, 51, 0.18);
+        background: #f0fbf3;
+      }
+
+      .game-check-card.is-warning {
+        border-color: rgba(245, 158, 11, 0.2);
+        background: #fffbeb;
+      }
+
+      .game-section-pill {
+        display: inline-flex;
+        min-height: 2rem;
+        align-items: center;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.78);
+        padding: 0.35rem 0.75rem;
+        font-size: 0.72rem;
+        font-weight: 950;
+        color: #475467;
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
       }
 
       .soft-card {
@@ -338,6 +425,7 @@
       #lineupPlannerSection,
       #sharedLineupSection,
       #touchTrackerSection,
+      #gameDayStage,
       #gamePlanningSection,
       #gameNotesSection {
         scroll-margin-top: 6.5rem;
@@ -658,7 +746,7 @@
         <div class="space-y-5">
         <section id="homePanel" class="space-y-4"></section>
 
-        <section id="gameDayPanel" class="space-y-4">
+        <section id="gameDayPanel" class="game-shell space-y-4 rounded-[32px] p-2 sm:p-3">
           <section class="page-header">
             <div>
               <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Game</p>
@@ -667,26 +755,28 @@
             <span class="stat-pill">Flag football</span>
           </section>
 
-          <section class="native-card overflow-hidden">
+          <section class="game-hero overflow-hidden rounded-[30px] text-white">
             <div class="grid gap-4 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
               <div>
-                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Next matchup</p>
-                <h3 class="mt-1 text-2xl font-black leading-tight text-slate-950">Today&apos;s board</h3>
-                <p class="mt-1 text-sm font-semibold leading-6 text-slate-500">Attendance, lineup, touches, and notes for this team.</p>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Sideline mode</p>
+                <h3 class="mt-1 text-2xl font-black leading-tight text-white">Today&apos;s game board</h3>
+                <p class="mt-1 text-sm font-semibold leading-6 text-slate-300">Pregame setup, live tracking, and postgame recap for this team.</p>
               </div>
-              <a id="gamePrimaryAction" class="primary-button grid w-full place-items-center text-center sm:w-auto" href="#lineupPlannerSection">Build Lineup</a>
+              <a id="gamePrimaryAction" class="grid min-h-12 w-full place-items-center rounded-2xl bg-emerald-500 px-5 py-3 text-center text-sm font-black text-slate-950 shadow-sm active:bg-emerald-400 sm:w-auto" href="#lineupPlannerSection">Build Lineup</a>
             </div>
-            <div id="gameDaySummary" class="grid grid-cols-3 border-t border-slate-100 bg-slate-50/70"></div>
+            <div id="gameDaySummary" class="grid grid-cols-3 border-t border-white/10 bg-white/10"></div>
           </section>
 
-          <section>
+          <section id="gameDayStage" class="game-stage-card p-4"></section>
+
+          <section class="game-panel-card p-4">
             <div class="section-header">
               <h3 class="text-base font-black text-slate-950">Game tools</h3>
             </div>
             <div id="gameToolsGrid" class="grid grid-cols-2 gap-3 sm:grid-cols-5"></div>
           </section>
 
-          <details id="lineupPlannerSection" class="native-card p-4" open>
+          <details id="lineupPlannerSection" class="game-panel-card p-4" open>
             <summary class="cursor-pointer list-none">
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -710,7 +800,7 @@
             </div>
           </details>
 
-          <details id="touchTrackerSection" class="native-card p-4" open>
+          <details id="touchTrackerSection" class="game-panel-card p-4" open>
             <summary class="cursor-pointer list-none">
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -734,7 +824,7 @@
             </div>
           </details>
 
-          <section id="sharedLineupSection" class="hidden native-card p-4">
+          <section id="sharedLineupSection" class="hidden game-panel-card p-4">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared board</p>
@@ -747,7 +837,7 @@
 
           <section id="lineupResults" class="space-y-4"></section>
 
-          <details id="gamePlanningSection" class="native-card p-4">
+          <details id="gamePlanningSection" class="game-panel-card p-4">
             <summary class="cursor-pointer list-none">
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -767,7 +857,7 @@
             </div>
           </details>
 
-          <details id="gameNotesSection" class="native-card p-4">
+          <details id="gameNotesSection" class="game-panel-card p-4">
             <summary class="cursor-pointer list-none">
               <div class="flex items-center justify-between gap-3">
                 <div>
@@ -1190,7 +1280,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.17.2";
+      const APP_VERSION = "v0.18.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1508,6 +1598,8 @@
         practiceBuildInFlight: false,
         resumingPracticePlanIds: new Set(),
         practiceResumeStartedAt: {},
+        gameDayMode: "pregame",
+        gameSession: null,
         gameNotesSaveTimer: null,
         suppressRealtimeUntil: 0,
         signingOut: false,
@@ -1558,6 +1650,7 @@
         homePanel: document.querySelector("#homePanel"),
         gameDayPanel: document.querySelector("#gameDayPanel"),
         gameDaySummary: document.querySelector("#gameDaySummary"),
+        gameDayStage: document.querySelector("#gameDayStage"),
         gamePrimaryAction: document.querySelector("#gamePrimaryAction"),
         gameToolsGrid: document.querySelector("#gameToolsGrid"),
         gameNotesInput: document.querySelector("#gameNotesInput"),
@@ -1624,6 +1717,8 @@
         resetTouchesBtn: document.querySelector("#resetTouchesBtn"),
         touchTrackerStatus: document.querySelector("#touchTrackerStatus"),
         touchTrackerList: document.querySelector("#touchTrackerList"),
+        gamePlanningSection: document.querySelector("#gamePlanningSection"),
+        gameNotesSection: document.querySelector("#gameNotesSection"),
         defenseAuditContent: document.querySelector("#defenseAuditContent"),
         rosterCount: document.querySelector("#rosterCount"),
         playerForm: document.querySelector("#playerForm"),
@@ -5509,6 +5604,8 @@
           state.teamAccess = [];
           state.practicePlanShares = [];
           state.practicePlanShareSetupMissing = false;
+          state.gameDayMode = "pregame";
+          state.gameSession = null;
           stopPracticeBuildLoading();
           stopPracticeSessionTimer();
         }
@@ -6253,6 +6350,390 @@
         els.gameToolsGrid.innerHTML = tools.map(gameToolTileHtml).join("");
       }
 
+      function getGameDayMode(team = getSelectedTeam()) {
+        if (!team || state.gameSession?.teamId !== team.id) return "pregame";
+        return state.gameDayMode || "pregame";
+      }
+
+      function getActiveGamePlayers(team) {
+        const fallbackIds = (team.roster || []).map((player) => player.id);
+        const savedIds = Array.isArray(team.attendance) && team.attendance.length > 0 ? team.attendance : fallbackIds;
+        const attendingSet = new Set(savedIds);
+        return (team.roster || []).filter((player) => attendingSet.has(player.id)).sort(comparePlayers);
+      }
+
+      function getMissingGamePlayers(team) {
+        const attendingSet = new Set(getActiveGamePlayers(team).map((player) => player.id));
+        return (team.roster || []).filter((player) => !attendingSet.has(player.id)).sort(comparePlayers);
+      }
+
+      function formatGameSessionTime(value) {
+        if (!value) return "";
+        return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+
+      function gameDayLineupChipsHtml(team, side = "offense") {
+        const plan = team.lastLineupPlan;
+        const item = plan?.ok ? plan[side]?.[0] : null;
+        if (!item?.lineup) {
+          return `
+            <div class="rounded-2xl bg-white/80 p-3 text-sm font-bold text-slate-600">
+              No ${side} lineup built yet.
+            </div>
+          `;
+        }
+
+        const playersById = Object.fromEntries((plan.players || team.roster || []).map((player) => [player.id, player]));
+        const division = getTeamDivision(team);
+        return `
+          <div class="grid gap-2 sm:grid-cols-2">
+            ${orderedLineupEntries(item.lineup, side)
+              .map(([position, playerId]) => {
+                const player = playersById[playerId];
+                const colors = positionColorClasses(position, division);
+                return `
+                  <div class="rounded-2xl border-2 ${colors.bg} ${colors.border} ${colors.text} p-3">
+                    <p class="text-[11px] font-black uppercase tracking-wide">${escapeHtml(positionLabel(position, division))}</p>
+                    <p class="mt-1 text-sm font-black">${escapeHtml(player ? playerLabel(player) : "Open spot")}</p>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        `;
+      }
+
+      function gameDayPriorityTouchNames(team) {
+        ensureTouchTracker(team);
+        const players = getActiveGamePlayers(team);
+        if (!players.length) return { totalTouches: 0, zeroTouchNames: "", lowTouchNames: "", noTouchCount: 0 };
+        const counts = players.map((player) => team.touchTracker.counts[player.id] || 0);
+        const minTouches = Math.min(...counts);
+        const zeroTouchPlayers = players.filter((player) => (team.touchTracker.counts[player.id] || 0) === 0);
+        const lowTouchPlayers = players.filter((player) => (team.touchTracker.counts[player.id] || 0) === minTouches);
+        return {
+          totalTouches: counts.reduce((sum, count) => sum + count, 0),
+          noTouchCount: zeroTouchPlayers.length,
+          zeroTouchNames: zeroTouchPlayers.map((player) => player.name).slice(0, 4).join(", "),
+          lowTouchNames: lowTouchPlayers.map((player) => player.name).slice(0, 4).join(", ")
+        };
+      }
+
+      function gameDayFirstSubsHtml(team) {
+        const activePlayers = getActiveGamePlayers(team);
+        const plan = team.lastLineupPlan;
+        const firstOffense = plan?.ok ? plan.offense?.[0]?.lineup : null;
+        if (!firstOffense) {
+          return "Build a lineup to see who starts and who waits first.";
+        }
+        const startingIds = new Set(Object.values(firstOffense));
+        const subs = activePlayers.filter((player) => !startingIds.has(player.id));
+        return subs.length
+          ? subs.map((player) => playerLabel(player)).join(", ")
+          : "No subs based on current attendance.";
+      }
+
+      function gameDayChecklistItemHtml({ label, value, detail, ready, actionLabel, section }) {
+        const stateClass = ready ? "is-ready" : "is-warning";
+        const dotClass = ready ? "bg-emerald-600" : "bg-amber-500";
+        const actionHtml = section
+          ? `<button class="mt-3 min-h-10 rounded-full bg-white px-4 py-2 text-sm font-black text-slate-900 shadow-sm active:bg-slate-50" type="button" data-game-action="go-section" data-section="${escapeHtml(section)}">${escapeHtml(actionLabel)}</button>`
+          : "";
+        return `
+          <article class="game-check-card ${stateClass} p-3">
+            <div class="flex items-start gap-3">
+              <span class="mt-1 h-3 w-3 shrink-0 rounded-full ${dotClass}"></span>
+              <div class="min-w-0">
+                <p class="text-[11px] font-black uppercase tracking-wide text-slate-500">${escapeHtml(label)}</p>
+                <p class="mt-1 text-lg font-black leading-tight text-slate-950">${escapeHtml(value)}</p>
+                <p class="mt-1 text-sm font-bold leading-5 text-slate-600">${escapeHtml(detail)}</p>
+                ${actionHtml}
+              </div>
+            </div>
+          </article>
+        `;
+      }
+
+      function renderPregameSetup(team, headCoach) {
+        const division = getTeamDivision(team);
+        const activePlayers = getActiveGamePlayers(team);
+        const missingPlayers = getMissingGamePlayers(team);
+        const touches = gameDayPriorityTouchNames(team);
+        const enoughPlayers = activePlayers.length >= division.minPlayersToPlay;
+        const lineupReady = Boolean(team.lastLineupPlan?.ok);
+        const notesReady = Boolean(team.touchTracker?.gameNotes?.trim());
+        const startLabel = headCoach ? "Start Game" : "Open Live Tracker";
+        const lineupSection = headCoach ? "lineupPlannerSection" : "sharedLineupSection";
+        const checklist = [
+          {
+            label: "Attendance",
+            value: `${activePlayers.length}/${team.roster.length || 0} present`,
+            detail: missingPlayers.length ? `Missing: ${missingPlayers.map((player) => player.name).slice(0, 3).join(", ")}` : "Everyone is marked in.",
+            ready: enoughPlayers,
+            actionLabel: headCoach ? "Set attendance" : "View status",
+            section: headCoach ? "lineupPlannerSection" : ""
+          },
+          {
+            label: "Lineup",
+            value: lineupReady ? "Ready" : "Needs board",
+            detail: lineupReady ? "Shared with assistant coaches." : headCoach ? "Build before kickoff." : "Waiting on head coach.",
+            ready: lineupReady,
+            actionLabel: headCoach ? "Build lineup" : "View lineup",
+            section: lineupSection
+          },
+          {
+            label: "Touch goal",
+            value: touches.noTouchCount ? `${touches.noTouchCount} need first touch` : "Balanced",
+            detail: touches.zeroTouchNames || "Keep touches even as the game moves.",
+            ready: !touches.noTouchCount,
+            actionLabel: "Open tracker",
+            section: "touchTrackerSection"
+          },
+          {
+            label: "Notes",
+            value: notesReady ? "Ready" : "Optional",
+            detail: notesReady ? team.touchTracker.gameNotes.trim().slice(0, 72) : "Add reminders for helpers, matchups, or rotation notes.",
+            ready: true,
+            actionLabel: "Open notes",
+            section: "gameNotesSection"
+          }
+        ];
+
+        return `
+          <div class="grid gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="game-section-pill">Pregame setup</span>
+              <span class="game-section-pill">${escapeHtml(division.divisionName)}</span>
+              <span class="game-section-pill">${division.playersOnField} on field</span>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              ${checklist.map(gameDayChecklistItemHtml).join("")}
+            </div>
+            <div class="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
+              <article class="rounded-[24px] bg-white/80 p-4 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Opening lineup</p>
+                    <h3 class="mt-1 text-xl font-black text-slate-950">Who starts first</h3>
+                  </div>
+                  <button class="min-h-10 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-game-action="go-section" data-section="${escapeHtml(lineupSection)}">
+                    ${lineupReady ? "View board" : headCoach ? "Build board" : "View"}
+                  </button>
+                </div>
+                <div class="mt-3">${gameDayLineupChipsHtml(team, "offense")}</div>
+              </article>
+              <article class="rounded-[24px] bg-white/80 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">First subs / next up</p>
+                <p class="mt-2 text-base font-black leading-6 text-slate-950">${escapeHtml(gameDayFirstSubsHtml(team))}</p>
+                <p class="mt-3 text-sm font-bold leading-6 text-slate-600">${headCoach ? "Start Game opens a focused sideline view with touch tracking up front." : "Assistant view keeps the shared lineup and live touch tracker easy to reach."}</p>
+                <button class="mt-4 min-h-12 w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button" data-game-action="start-game-day">
+                  ${escapeHtml(startLabel)}
+                </button>
+              </article>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderLiveGameMode(team, headCoach) {
+        const activePlayers = getActiveGamePlayers(team);
+        const touches = gameDayPriorityTouchNames(team);
+        const startedAt = formatGameSessionTime(state.gameSession?.startedAt);
+        const roleLabelText = headCoach ? "Head coach controls" : "Assistant tracker";
+        return `
+          <div class="grid gap-4">
+            <article class="game-live-card overflow-hidden p-4 text-white sm:p-5">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Live game mode</p>
+                  <h3 class="mt-1 text-3xl font-black leading-tight">Sideline board</h3>
+                  <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">${escapeHtml(roleLabelText)}${startedAt ? ` - started ${escapeHtml(startedAt)}` : ""}</p>
+                </div>
+                <span class="rounded-full bg-white/12 px-3 py-2 text-xs font-black text-emerald-100">${activePlayers.length} active</span>
+              </div>
+              <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                <div class="rounded-3xl bg-white/10 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Total touches</p>
+                  <p class="mt-1 text-4xl font-black">${touches.totalTouches}</p>
+                </div>
+                <div class="rounded-3xl bg-white/10 p-4 sm:col-span-2">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Needs the ball</p>
+                  <p class="mt-1 text-xl font-black">${escapeHtml(touches.lowTouchNames || "Start tracking touches below")}</p>
+                </div>
+              </div>
+              <div class="mt-4 grid gap-2 sm:grid-cols-3">
+                <button class="min-h-12 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-slate-950 active:bg-emerald-400" type="button" data-game-action="go-section" data-section="touchTrackerSection">Track touch</button>
+                <button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="go-section" data-section="${headCoach ? "lineupPlannerSection" : "sharedLineupSection"}">Current lineup</button>
+                ${
+                  headCoach
+                    ? '<button class="min-h-12 rounded-2xl border border-red-200/50 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="end-game-day">End game</button>'
+                    : '<button class="min-h-12 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="return-pregame">Close live view</button>'
+                }
+              </div>
+            </article>
+            <div class="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
+              <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Now</p>
+                <h3 class="mt-1 text-xl font-black text-slate-950">Current lineup</h3>
+                <div class="mt-3">${gameDayLineupChipsHtml(team, "offense")}</div>
+              </article>
+              <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-indigo-700">Next</p>
+                <h3 class="mt-1 text-xl font-black text-slate-950">Rotation and notes</h3>
+                <p class="mt-2 text-sm font-bold leading-6 text-slate-600">${escapeHtml(gameDayFirstSubsHtml(team))}</p>
+                <button class="mt-4 min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="go-section" data-section="gameNotesSection">Open notes</button>
+              </article>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderPostgameRecap(team, headCoach) {
+        const activePlayers = getActiveGamePlayers(team);
+        const missingPlayers = getMissingGamePlayers(team);
+        const touches = gameDayPriorityTouchNames(team);
+        const countsHtml = activePlayers
+          .map((player) => {
+            const count = team.touchTracker?.counts?.[player.id] || 0;
+            const badgeClass = count === 0 ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700";
+            return `
+              <div class="flex items-center justify-between gap-3 rounded-2xl bg-white/80 px-3 py-2">
+                <span class="font-black text-slate-950">${escapeHtml(playerLabel(player))}</span>
+                <span class="rounded-full ${badgeClass} px-3 py-1 text-sm font-black">${count}</span>
+              </div>
+            `;
+          })
+          .join("");
+        const notes = team.touchTracker?.gameNotes?.trim();
+        return `
+          <div class="grid gap-4">
+            <article class="game-recap-card p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Postgame recap</p>
+                  <h3 class="mt-1 text-2xl font-black text-slate-950">Game summary</h3>
+                  <p class="mt-1 text-sm font-bold leading-6 text-slate-600">Use this to check touch balance and capture what to practice next.</p>
+                </div>
+                <span class="game-section-pill">${state.gameSession?.endedAt ? `Ended ${escapeHtml(formatGameSessionTime(state.gameSession.endedAt))}` : "Ended"}</span>
+              </div>
+              <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                <div class="rounded-3xl bg-emerald-50 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-emerald-700">Attendance</p>
+                  <p class="mt-1 text-2xl font-black text-slate-950">${activePlayers.length}/${team.roster.length || 0}</p>
+                </div>
+                <div class="rounded-3xl bg-indigo-50 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-indigo-700">Touches</p>
+                  <p class="mt-1 text-2xl font-black text-slate-950">${touches.totalTouches}</p>
+                </div>
+                <div class="rounded-3xl bg-amber-50 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-amber-700">No touch</p>
+                  <p class="mt-1 text-2xl font-black text-slate-950">${touches.noTouchCount}</p>
+                </div>
+              </div>
+            </article>
+            <div class="grid gap-3 lg:grid-cols-[1fr_0.8fr]">
+              <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <h3 class="text-xl font-black text-slate-950">Touch counts</h3>
+                  <button class="min-h-10 rounded-full bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="go-section" data-section="touchTrackerSection">Edit counts</button>
+                </div>
+                <div class="mt-3 grid gap-2">${countsHtml || '<p class="text-sm font-bold text-slate-600">No active players yet.</p>'}</div>
+              </article>
+              <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
+                <h3 class="text-xl font-black text-slate-950">Coach notes</h3>
+                <p class="mt-2 text-sm font-bold leading-6 text-slate-600">${escapeHtml(notes || "Add notes about what worked, what broke, and what to practice next.")}</p>
+                <p class="mt-3 text-sm font-bold leading-6 text-slate-500">${escapeHtml(missingPlayers.length ? `Missing: ${missingPlayers.map((player) => player.name).join(", ")}` : "No missing players marked.")}</p>
+                <div class="mt-4 grid gap-2">
+                  <button class="min-h-11 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-game-action="go-section" data-section="gameNotesSection">Update notes</button>
+                  <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="return-pregame">Back to pregame</button>
+                </div>
+              </article>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderGameDayExperience() {
+        const team = getSelectedTeam();
+        if (!team || !els.gameDayStage) return;
+        ensureTouchTracker(team);
+        if (state.gameSession?.teamId !== team.id) {
+          state.gameDayMode = "pregame";
+          state.gameSession = null;
+        }
+
+        const headCoach = isHeadCoach(team);
+        const mode = getGameDayMode(team);
+        const modeLabel = mode === "live" ? "Live" : mode === "recap" ? "Recap" : "Pregame";
+        els.gameDayStage.dataset.mode = mode;
+        els.gamePrimaryAction.textContent = mode === "live" ? "Track Touches" : headCoach ? "Build Lineup" : "View Lineup";
+        els.gamePrimaryAction.setAttribute("href", mode === "live" ? "#touchTrackerSection" : headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
+
+        const stageHtml =
+          mode === "live"
+            ? renderLiveGameMode(team, headCoach)
+            : mode === "recap"
+              ? renderPostgameRecap(team, headCoach)
+              : renderPregameSetup(team, headCoach);
+
+        els.gameDayStage.innerHTML = `
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-wrap gap-2">
+              <span class="game-section-pill ${mode === "pregame" ? "bg-emerald-700 text-white" : ""}">Pregame</span>
+              <span class="game-section-pill ${mode === "live" ? "bg-emerald-700 text-white" : ""}">Live</span>
+              <span class="game-section-pill ${mode === "recap" ? "bg-emerald-700 text-white" : ""}">Recap</span>
+            </div>
+            <span class="game-section-pill">${escapeHtml(modeLabel)} mode</span>
+          </div>
+          ${stageHtml}
+        `;
+
+        if (mode === "live") {
+          els.touchTrackerSection.open = true;
+          els.lineupPlannerSection.open = false;
+          els.gamePlanningSection.open = false;
+          els.gameNotesSection.open = false;
+        }
+      }
+
+      function startGameDaySession() {
+        const team = getSelectedTeam();
+        if (!team) return;
+        state.gameDayMode = "live";
+        state.gameSession = {
+          id: `game-${Date.now()}`,
+          teamId: team.id,
+          startedAt: new Date().toISOString(),
+          endedAt: null
+        };
+        renderGameDayExperience();
+        renderGameDaySummary();
+        window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
+      }
+
+      function endGameDaySession() {
+        const team = getSelectedTeam();
+        if (!team) return;
+        if (!confirm("End this game and view the recap?")) return;
+        state.gameDayMode = "recap";
+        state.gameSession = {
+          ...(state.gameSession || { id: `game-${Date.now()}`, teamId: team.id, startedAt: new Date().toISOString() }),
+          teamId: team.id,
+          endedAt: new Date().toISOString()
+        };
+        renderGameDayExperience();
+        renderGameDaySummary();
+        window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
+      }
+
+      function returnToPregameSetup() {
+        state.gameDayMode = "pregame";
+        state.gameSession = null;
+        renderGameDayExperience();
+        renderGameDaySummary();
+        window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
+      }
+
       function renderPlayerList() {
         const team = getSelectedTeam();
         if (!team) return;
@@ -6611,9 +7092,9 @@
         els.gameDaySummary.innerHTML = statusCards
           .map(
             (card, index) => `
-              <div class="p-3 ${index > 0 ? "border-l border-slate-100" : ""}">
-                <p class="text-[11px] font-black uppercase tracking-wide text-slate-400">${card.label}</p>
-                <p class="mt-1 text-xl font-black text-slate-950">${card.value}</p>
+              <div class="p-3 ${index > 0 ? "border-l border-white/10" : ""}">
+                <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">${card.label}</p>
+                <p class="mt-1 text-xl font-black text-white">${card.value}</p>
               </div>
             `
           )
@@ -7014,6 +7495,7 @@
         renderTouchTracker();
         renderGameNotes();
         renderGameDaySummary();
+        renderGameDayExperience();
         renderHomePanel();
         renderPracticePlanHistory();
         renderPendingInvites();
@@ -7142,6 +7624,31 @@
             return;
           }
           setActiveTeamTab(button.dataset.tab);
+        });
+
+        els.gameDayPanel.addEventListener("click", (event) => {
+          const control = event.target.closest("[data-game-action]");
+          if (!control) return;
+          const action = control.dataset.gameAction;
+          if (action === "go-section") {
+            event.preventDefault();
+            scrollToSection(control.dataset.section);
+            return;
+          }
+          if (action === "start-game-day") {
+            event.preventDefault();
+            startGameDaySession();
+            return;
+          }
+          if (action === "end-game-day") {
+            event.preventDefault();
+            endGameDaySession();
+            return;
+          }
+          if (action === "return-pregame") {
+            event.preventDefault();
+            returnToPregameSetup();
+          }
         });
 
         els.practiceFocusChips.addEventListener("click", (event) => {
@@ -7411,6 +7918,7 @@
             renderLineupResults(plan);
             renderDefenseAudit(plan);
             renderGameDaySummary();
+            renderGameDayExperience();
             renderHomePanel();
             await saveSelectedCloudTeam();
 
@@ -7435,6 +7943,7 @@
           }
           renderTouchTracker();
           renderGameDaySummary();
+          renderGameDayExperience();
           renderHomePanel();
           saveSelectedCloudTeam();
         });
@@ -7456,6 +7965,7 @@
           saveState();
           renderTouchTracker();
           renderGameDaySummary();
+          renderGameDayExperience();
           renderHomePanel();
           saveSelectedCloudTeam();
         });
@@ -7472,6 +7982,7 @@
           saveState();
           renderTouchTracker();
           renderGameDaySummary();
+          renderGameDayExperience();
           renderHomePanel();
           saveSelectedCloudTeam();
         });
@@ -7489,6 +8000,7 @@
           renderTouchTracker();
           renderGameNotes();
           renderGameDaySummary();
+          renderGameDayExperience();
           renderHomePanel();
           saveSelectedCloudTeam();
         });
@@ -7499,6 +8011,7 @@
           ensureTouchTracker(team);
           team.touchTracker.gameNotes = els.gameNotesInput.value;
           saveState();
+          renderGameDayExperience();
           clearTimeout(state.gameNotesSaveTimer);
           state.gameNotesSaveTimer = setTimeout(() => {
             saveSelectedCloudTeam();
