@@ -1302,7 +1302,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.2";
+      const APP_VERSION = "v0.18.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -2660,6 +2660,15 @@
       async function saveSelectedCloudTeam() {
         const team = getSelectedTeam();
         if (!team?.cloudId || !state.user) return;
+
+        if (!isHeadCoach(team)) {
+          const { data } = await cloud.from("teams").select("touch_tracker").eq("id", team.cloudId).single();
+          const sharedLiveGame = data?.touch_tracker?.liveGame;
+          if (sharedLiveGame && typeof sharedLiveGame === "object") {
+            ensureTouchTracker(team);
+            team.touchTracker.liveGame = sharedLiveGame;
+          }
+        }
 
         state.suppressRealtimeUntil = Date.now() + 2500;
         const { error } = await cloud.from("teams").update(teamToCloudPayload(team)).eq("id", team.cloudId);
@@ -5837,7 +5846,8 @@
         return {
           counts: {},
           history: [],
-          gameNotes: ""
+          gameNotes: "",
+          liveGame: null
         };
       }
 
@@ -5846,6 +5856,9 @@
         team.touchTracker.counts = team.touchTracker.counts || {};
         team.touchTracker.history = Array.isArray(team.touchTracker.history) ? team.touchTracker.history : [];
         team.touchTracker.gameNotes = typeof team.touchTracker.gameNotes === "string" ? team.touchTracker.gameNotes : "";
+        team.touchTracker.liveGame = team.touchTracker.liveGame && typeof team.touchTracker.liveGame === "object"
+          ? team.touchTracker.liveGame
+          : null;
 
         for (const player of team.roster) {
           if (!Number.isInteger(team.touchTracker.counts[player.id])) {
@@ -6377,6 +6390,59 @@
         return state.gameDayMode || "pregame";
       }
 
+      function hydrateGameSessionFromSharedState(team) {
+        if (!team) return false;
+        ensureTouchTracker(team);
+        const liveGame = team.touchTracker.liveGame;
+        if (!liveGame || typeof liveGame !== "object") return false;
+
+        if (liveGame.status === "live" || liveGame.status === "recap") {
+          state.gameDayMode = liveGame.status;
+          state.gameSession = {
+            id: liveGame.id || `game-${team.id}`,
+            teamId: team.id,
+            startedAt: liveGame.startedAt || new Date().toISOString(),
+            endedAt: liveGame.endedAt || null,
+            driveStepIndex: Number.isInteger(liveGame.driveStepIndex) ? liveGame.driveStepIndex : 0,
+            shared: true
+          };
+          return true;
+        }
+
+        if (liveGame.status === "pregame" && state.gameSession?.teamId === team.id && state.gameSession.shared) {
+          state.gameDayMode = "pregame";
+          state.gameSession = null;
+        }
+
+        return false;
+      }
+
+      function writeGameSessionToSharedState(team, status = state.gameDayMode || "live") {
+        if (!team) return;
+        ensureTouchTracker(team);
+        const session = state.gameSession || {};
+        team.touchTracker.liveGame = {
+          id: session.id || `game-${Date.now()}`,
+          status,
+          startedAt: session.startedAt || new Date().toISOString(),
+          endedAt: status === "recap" ? (session.endedAt || new Date().toISOString()) : session.endedAt || null,
+          driveStepIndex: Number.isInteger(session.driveStepIndex) ? session.driveStepIndex : 0,
+          updatedAt: new Date().toISOString(),
+          updatedBy: state.user?.id || null
+        };
+      }
+
+      async function saveSharedGameSession(team, status = state.gameDayMode || "live") {
+        if (!team || !isHeadCoach(team)) return;
+        writeGameSessionToSharedState(team, status);
+        saveState();
+        try {
+          await saveSelectedCloudTeam();
+        } catch (error) {
+          setAppStatus(error.message || "Coachify could not sync the live game. Try refresh.", "danger");
+        }
+      }
+
       function getActiveGamePlayers(team) {
         const fallbackIds = (team.roster || []).map((player) => player.id);
         const savedIds = Array.isArray(team.attendance) && team.attendance.length > 0 ? team.attendance : fallbackIds;
@@ -6502,7 +6568,7 @@
           : "No subs based on current attendance.";
       }
 
-      function gameDayDriveNavigatorHtml(team) {
+      function gameDayDriveNavigatorHtml(team, canControl = false) {
         const entry = currentGameDriveEntry(team);
         if (!entry) {
           return `
@@ -6518,7 +6584,7 @@
         return `
           <article class="rounded-[26px] bg-white/90 p-4 text-slate-950 shadow-sm">
             <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="previous-drive" ${entry.stepIndex === 0 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Previous drive">
+              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="previous-drive" ${!canControl || entry.stepIndex === 0 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Previous drive">
                 &lsaquo;
               </button>
               <div class="min-w-0 text-center">
@@ -6526,11 +6592,13 @@
                 <h3 class="mt-2 truncate text-2xl font-black leading-tight">${escapeHtml(entry.label)}</h3>
                 <p class="mt-1 text-xs font-bold text-slate-500">Step ${entry.stepIndex + 1} of ${entry.totalSteps}</p>
               </div>
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="next-drive" ${entry.stepIndex >= entry.totalSteps - 1 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Next drive">
+              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="next-drive" ${!canControl || entry.stepIndex >= entry.totalSteps - 1 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Next drive">
                 &rsaquo;
               </button>
             </div>
-            <p class="mt-3 text-center text-xs font-bold leading-5 text-slate-500">${entry.next ? `Next: ${escapeHtml(entry.next.label)}` : "Last generated drive in the board."}</p>
+            <p class="mt-3 text-center text-xs font-bold leading-5 text-slate-500">
+              ${canControl ? (entry.next ? `Next: ${escapeHtml(entry.next.label)}` : "Last generated drive in the board.") : "Head coach controls the shared drive. This view follows along."}
+            </p>
           </article>
         `;
       }
@@ -6676,7 +6744,7 @@
                 }
               </div>
             </article>
-            ${gameDayDriveNavigatorHtml(team)}
+            ${gameDayDriveNavigatorHtml(team, headCoach)}
             <div class="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
               <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
                 <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Now</p>
@@ -6775,7 +6843,8 @@
         const team = getSelectedTeam();
         if (!team || !els.gameDayStage) return;
         ensureTouchTracker(team);
-        if (state.gameSession?.teamId !== team.id) {
+        const syncedFromCloud = hydrateGameSessionFromSharedState(team);
+        if (!syncedFromCloud && state.gameSession?.teamId !== team.id) {
           state.gameDayMode = "pregame";
           state.gameSession = null;
         }
@@ -6826,6 +6895,7 @@
       function startGameDaySession() {
         const team = getSelectedTeam();
         if (!team) return;
+        const headCoach = isHeadCoach(team);
         const existingStep = state.gameSession?.teamId === team.id && Number.isInteger(state.gameSession?.driveStepIndex)
           ? state.gameSession.driveStepIndex
           : 0;
@@ -6835,8 +6905,12 @@
           teamId: team.id,
           startedAt: new Date().toISOString(),
           endedAt: null,
-          driveStepIndex: existingStep
+          driveStepIndex: existingStep,
+          shared: headCoach
         };
+        if (headCoach) {
+          saveSharedGameSession(team, "live");
+        }
         renderGameDayExperience();
         renderGameDaySummary();
         window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
@@ -6845,6 +6919,7 @@
       function changeGameDrive(direction) {
         const team = getSelectedTeam();
         if (!team || getGameDayMode(team) !== "live") return;
+        if (!isHeadCoach(team)) return;
         const sequence = gameDayDriveSequence(team);
         if (!sequence.length) return;
         const currentIndex = Number.isInteger(state.gameSession?.driveStepIndex) ? state.gameSession.driveStepIndex : 0;
@@ -6859,29 +6934,50 @@
         state.gameSession = {
           ...(state.gameSession || { id: `game-${Date.now()}`, teamId: team.id, startedAt: new Date().toISOString() }),
           teamId: team.id,
-          driveStepIndex: nextIndex
+          driveStepIndex: nextIndex,
+          shared: true
         };
+        saveSharedGameSession(team, "live");
         renderGameDayExperience();
       }
 
       function endGameDaySession() {
         const team = getSelectedTeam();
         if (!team) return;
+        if (!isHeadCoach(team)) return;
         if (!confirm("End this game and view the recap?")) return;
         state.gameDayMode = "recap";
         state.gameSession = {
           ...(state.gameSession || { id: `game-${Date.now()}`, teamId: team.id, startedAt: new Date().toISOString() }),
           teamId: team.id,
-          endedAt: new Date().toISOString()
+          endedAt: new Date().toISOString(),
+          shared: true
         };
+        saveSharedGameSession(team, "recap");
         renderGameDayExperience();
         renderGameDaySummary();
         window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
       }
 
       function returnToPregameSetup() {
+        const team = getSelectedTeam();
         state.gameDayMode = "pregame";
         state.gameSession = null;
+        if (team && isHeadCoach(team)) {
+          ensureTouchTracker(team);
+          team.touchTracker.liveGame = {
+            id: `game-${Date.now()}`,
+            status: "pregame",
+            startedAt: null,
+            endedAt: null,
+            driveStepIndex: 0,
+            updatedAt: new Date().toISOString(),
+            updatedBy: state.user?.id || null
+          };
+          saveSelectedCloudTeam().catch((error) => {
+            setAppStatus(error.message || "Coachify could not sync pregame mode.", "danger");
+          });
+        }
         renderGameDayExperience();
         renderGameDaySummary();
         window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
@@ -8156,8 +8252,10 @@
           if (!confirm("Reset touch counts for this game?")) return;
 
           const gameNotes = team.touchTracker?.gameNotes || "";
+          const liveGame = team.touchTracker?.liveGame || null;
           team.touchTracker = emptyTouchTracker();
           team.touchTracker.gameNotes = gameNotes;
+          team.touchTracker.liveGame = liveGame;
           ensureTouchTracker(team);
           saveState();
           renderTouchTracker();
