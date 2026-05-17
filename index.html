@@ -1302,7 +1302,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.4";
+      const APP_VERSION = "v0.18.5";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -2671,7 +2671,6 @@
           }
         }
 
-        state.suppressRealtimeUntil = Date.now() + 2500;
         const { error } = await cloud.from("teams").update(teamToCloudPayload(team)).eq("id", team.cloudId);
         if (error) {
           const needsPracticeSetup = error.message.includes("practice_plans");
@@ -2680,6 +2679,98 @@
             : error.message;
           throw error;
         }
+      }
+
+      async function updateSelectedCloudTeamFields(fields) {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !state.user) return;
+
+        saveState();
+        const { error } = await cloud.from("teams").update(fields).eq("id", team.cloudId);
+        if (error) {
+          els.cloudStatus.textContent = error.message;
+          throw error;
+        }
+      }
+
+      function normalizeTouchTrackerForTeam(team, tracker) {
+        const previousTracker = team.touchTracker;
+        team.touchTracker = tracker && typeof tracker === "object" ? tracker : emptyTouchTracker();
+        ensureTouchTracker(team);
+        const normalizedTracker = team.touchTracker;
+        team.touchTracker = previousTracker;
+        return normalizedTracker;
+      }
+
+      async function getLatestTouchTracker(team) {
+        if (!team?.cloudId || !state.user) {
+          return normalizeTouchTrackerForTeam(team, team?.touchTracker);
+        }
+
+        const { data, error } = await cloud.from("teams").select("touch_tracker").eq("id", team.cloudId).single();
+        if (error) throw error;
+        return normalizeTouchTrackerForTeam(team, data?.touch_tracker);
+      }
+
+      async function saveTouchTrackerUpdate(mutator, { renderAfter = true } = {}) {
+        const team = getSelectedTeam();
+        if (!team) return;
+
+        const tracker = await getLatestTouchTracker(team);
+        mutator(tracker);
+        team.touchTracker = normalizeTouchTrackerForTeam(team, tracker);
+        saveState();
+
+        if (team.cloudId && state.user) {
+          await updateSelectedCloudTeamFields({ touch_tracker: team.touchTracker });
+        }
+
+        if (renderAfter) {
+          renderTouchTracker();
+          renderGameDaySummary();
+          renderGameDayExperience();
+          renderHomePanel();
+        }
+      }
+
+      function applyTouchTrackerFromCloud(team, tracker, { renderAfter = true } = {}) {
+        if (!team) return;
+        team.touchTracker = normalizeTouchTrackerForTeam(team, tracker);
+        saveState();
+        if (renderAfter) {
+          renderTouchTracker();
+          renderGameDaySummary();
+          renderGameDayExperience();
+          renderHomePanel();
+        }
+      }
+
+      function shouldFallbackFromMissingRpc(error) {
+        const message = error?.message || "";
+        return message.includes("Could not find the function")
+          || message.includes("schema cache")
+          || message.includes("function public.");
+      }
+
+      async function saveTouchTrackerRpc(functionName, args, fallbackMutator, { renderAfter = true } = {}) {
+        const team = getSelectedTeam();
+        if (!team) return;
+
+        if (!team.cloudId || !state.user) {
+          await saveTouchTrackerUpdate(fallbackMutator, { renderAfter });
+          return;
+        }
+
+        const { data, error } = await cloud.rpc(functionName, args);
+        if (error) {
+          if (shouldFallbackFromMissingRpc(error)) {
+            await saveTouchTrackerUpdate(fallbackMutator, { renderAfter });
+            return;
+          }
+          throw error;
+        }
+
+        applyTouchTrackerFromCloud(team, data, { renderAfter });
       }
 
       async function deleteSelectedTeam() {
@@ -5562,9 +5653,6 @@
             "postgres_changes",
             { event: "UPDATE", schema: "public", table: "teams", filter: `id=eq.${team.cloudId}` },
             (payload) => {
-              if (Date.now() < state.suppressRealtimeUntil) {
-                return;
-              }
               const updatedTeam = cloudRowToTeam(payload.new);
               const wasSelected = state.selectedTeamId === team.id;
               state.teams = state.teams.map((item) => (item.cloudId === updatedTeam.cloudId ? updatedTeam : item));
@@ -6418,11 +6506,9 @@
         return false;
       }
 
-      function writeGameSessionToSharedState(team, status = state.gameDayMode || "live") {
-        if (!team) return;
-        ensureTouchTracker(team);
+      function buildSharedLiveGameState(status = state.gameDayMode || "live") {
         const session = state.gameSession || {};
-        team.touchTracker.liveGame = {
+        return {
           id: session.id || `game-${Date.now()}`,
           status,
           startedAt: session.startedAt || new Date().toISOString(),
@@ -6433,12 +6519,22 @@
         };
       }
 
+      function writeGameSessionToSharedState(team, status = state.gameDayMode || "live") {
+        if (!team) return;
+        ensureTouchTracker(team);
+        team.touchTracker.liveGame = buildSharedLiveGameState(status);
+      }
+
       async function saveSharedGameSession(team, status = state.gameDayMode || "live") {
         if (!team || !isHeadCoach(team)) return;
-        writeGameSessionToSharedState(team, status);
-        saveState();
+        const liveGame = buildSharedLiveGameState(status);
         try {
-          await saveSelectedCloudTeam();
+          await saveTouchTrackerRpc("set_team_live_game", {
+            p_team_id: team.cloudId,
+            p_live_game: liveGame
+          }, (tracker) => {
+            tracker.liveGame = liveGame;
+          }, { renderAfter: false });
         } catch (error) {
           setAppStatus(error.message || "Coachify could not sync the live game. Try refresh.", "danger");
         }
@@ -6965,8 +7061,7 @@
         state.gameDayMode = "pregame";
         state.gameSession = null;
         if (team && isHeadCoach(team)) {
-          ensureTouchTracker(team);
-          team.touchTracker.liveGame = {
+          const liveGame = {
             id: `game-${Date.now()}`,
             status: "pregame",
             startedAt: null,
@@ -6975,7 +7070,12 @@
             updatedAt: new Date().toISOString(),
             updatedBy: state.user?.id || null
           };
-          saveSelectedCloudTeam().catch((error) => {
+          saveTouchTrackerRpc("set_team_live_game", {
+            p_team_id: team.cloudId,
+            p_live_game: liveGame
+          }, (tracker) => {
+            tracker.liveGame = liveGame;
+          }, { renderAfter: false }).catch((error) => {
             setAppStatus(error.message || "Coachify could not sync pregame mode.", "danger");
           });
         }
@@ -7040,6 +7140,7 @@
         const team = getSelectedTeam();
         if (!team) return;
         ensureTouchTracker(team);
+        els.resetTouchesBtn?.classList.toggle("hidden", !isHeadCoach(team));
 
         const attendingIds = new Set(getAttendingPlayerIds());
         const activePlayers = team.roster.filter((player) => attendingIds.has(player.id));
@@ -8180,7 +8281,10 @@
             renderGameDaySummary();
             renderGameDayExperience();
             renderHomePanel();
-            await saveSelectedCloudTeam();
+            await updateSelectedCloudTeamFields({
+              attendance: team.attendance,
+              lineup_plan: team.lastLineupPlan
+            });
 
             if (plan.ok) {
               setLineupBuildStatus("Lineup built and shared with assistant coaches.", "success");
@@ -8198,73 +8302,83 @@
 
         els.attendanceOptions.addEventListener("change", () => {
           const team = getSelectedTeam();
-          if (team) {
-            team.attendance = getAttendingPlayerIds();
-          }
+          if (!team) return;
+          team.attendance = getAttendingPlayerIds();
           renderTouchTracker();
           renderGameDaySummary();
           renderGameDayExperience();
           renderHomePanel();
-          saveSelectedCloudTeam();
+          updateSelectedCloudTeamFields({ attendance: team.attendance }).catch((error) => {
+            setAppStatus(error.message || "Coachify could not sync attendance.", "danger");
+          });
         });
 
-        els.touchTrackerList.addEventListener("click", (event) => {
+        els.touchTrackerList.addEventListener("click", async (event) => {
           const button = event.target.closest("button[data-action='add-touch']");
           if (!button) return;
 
           const team = getSelectedTeam();
           if (!team) return;
-          ensureTouchTracker(team);
 
           const playerId = button.dataset.playerId;
-          team.touchTracker.counts[playerId] = (team.touchTracker.counts[playerId] || 0) + 1;
-          team.touchTracker.history.push({
-            playerId,
-            timestamp: new Date().toISOString()
-          });
-          saveState();
-          renderTouchTracker();
-          renderGameDaySummary();
-          renderGameDayExperience();
-          renderHomePanel();
-          saveSelectedCloudTeam();
+          button.disabled = true;
+          try {
+            await saveTouchTrackerRpc("add_team_touch", {
+              p_team_id: team.cloudId,
+              p_player_id: playerId
+            }, (tracker) => {
+              tracker.counts[playerId] = (tracker.counts[playerId] || 0) + 1;
+              tracker.history.push({
+                playerId,
+                timestamp: new Date().toISOString(),
+                createdBy: state.user?.id || null
+              });
+            });
+          } catch (error) {
+            setAppStatus(error.message || "Coachify could not sync that touch. Try again.", "danger");
+          } finally {
+            button.disabled = false;
+          }
         });
 
-        els.undoTouchBtn.addEventListener("click", () => {
+        els.undoTouchBtn.addEventListener("click", async () => {
           const team = getSelectedTeam();
           if (!team) return;
-          ensureTouchTracker(team);
 
-          const lastTouch = team.touchTracker.history.pop();
-          if (!lastTouch) return;
-
-          team.touchTracker.counts[lastTouch.playerId] = Math.max(0, (team.touchTracker.counts[lastTouch.playerId] || 0) - 1);
-          saveState();
-          renderTouchTracker();
-          renderGameDaySummary();
-          renderGameDayExperience();
-          renderHomePanel();
-          saveSelectedCloudTeam();
+          try {
+            await saveTouchTrackerRpc("undo_team_touch", {
+              p_team_id: team.cloudId
+            }, (tracker) => {
+              const lastTouch = tracker.history.pop();
+              if (!lastTouch) return;
+              tracker.counts[lastTouch.playerId] = Math.max(0, (tracker.counts[lastTouch.playerId] || 0) - 1);
+            });
+          } catch (error) {
+            setAppStatus(error.message || "Coachify could not undo that touch. Try refresh.", "danger");
+          }
         });
 
-        els.resetTouchesBtn.addEventListener("click", () => {
+        els.resetTouchesBtn.addEventListener("click", async () => {
           const team = getSelectedTeam();
           if (!team) return;
           if (!confirm("Reset touch counts for this game?")) return;
 
-          const gameNotes = team.touchTracker?.gameNotes || "";
-          const liveGame = team.touchTracker?.liveGame || null;
-          team.touchTracker = emptyTouchTracker();
-          team.touchTracker.gameNotes = gameNotes;
-          team.touchTracker.liveGame = liveGame;
-          ensureTouchTracker(team);
-          saveState();
-          renderTouchTracker();
-          renderGameNotes();
-          renderGameDaySummary();
-          renderGameDayExperience();
-          renderHomePanel();
-          saveSelectedCloudTeam();
+          try {
+            await saveTouchTrackerRpc("reset_team_touches", {
+              p_team_id: team.cloudId
+            }, (tracker) => {
+              const gameNotes = tracker.gameNotes || "";
+              const liveGame = tracker.liveGame || null;
+              const resetTracker = emptyTouchTracker();
+              tracker.counts = resetTracker.counts;
+              tracker.history = resetTracker.history;
+              tracker.gameNotes = gameNotes;
+              tracker.liveGame = liveGame;
+            });
+            renderGameNotes();
+          } catch (error) {
+            setAppStatus(error.message || "Coachify could not reset touches. Try refresh.", "danger");
+          }
         });
 
         els.gameNotesInput.addEventListener("input", () => {
@@ -8276,7 +8390,14 @@
           renderGameDayExperience();
           clearTimeout(state.gameNotesSaveTimer);
           state.gameNotesSaveTimer = setTimeout(() => {
-            saveSelectedCloudTeam();
+            saveTouchTrackerRpc("set_team_game_notes", {
+              p_team_id: team.cloudId,
+              p_notes: els.gameNotesInput.value
+            }, (tracker) => {
+              tracker.gameNotes = els.gameNotesInput.value;
+            }, { renderAfter: false }).catch((error) => {
+              setAppStatus(error.message || "Coachify could not sync notes.", "danger");
+            });
           }, 700);
         });
 
