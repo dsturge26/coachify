@@ -131,6 +131,39 @@
         box-shadow: var(--game-shadow-soft);
       }
 
+      .game-sync-strip {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.055);
+      }
+
+      .game-sync-dot {
+        height: 0.55rem;
+        width: 0.55rem;
+        border-radius: 999px;
+        background: #94a3b8;
+      }
+
+      .game-sync-strip.is-saving .game-sync-dot {
+        animation: coachify-pulse 0.9s ease-in-out infinite;
+        background: #0284c7;
+      }
+
+      .game-sync-strip.is-synced .game-sync-dot {
+        background: #059669;
+      }
+
+      .game-sync-strip.is-offline .game-sync-dot,
+      .game-sync-strip.is-error .game-sync-dot {
+        background: #dc2626;
+      }
+
+      @keyframes coachify-pulse {
+        0%, 100% { opacity: 0.35; transform: scale(0.9); }
+        50% { opacity: 1; transform: scale(1.15); }
+      }
+
       .game-stage-card {
         border: 1px solid rgba(19, 115, 51, 0.16);
         border-radius: 28px;
@@ -789,6 +822,8 @@
             <div id="gameDaySummary" class="grid grid-cols-3 border-t border-white/10 bg-white/10"></div>
           </section>
 
+          <section id="gameSyncStrip" class="game-sync-strip hidden px-4 py-3"></section>
+
           <section id="gameDayStage" class="game-stage-card p-4"></section>
 
           <section class="game-panel-card p-4">
@@ -1302,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.5";
+      const APP_VERSION = "v0.18.6";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1623,6 +1658,11 @@
         gameDayMode: "pregame",
         gameSession: null,
         gameNotesSaveTimer: null,
+        gameSync: {
+          status: "idle",
+          message: "Ready",
+          updatedAt: null
+        },
         suppressRealtimeUntil: 0,
         signingOut: false,
         lastSignOutTapAt: 0,
@@ -1672,6 +1712,7 @@
         homePanel: document.querySelector("#homePanel"),
         gameDayPanel: document.querySelector("#gameDayPanel"),
         gameDaySummary: document.querySelector("#gameDaySummary"),
+        gameSyncStrip: document.querySelector("#gameSyncStrip"),
         gameDayStage: document.querySelector("#gameDayStage"),
         gamePrimaryAction: document.querySelector("#gamePrimaryAction"),
         gameToolsGrid: document.querySelector("#gameToolsGrid"),
@@ -1813,6 +1854,88 @@
         };
         els.appStatus.className = styles[tone] || styles.info;
         els.appStatus.textContent = text;
+      }
+
+      function formatRelativeSyncTime(value) {
+        if (!value) return "";
+        const seconds = Math.max(0, Math.round((Date.now() - value) / 1000));
+        if (seconds < 5) return "just now";
+        if (seconds < 60) return `${seconds} sec ago`;
+        const minutes = Math.round(seconds / 60);
+        if (minutes < 60) return `${minutes} min ago`;
+        return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      }
+
+      function renderGameSyncStrip() {
+        if (!els.gameSyncStrip) return;
+        const team = getSelectedTeam();
+        const sync = state.gameSync || {};
+        const isOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+        const status = isOffline ? "offline" : sync.status || "idle";
+        const message = isOffline
+          ? "Offline. Changes may not sync until the connection returns."
+          : sync.message || "Ready";
+        const timeText = sync.updatedAt && status !== "saving"
+          ? `Synced ${formatRelativeSyncTime(sync.updatedAt)}`
+          : status === "saving"
+            ? "Saving..."
+            : "Ready";
+        const label =
+          status === "saving" ? "Saving"
+            : status === "offline" ? "Offline"
+              : status === "error" ? "Needs attention"
+                : "Synced";
+
+        els.gameSyncStrip.className = `game-sync-strip is-${status} px-4 py-3`;
+        els.gameSyncStrip.classList.toggle("hidden", !team);
+        els.gameSyncStrip.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex min-w-0 items-center gap-2">
+              <span class="game-sync-dot shrink-0" aria-hidden="true"></span>
+              <div class="min-w-0">
+                <p class="text-xs font-black uppercase tracking-wide text-slate-500">${escapeHtml(label)}</p>
+                <p class="truncate text-sm font-black text-slate-950">${escapeHtml(message)}</p>
+              </div>
+            </div>
+            <span class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">${escapeHtml(timeText)}</span>
+          </div>
+        `;
+      }
+
+      function setGameSyncStatus(status, message, { updatedAt = status === "synced" ? Date.now() : state.gameSync?.updatedAt || null } = {}) {
+        state.gameSync = {
+          status,
+          message: String(message || "").trim() || (status === "saving" ? "Saving..." : "Ready"),
+          updatedAt
+        };
+        renderGameSyncStrip();
+      }
+
+      function touchTotalForTeam(team) {
+        return Object.values(team?.touchTracker?.counts || {}).reduce((sum, count) => sum + Number(count || 0), 0);
+      }
+
+      function describeCloudTeamUpdate(previousTeam, updatedTeam) {
+        if (!previousTeam || !updatedTeam) return "Team updated";
+        const previousTouches = touchTotalForTeam(previousTeam);
+        const nextTouches = touchTotalForTeam(updatedTeam);
+        if (previousTouches !== nextTouches) {
+          return `Touch tracker updated (${nextTouches} total)`;
+        }
+        const previousDrive = previousTeam.touchTracker?.liveGame?.driveStepIndex;
+        const nextDrive = updatedTeam.touchTracker?.liveGame?.driveStepIndex;
+        const previousMode = previousTeam.touchTracker?.liveGame?.status;
+        const nextMode = updatedTeam.touchTracker?.liveGame?.status;
+        if (previousDrive !== nextDrive || previousMode !== nextMode) {
+          return nextMode === "live" ? "Live game updated" : "Game mode updated";
+        }
+        if (JSON.stringify(previousTeam.lastLineupPlan || null) !== JSON.stringify(updatedTeam.lastLineupPlan || null)) {
+          return "Lineup updated";
+        }
+        if (JSON.stringify(previousTeam.attendance || []) !== JSON.stringify(updatedTeam.attendance || [])) {
+          return "Attendance updated";
+        }
+        return "Team synced";
       }
 
       function setLineupBuildStatus(message, tone = "info") {
@@ -2084,6 +2207,12 @@
         state.lifecycleHandlersBound = true;
         window.addEventListener("pageshow", refreshPersistentAppShell);
         window.addEventListener("focus", refreshPersistentAppShell);
+        window.addEventListener("online", () => {
+          setGameSyncStatus("synced", "Back online. Refresh if anything looks stale.");
+        });
+        window.addEventListener("offline", () => {
+          setGameSyncStatus("offline", "Offline. Changes may not sync until the connection returns.", { updatedAt: state.gameSync?.updatedAt || null });
+        });
         document.addEventListener("visibilitychange", () => {
           if (document.visibilityState === "visible") {
             refreshPersistentAppShell();
@@ -2681,16 +2810,19 @@
         }
       }
 
-      async function updateSelectedCloudTeamFields(fields) {
+      async function updateSelectedCloudTeamFields(fields, { savingMessage = "Saving game-day update...", successMessage = "Game-day update synced." } = {}) {
         const team = getSelectedTeam();
         if (!team?.cloudId || !state.user) return;
 
+        setGameSyncStatus("saving", savingMessage);
         saveState();
         const { error } = await cloud.from("teams").update(fields).eq("id", team.cloudId);
         if (error) {
           els.cloudStatus.textContent = error.message;
+          setGameSyncStatus("error", error.message, { updatedAt: state.gameSync?.updatedAt || null });
           throw error;
         }
+        setGameSyncStatus("synced", successMessage);
       }
 
       function normalizeTouchTrackerForTeam(team, tracker) {
@@ -2712,17 +2844,21 @@
         return normalizeTouchTrackerForTeam(team, data?.touch_tracker);
       }
 
-      async function saveTouchTrackerUpdate(mutator, { renderAfter = true } = {}) {
+      async function saveTouchTrackerUpdate(mutator, { renderAfter = true, savingMessage = "Saving touch tracker...", successMessage = "Touch tracker synced." } = {}) {
         const team = getSelectedTeam();
         if (!team) return;
 
+        setGameSyncStatus("saving", savingMessage);
         const tracker = await getLatestTouchTracker(team);
         mutator(tracker);
         team.touchTracker = normalizeTouchTrackerForTeam(team, tracker);
         saveState();
 
         if (team.cloudId && state.user) {
-          await updateSelectedCloudTeamFields({ touch_tracker: team.touchTracker });
+          await updateSelectedCloudTeamFields(
+            { touch_tracker: team.touchTracker },
+            { savingMessage, successMessage }
+          );
         }
 
         if (renderAfter) {
@@ -2752,25 +2888,28 @@
           || message.includes("function public.");
       }
 
-      async function saveTouchTrackerRpc(functionName, args, fallbackMutator, { renderAfter = true } = {}) {
+      async function saveTouchTrackerRpc(functionName, args, fallbackMutator, { renderAfter = true, savingMessage = "Saving touch tracker...", successMessage = "Touch tracker synced." } = {}) {
         const team = getSelectedTeam();
         if (!team) return;
 
         if (!team.cloudId || !state.user) {
-          await saveTouchTrackerUpdate(fallbackMutator, { renderAfter });
+          await saveTouchTrackerUpdate(fallbackMutator, { renderAfter, savingMessage, successMessage });
           return;
         }
 
+        setGameSyncStatus("saving", savingMessage);
         const { data, error } = await cloud.rpc(functionName, args);
         if (error) {
           if (shouldFallbackFromMissingRpc(error)) {
-            await saveTouchTrackerUpdate(fallbackMutator, { renderAfter });
+            await saveTouchTrackerUpdate(fallbackMutator, { renderAfter, savingMessage, successMessage });
             return;
           }
+          setGameSyncStatus("error", error.message || "Sync failed.", { updatedAt: state.gameSync?.updatedAt || null });
           throw error;
         }
 
         applyTouchTrackerFromCloud(team, data, { renderAfter });
+        setGameSyncStatus("synced", successMessage);
       }
 
       async function deleteSelectedTeam() {
@@ -5654,10 +5793,13 @@
             { event: "UPDATE", schema: "public", table: "teams", filter: `id=eq.${team.cloudId}` },
             (payload) => {
               const updatedTeam = cloudRowToTeam(payload.new);
+              const previousTeam = state.teams.find((item) => item.cloudId === updatedTeam.cloudId);
+              const syncMessage = describeCloudTeamUpdate(previousTeam, updatedTeam);
               const wasSelected = state.selectedTeamId === team.id;
               state.teams = state.teams.map((item) => (item.cloudId === updatedTeam.cloudId ? updatedTeam : item));
               if (wasSelected) state.selectedTeamId = updatedTeam.id;
               saveState();
+              setGameSyncStatus("synced", syncMessage);
               render();
             }
           )
@@ -6534,7 +6676,15 @@
             p_live_game: liveGame
           }, (tracker) => {
             tracker.liveGame = liveGame;
-          }, { renderAfter: false });
+          }, {
+            renderAfter: false,
+            savingMessage: "Saving live game...",
+            successMessage: liveGame.status === "live"
+              ? `Drive synced: step ${liveGame.driveStepIndex + 1}`
+              : liveGame.status === "recap"
+                ? "Game recap synced."
+                : "Pregame status synced."
+          });
         } catch (error) {
           setAppStatus(error.message || "Coachify could not sync the live game. Try refresh.", "danger");
         }
@@ -6793,9 +6943,14 @@
                 <p class="text-xs font-black uppercase tracking-wide text-slate-500">First subs / next up</p>
                 <p class="mt-2 text-base font-black leading-6 text-slate-950">${escapeHtml(gameDayFirstSubsHtml(team))}</p>
                 <p class="mt-3 text-sm font-bold leading-6 text-slate-600">${headCoach ? "Start Game opens a focused sideline view with touch tracking up front." : "Assistant view keeps the shared lineup and live touch tracker easy to reach."}</p>
-                <button class="mt-4 min-h-12 w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button" data-game-action="start-game-day">
-                  ${escapeHtml(startLabel)}
-                </button>
+                <div class="mt-4 grid gap-2">
+                  ${headCoach && missingPlayers.length
+                    ? '<button class="min-h-11 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 shadow-sm active:bg-emerald-50" type="button" data-game-action="late-player">Player arrived</button>'
+                    : ""}
+                  <button class="min-h-12 w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button" data-game-action="start-game-day">
+                    ${escapeHtml(startLabel)}
+                  </button>
+                </div>
               </article>
             </div>
           </div>
@@ -6804,6 +6959,7 @@
 
       function renderLiveGameMode(team, headCoach) {
         const activePlayers = getActiveGamePlayers(team);
+        const missingPlayers = getMissingGamePlayers(team);
         const touches = gameDayPriorityTouchNames(team);
         const startedAt = formatGameSessionTime(state.gameSession?.startedAt);
         const roleLabelText = headCoach ? "Head coach controls" : "Assistant tracker";
@@ -6831,12 +6987,12 @@
                   <p class="mt-1 text-xl font-black">${escapeHtml(touches.lowTouchNames || "Start tracking touches below")}</p>
                 </div>
               </div>
-              <div class="mt-4 grid gap-2 sm:grid-cols-3">
+              <div class="mt-4 grid gap-2 sm:grid-cols-${headCoach && missingPlayers.length ? "4" : "3"}">
                 <button class="min-h-12 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-slate-950 active:bg-emerald-400" type="button" data-game-action="go-section" data-section="touchTrackerSection">Track touch</button>
                 <button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="go-section" data-section="${headCoach ? "lineupPlannerSection" : "sharedLineupSection"}">Current lineup</button>
                 ${
                   headCoach
-                    ? '<button class="min-h-12 rounded-2xl border border-red-200/50 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="end-game-day">End game</button>'
+                    ? `${missingPlayers.length ? '<button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="late-player">Player arrived</button>' : ""}<button class="min-h-12 rounded-2xl border border-red-200/50 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="end-game-day">End game</button>`
                     : '<button class="min-h-12 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="return-pregame">Close live view</button>'
                 }
               </div>
@@ -7075,13 +7231,95 @@
             p_live_game: liveGame
           }, (tracker) => {
             tracker.liveGame = liveGame;
-          }, { renderAfter: false }).catch((error) => {
+          }, {
+            renderAfter: false,
+            savingMessage: "Saving pregame mode...",
+            successMessage: "Pregame mode synced."
+          }).catch((error) => {
             setAppStatus(error.message || "Coachify could not sync pregame mode.", "danger");
           });
         }
         renderGameDayExperience();
         renderGameDaySummary();
         window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
+      }
+
+      async function handleLatePlayerArrival() {
+        const team = getSelectedTeam();
+        if (!team) return;
+
+        if (!isHeadCoach(team)) {
+          setAppStatus("Only the head coach can change attendance and rebuild the lineup.", "warning");
+          return;
+        }
+
+        ensureTouchTracker(team);
+        const missingPlayers = getMissingGamePlayers(team);
+        if (!missingPlayers.length) {
+          setAppStatus("Everyone on the roster is already marked present.", "info");
+          return;
+        }
+
+        const options = missingPlayers
+          .map((player, index) => `${index + 1}. ${playerLabel(player)}`)
+          .join("\n");
+        const answer = prompt(`Who just arrived?\n\n${options}\n\nEnter the number.`);
+        if (!answer) return;
+
+        const selectedIndex = Number.parseInt(answer, 10) - 1;
+        const player = missingPlayers[selectedIndex];
+        if (!player) {
+          setAppStatus("No player selected. Try Player arrived again.", "warning");
+          return;
+        }
+
+        const previousTouchTotal = touchTotalForTeam(team);
+        const nextAttendance = [...new Set([...getActiveGamePlayers(team).map((item) => item.id), player.id])];
+        const originalButtonText = els.generateLineupBtn?.textContent;
+        if (els.generateLineupBtn) {
+          els.generateLineupBtn.disabled = true;
+          els.generateLineupBtn.textContent = "Rebuilding...";
+        }
+        setLineupBuildStatus(`${player.name} marked present. Rebuilding lineup and preserving touches...`, "info");
+
+        try {
+          team.attendance = nextAttendance;
+          const plan = generateRotationBoard(team, nextAttendance);
+          team.lastLineupPlan = plan;
+          renderAttendanceOptions();
+          renderLineupResults(plan);
+          renderDefenseAudit(plan);
+          renderTouchTracker();
+          renderGameDaySummary();
+          renderGameDayExperience();
+          renderHomePanel();
+
+          await updateSelectedCloudTeamFields({
+            attendance: team.attendance,
+            lineup_plan: team.lastLineupPlan
+          }, {
+            savingMessage: `${player.name} arrived. Rebuilding lineup...`,
+            successMessage: `${player.name} added. Lineup rebuilt. Touches preserved.`
+          });
+
+          const latestTeam = getSelectedTeam();
+          const nextTouchTotal = touchTotalForTeam(latestTeam);
+          if (nextTouchTotal !== previousTouchTotal) {
+            setAppStatus("Lineup rebuilt, but touch totals changed unexpectedly. Refresh before continuing.", "danger");
+            return;
+          }
+
+          setLineupBuildStatus(`${player.name} added. Lineup rebuilt and shared. Touch tracker stayed at ${nextTouchTotal} touches.`, "success");
+          setAppStatus(`${player.name} is now active. Lineup rebuilt without resetting touches.`, "success");
+        } catch (error) {
+          setLineupBuildStatus(error.message || "Coachify could not rebuild the lineup for the late player.", "danger");
+          setAppStatus(error.message || "Coachify could not sync the late-player update.", "danger");
+        } finally {
+          if (els.generateLineupBtn) {
+            els.generateLineupBtn.disabled = false;
+            els.generateLineupBtn.textContent = originalButtonText || "Build Lineup";
+          }
+        }
       }
 
       function renderPlayerList() {
@@ -7846,6 +8084,7 @@
         renderTouchTracker();
         renderGameNotes();
         renderGameDaySummary();
+        renderGameSyncStrip();
         renderGameDayExperience();
         renderHomePanel();
         renderPracticePlanHistory();
@@ -8004,6 +8243,11 @@
           if (action === "next-drive") {
             event.preventDefault();
             changeGameDrive(1);
+            return;
+          }
+          if (action === "late-player") {
+            event.preventDefault();
+            handleLatePlayerArrival();
             return;
           }
           if (action === "return-pregame") {
@@ -8284,6 +8528,9 @@
             await updateSelectedCloudTeamFields({
               attendance: team.attendance,
               lineup_plan: team.lastLineupPlan
+            }, {
+              savingMessage: "Saving lineup...",
+              successMessage: "Lineup synced. Touches preserved."
             });
 
             if (plan.ok) {
@@ -8308,7 +8555,10 @@
           renderGameDaySummary();
           renderGameDayExperience();
           renderHomePanel();
-          updateSelectedCloudTeamFields({ attendance: team.attendance }).catch((error) => {
+          updateSelectedCloudTeamFields(
+            { attendance: team.attendance },
+            { savingMessage: "Saving attendance...", successMessage: "Attendance synced." }
+          ).catch((error) => {
             setAppStatus(error.message || "Coachify could not sync attendance.", "danger");
           });
         });
@@ -8333,6 +8583,9 @@
                 timestamp: new Date().toISOString(),
                 createdBy: state.user?.id || null
               });
+            }, {
+              savingMessage: "Saving touch...",
+              successMessage: `${playerLabel(team.roster.find((player) => player.id === playerId) || { name: "Player" })} touch synced.`
             });
           } catch (error) {
             setAppStatus(error.message || "Coachify could not sync that touch. Try again.", "danger");
@@ -8352,6 +8605,9 @@
               const lastTouch = tracker.history.pop();
               if (!lastTouch) return;
               tracker.counts[lastTouch.playerId] = Math.max(0, (tracker.counts[lastTouch.playerId] || 0) - 1);
+            }, {
+              savingMessage: "Undoing last touch...",
+              successMessage: "Last touch undone."
             });
           } catch (error) {
             setAppStatus(error.message || "Coachify could not undo that touch. Try refresh.", "danger");
@@ -8374,6 +8630,9 @@
               tracker.history = resetTracker.history;
               tracker.gameNotes = gameNotes;
               tracker.liveGame = liveGame;
+            }, {
+              savingMessage: "Resetting touches...",
+              successMessage: "Touches reset. Live game preserved."
             });
             renderGameNotes();
           } catch (error) {
@@ -8395,7 +8654,11 @@
               p_notes: els.gameNotesInput.value
             }, (tracker) => {
               tracker.gameNotes = els.gameNotesInput.value;
-            }, { renderAfter: false }).catch((error) => {
+            }, {
+              renderAfter: false,
+              savingMessage: "Saving notes...",
+              successMessage: "Game notes synced."
+            }).catch((error) => {
               setAppStatus(error.message || "Coachify could not sync notes.", "danger");
             });
           }, 700);
