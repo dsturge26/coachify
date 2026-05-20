@@ -1337,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.10";
+      const APP_VERSION = "v0.18.11";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -7146,7 +7146,8 @@
 
         if (mode === "live") {
           els.touchTrackerSection.open = true;
-          els.lineupPlannerSection.open = false;
+          els.lineupPlannerSection.open = headCoach;
+          els.sharedLineupSection.open = !headCoach;
           els.gamePlanningSection.open = false;
           els.gameNotesSection.open = false;
         }
