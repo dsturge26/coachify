@@ -1337,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.9";
+      const APP_VERSION = "v0.18.10";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -5793,8 +5793,14 @@
             "postgres_changes",
             { event: "UPDATE", schema: "public", table: "teams", filter: `id=eq.${team.cloudId}` },
             (payload) => {
-              const updatedTeam = cloudRowToTeam(payload.new);
+              let updatedTeam = cloudRowToTeam(payload.new);
               const previousTeam = state.teams.find((item) => item.cloudId === updatedTeam.cloudId);
+              if ((!updatedTeam.roster || updatedTeam.roster.length === 0) && previousTeam?.roster?.length) {
+                updatedTeam = {
+                  ...updatedTeam,
+                  roster: previousTeam.roster
+                };
+              }
               const syncMessage = describeCloudTeamUpdate(previousTeam, updatedTeam);
               const wasSelected = state.selectedTeamId === team.id;
               state.teams = state.teams.map((item) => (item.cloudId === updatedTeam.cloudId ? updatedTeam : item));
@@ -8557,14 +8563,9 @@
           team.attendance = getAttendingPlayerIds();
           renderTouchTracker();
           renderGameDaySummary();
-          renderGameDayExperience();
-          renderHomePanel();
-          updateSelectedCloudTeamFields(
-            { attendance: team.attendance },
-            { savingMessage: "Saving attendance...", successMessage: "Attendance synced." }
-          ).catch((error) => {
-            setAppStatus(error.message || "Coachify could not sync attendance.", "danger");
-          });
+          saveState();
+          setLineupBuildStatus("Attendance updated. Tap Build Lineup when the list is right.", "info");
+          setGameSyncStatus("idle", "Attendance is local until you build the lineup.");
         });
 
         els.touchTrackerList.addEventListener("click", async (event) => {

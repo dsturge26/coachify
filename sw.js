@@ -1,4 +1,4 @@
-const CACHE_NAME = "coachify-v66";
+const CACHE_NAME = "coachify-v67";
 const APP_SHELL = [
   "/",
   "/index.html",
