@@ -1337,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.8";
+      const APP_VERSION = "v0.18.9";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1658,6 +1658,7 @@
         gameDayMode: "pregame",
         gameSession: null,
         gameNotesSaveTimer: null,
+        lineupBuildInFlight: false,
         gameSync: {
           status: "idle",
           message: "Ready",
@@ -7275,7 +7276,7 @@
 
         const previousTouchTotal = touchTotalForTeam(team);
         const nextAttendance = [...new Set([...getActiveGamePlayers(team).map((item) => item.id), player.id])];
-        const originalButtonText = els.generateLineupBtn?.textContent;
+        state.lineupBuildInFlight = true;
         if (els.generateLineupBtn) {
           els.generateLineupBtn.disabled = true;
           els.generateLineupBtn.textContent = "Rebuilding...";
@@ -7315,9 +7316,10 @@
           setLineupBuildStatus(error.message || "Coachify could not rebuild the lineup for the late player.", "danger");
           setAppStatus(error.message || "Coachify could not sync the late-player update.", "danger");
         } finally {
+          state.lineupBuildInFlight = false;
           if (els.generateLineupBtn) {
             els.generateLineupBtn.disabled = false;
-            els.generateLineupBtn.textContent = originalButtonText || "Build Lineup";
+            els.generateLineupBtn.textContent = "Build Lineup";
           }
         }
       }
@@ -8058,7 +8060,8 @@
         els.sharedLineupSection.classList.toggle("hidden", headCoach);
         els.gamePrimaryAction.textContent = headCoach ? "Build Lineup" : "View Lineup";
         els.gamePrimaryAction.setAttribute("href", headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
-        els.generateLineupBtn.disabled = !headCoach;
+        els.generateLineupBtn.disabled = !headCoach || state.lineupBuildInFlight;
+        els.generateLineupBtn.textContent = state.lineupBuildInFlight ? "Building lineup..." : "Build Lineup";
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
         renderGameTools();
         els.setupTabBtn.disabled = !headCoach;
@@ -8510,10 +8513,10 @@
             return;
           }
 
-          const originalText = els.generateLineupBtn.textContent;
+          state.lineupBuildInFlight = true;
           els.generateLineupBtn.disabled = true;
           els.generateLineupBtn.textContent = "Building lineup...";
-          setLineupBuildStatus("Building lineup from today’s attendance...", "info");
+          setLineupBuildStatus("Building lineup from today's attendance...", "info");
 
           try {
             const attendingIds = getAttendingPlayerIds();
@@ -8542,8 +8545,9 @@
           } catch (error) {
             setLineupBuildStatus(error.message || "Coachify could not save the lineup. Try again.", "danger");
           } finally {
+            state.lineupBuildInFlight = false;
             els.generateLineupBtn.disabled = false;
-            els.generateLineupBtn.textContent = originalText;
+            els.generateLineupBtn.textContent = "Build Lineup";
           }
         });
 
