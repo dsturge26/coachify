@@ -1337,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.11";
+      const APP_VERSION = "v0.18.12";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -7153,10 +7153,65 @@
         }
       }
 
-      function startGameDaySession() {
+      async function ensureLineupReadyForGameStart(team, headCoach) {
+        if (!team) return false;
+        if (team.lastLineupPlan?.ok && gameDayDriveSequence(team).length) return true;
+
+        if (!headCoach) {
+          setAppStatus("Waiting for the head coach to build the lineup before live mode.", "warning");
+          return false;
+        }
+
+        state.lineupBuildInFlight = true;
+        if (els.generateLineupBtn) {
+          els.generateLineupBtn.disabled = true;
+          els.generateLineupBtn.textContent = "Building lineup...";
+        }
+        setLineupBuildStatus("Getting the lineup ready before live mode...", "info");
+
+        try {
+          const attendingIds = getAttendingPlayerIds();
+          team.attendance = attendingIds;
+          const plan = generateRotationBoard(team, attendingIds);
+          team.lastLineupPlan = plan;
+          renderLineupResults(plan);
+          renderDefenseAudit(plan);
+          renderGameDaySummary();
+
+          if (!plan.ok) {
+            setLineupBuildStatus(plan.warnings?.[0] || "Coachify needs a valid lineup before starting live mode.", "danger");
+            setAppStatus("Build the lineup before starting live mode.", "warning");
+            return false;
+          }
+
+          await updateSelectedCloudTeamFields({
+            attendance: team.attendance,
+            lineup_plan: team.lastLineupPlan
+          }, {
+            savingMessage: "Saving lineup before live mode...",
+            successMessage: "Lineup ready. Starting game."
+          });
+          setLineupBuildStatus("Lineup ready for live game.", "success");
+          return true;
+        } catch (error) {
+          setLineupBuildStatus(error.message || "Coachify could not get the lineup ready before live mode.", "danger");
+          setAppStatus(error.message || "Coachify could not start live mode.", "danger");
+          return false;
+        } finally {
+          state.lineupBuildInFlight = false;
+          if (els.generateLineupBtn) {
+            els.generateLineupBtn.disabled = false;
+            els.generateLineupBtn.textContent = "Build Lineup";
+          }
+        }
+      }
+
+      async function startGameDaySession() {
         const team = getSelectedTeam();
         if (!team) return;
         const headCoach = isHeadCoach(team);
+        const lineupReady = await ensureLineupReadyForGameStart(team, headCoach);
+        if (!lineupReady) return;
         const existingStep = state.gameSession?.teamId === team.id && Number.isInteger(state.gameSession?.driveStepIndex)
           ? state.gameSession.driveStepIndex
           : 0;
