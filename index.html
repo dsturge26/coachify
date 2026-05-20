@@ -1337,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.12";
+      const APP_VERSION = "v0.18.13";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -5799,6 +5799,18 @@
                 updatedTeam = {
                   ...updatedTeam,
                   roster: previousTeam.roster
+                };
+              }
+              if (!updatedTeam.lastLineupPlan?.ok && previousTeam?.lastLineupPlan?.ok) {
+                updatedTeam = {
+                  ...updatedTeam,
+                  lastLineupPlan: previousTeam.lastLineupPlan
+                };
+              }
+              if ((!updatedTeam.attendance || updatedTeam.attendance.length === 0) && previousTeam?.attendance?.length) {
+                updatedTeam = {
+                  ...updatedTeam,
+                  attendance: previousTeam.attendance
                 };
               }
               const syncMessage = describeCloudTeamUpdate(previousTeam, updatedTeam);
