@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\Drew\\\\OneDrive\\\\Codex\\\\flag-football-lineup\\\\index.html\" | Measure-Object -Line\\).Lines)"
+    ]
+  }
+}

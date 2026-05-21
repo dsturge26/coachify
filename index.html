@@ -1337,7 +1337,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.18.13";
+      const APP_VERSION = "v0.19.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -1657,6 +1657,7 @@
         practiceResumeStartedAt: {},
         gameDayMode: "pregame",
         gameSession: null,
+        gameDayPollTimer: null,
         gameNotesSaveTimer: null,
         lineupBuildInFlight: false,
         gameSync: {
@@ -2162,6 +2163,10 @@
           state.teams = [];
           state.selectedTeamId = null;
           state.activeTeamTab = "home";
+          if (state.gameDayPollTimer) {
+            window.clearInterval(state.gameDayPollTimer);
+            state.gameDayPollTimer = null;
+          }
           state.signingOut = false;
           renderCloudStatus();
           saveState();
@@ -5793,36 +5798,65 @@
             "postgres_changes",
             { event: "UPDATE", schema: "public", table: "teams", filter: `id=eq.${team.cloudId}` },
             (payload) => {
-              let updatedTeam = cloudRowToTeam(payload.new);
-              const previousTeam = state.teams.find((item) => item.cloudId === updatedTeam.cloudId);
-              if ((!updatedTeam.roster || updatedTeam.roster.length === 0) && previousTeam?.roster?.length) {
-                updatedTeam = {
-                  ...updatedTeam,
-                  roster: previousTeam.roster
-                };
-              }
-              if (!updatedTeam.lastLineupPlan?.ok && previousTeam?.lastLineupPlan?.ok) {
-                updatedTeam = {
-                  ...updatedTeam,
-                  lastLineupPlan: previousTeam.lastLineupPlan
-                };
-              }
-              if ((!updatedTeam.attendance || updatedTeam.attendance.length === 0) && previousTeam?.attendance?.length) {
-                updatedTeam = {
-                  ...updatedTeam,
-                  attendance: previousTeam.attendance
-                };
-              }
-              const syncMessage = describeCloudTeamUpdate(previousTeam, updatedTeam);
-              const wasSelected = state.selectedTeamId === team.id;
-              state.teams = state.teams.map((item) => (item.cloudId === updatedTeam.cloudId ? updatedTeam : item));
-              if (wasSelected) state.selectedTeamId = updatedTeam.id;
-              saveState();
-              setGameSyncStatus("synced", syncMessage);
-              render();
+              applyCloudTeamRowUpdate(payload.new);
             }
           )
           .subscribe();
+      }
+
+      function applyCloudTeamRowUpdate(row, { renderAfter = true, status = "synced" } = {}) {
+        if (!row) return;
+        let updatedTeam = cloudRowToTeam(row);
+        const previousTeam = state.teams.find((item) => item.cloudId === updatedTeam.cloudId);
+        if ((!updatedTeam.roster || updatedTeam.roster.length === 0) && previousTeam?.roster?.length) {
+          updatedTeam = {
+            ...updatedTeam,
+            roster: previousTeam.roster
+          };
+        }
+        if (!updatedTeam.lastLineupPlan?.ok && previousTeam?.lastLineupPlan?.ok) {
+          updatedTeam = {
+            ...updatedTeam,
+            lastLineupPlan: previousTeam.lastLineupPlan
+          };
+        }
+        if ((!updatedTeam.attendance || updatedTeam.attendance.length === 0) && previousTeam?.attendance?.length) {
+          updatedTeam = {
+            ...updatedTeam,
+            attendance: previousTeam.attendance
+          };
+        }
+        const syncMessage = describeCloudTeamUpdate(previousTeam, updatedTeam);
+        const wasSelected = previousTeam && state.selectedTeamId === previousTeam.id;
+        state.teams = state.teams.map((item) => (item.cloudId === updatedTeam.cloudId ? updatedTeam : item));
+        if (wasSelected) state.selectedTeamId = updatedTeam.id;
+        saveState();
+        setGameSyncStatus(status, syncMessage);
+        if (renderAfter) render();
+      }
+
+      async function refreshSelectedGameDayCore({ renderAfter = true } = {}) {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !state.user) return;
+        const { data, error } = await cloud.from("teams").select("*").eq("id", team.cloudId).single();
+        if (error) {
+          setGameSyncStatus("error", "Refresh failed. Tap Refresh if the sideline looks stale.");
+          throw error;
+        }
+        applyCloudTeamRowUpdate(data, { renderAfter, status: "synced" });
+      }
+
+      function syncGameDayCorePolling() {
+        if (state.gameDayPollTimer) {
+          window.clearInterval(state.gameDayPollTimer);
+          state.gameDayPollTimer = null;
+        }
+        const team = getSelectedTeam();
+        const mode = getGameDayMode(team);
+        if (!team?.cloudId || normalizeTeamTab(state.activeTeamTab) !== "game" || mode !== "live") return;
+        state.gameDayPollTimer = window.setInterval(() => {
+          refreshSelectedGameDayCore({ renderAfter: true }).catch(() => {});
+        }, 10000);
       }
 
       function getDivision(divisionId) {
@@ -6615,24 +6649,8 @@
         const team = getSelectedTeam();
         if (!team || !els.gameToolsGrid) return;
 
-        const headCoach = isHeadCoach(team);
-        const tools = headCoach
-          ? [
-              { href: "#lineupPlannerSection", icon: "IN", iconClass: "bg-emerald-50 text-emerald-700", title: "Attendance", detail: "Who's in" },
-              { href: "#lineupPlannerSection", icon: "LN", iconClass: "bg-sky-50 text-sky-700", title: "Build Lineup", detail: "Create board" },
-              { href: "#touchTrackerSection", icon: "TR", iconClass: "bg-indigo-50 text-indigo-700", title: "Touches", detail: "Live counter" },
-              { href: "#gamePlanningSection", icon: "GP", iconClass: "bg-orange-50 text-orange-700", title: "Game Plan", detail: "Balance check" },
-              { href: "#gameNotesSection", icon: "NT", iconClass: "bg-slate-100 text-slate-700", title: "Notes", detail: "Reminders" }
-            ]
-          : [
-              { href: "#sharedLineupSection", icon: "LN", iconClass: "bg-sky-50 text-sky-700", title: "View Lineup", detail: "Head coach plan" },
-              { href: "#touchTrackerSection", icon: "TR", iconClass: "bg-indigo-50 text-indigo-700", title: "Track Touches", detail: "Live counter" },
-              { href: "#gamePlanningSection", icon: "GP", iconClass: "bg-orange-50 text-orange-700", title: "View Game Plan", detail: "Shared notes" },
-              { href: "#gameNotesSection", icon: "NT", iconClass: "bg-slate-100 text-slate-700", title: "Game Notes", detail: "Reminders" }
-            ];
-
-        els.gameToolsGrid.className = `grid grid-cols-2 gap-3 ${headCoach ? "sm:grid-cols-5" : "sm:grid-cols-4"}`;
-        els.gameToolsGrid.innerHTML = tools.map(gameToolTileHtml).join("");
+        els.gameToolsGrid.innerHTML = "";
+        els.gameToolsGrid.closest("section")?.classList.add("hidden");
       }
 
       function getGameDayMode(team = getSelectedTeam()) {
@@ -6740,7 +6758,7 @@
               side: "offense",
               index,
               item: offense[index],
-              label: `Offense Drive ${offense[index].number || index + 1}`
+              label: `Drive ${offense[index].number || index + 1} - Offense`
             });
           }
           if (defense[index]) {
@@ -6748,12 +6766,239 @@
               side: "defense",
               index,
               item: defense[index],
-              label: `Defense Drive ${defense[index].number || index + 1}`
+              label: `Drive ${defense[index].number || index + 1} - Defense`
             });
           }
         }
 
         return sequence;
+      }
+
+      function gameDayPlanPlayers(team) {
+        const planPlayers = Array.isArray(team?.lastLineupPlan?.players) ? team.lastLineupPlan.players : [];
+        const activeIds = new Set(getActiveGamePlayers(team).map((player) => player.id));
+        const source = planPlayers.length ? planPlayers : (team?.roster || []);
+        return source.filter((player) => activeIds.has(player.id)).sort(comparePlayers);
+      }
+
+      function ensureGameDayCorePlan(team) {
+        if (!team.lastLineupPlan || typeof team.lastLineupPlan !== "object") {
+          team.lastLineupPlan = {
+            ok: false,
+            warnings: ["Build lineups before starting the game."],
+            offense: [],
+            defense: [],
+            stats: {},
+            players: []
+          };
+        }
+        team.lastLineupPlan.offense = Array.isArray(team.lastLineupPlan.offense) ? team.lastLineupPlan.offense : [];
+        team.lastLineupPlan.defense = Array.isArray(team.lastLineupPlan.defense) ? team.lastLineupPlan.defense : [];
+        team.lastLineupPlan.players = gameDayPlanPlayers(team);
+        return team.lastLineupPlan;
+      }
+
+      function gameDaySidePositions(team, side) {
+        const division = getTeamDivision(team);
+        const positions = side === "defense" ? division.defensePositions : division.offensePositions;
+        return positions.slice(0, Math.min(division.playersOnField, Math.max(1, getActiveGamePlayers(team).length)));
+      }
+
+      function gameDayDriveCount(team) {
+        const plan = team?.lastLineupPlan;
+        return Math.max(Array.isArray(plan?.offense) ? plan.offense.length : 0, Array.isArray(plan?.defense) ? plan.defense.length : 0);
+      }
+
+      function gameDayUnitFor(team, side, index) {
+        const plan = ensureGameDayCorePlan(team);
+        const collection = side === "defense" ? plan.defense : plan.offense;
+        if (!collection[index]) {
+          collection[index] = {
+            number: index + 1,
+            lineup: {},
+            lockedPositions: side === "offense" ? (getTeamDivision(team).lockedOffensePositions || []) : []
+          };
+        }
+        collection[index].lineup = collection[index].lineup || {};
+        collection[index].number = collection[index].number || index + 1;
+        return collection[index];
+      }
+
+      function gameDayLineupIssues(team) {
+        const plan = team?.lastLineupPlan;
+        if (!plan?.ok) return ["Build drive lineups before starting."];
+        const count = gameDayDriveCount(team);
+        if (!count) return ["Build at least one drive."];
+        const issues = [];
+        for (let index = 0; index < count; index += 1) {
+          for (const side of ["offense", "defense"]) {
+            const unit = side === "offense" ? plan.offense?.[index] : plan.defense?.[index];
+            const positions = gameDaySidePositions(team, side);
+            for (const position of positions) {
+              if (!unit?.lineup?.[position]) {
+                issues.push(`Drive ${index + 1} ${side}: ${positionLabel(position, getTeamDivision(team))} is open`);
+              }
+            }
+          }
+        }
+        return issues;
+      }
+
+      function gameDayPlayerSelectOptions(team, selectedId = "") {
+        const players = getActiveGamePlayers(team);
+        return [
+          '<option value="">Open</option>',
+          ...players.map((player) => `<option value="${escapeHtml(player.id)}" ${player.id === selectedId ? "selected" : ""}>${escapeHtml(playerLabel(player))}</option>`)
+        ].join("");
+      }
+
+      function gameDayAssignmentGridHtml(team, side, unit, { editable = false, compact = false } = {}) {
+        const division = getTeamDivision(team);
+        const positions = gameDaySidePositions(team, side);
+        const activeIds = new Set(getActiveGamePlayers(team).map((player) => player.id));
+        const usedIds = new Set(Object.values(unit?.lineup || {}).filter(Boolean));
+        const bench = getActiveGamePlayers(team).filter((player) => !usedIds.has(player.id));
+        const playersById = Object.fromEntries((team.roster || []).map((player) => [player.id, player]));
+        const assignmentHtml = positions.map((position) => {
+          const playerId = unit?.lineup?.[position] || "";
+          const player = playersById[playerId];
+          const colors = positionColorClasses(position, division);
+          const missing = !playerId || !activeIds.has(playerId);
+          if (editable) {
+            return `
+              <label class="rounded-2xl border-2 ${missing ? "border-amber-300 bg-amber-50 text-amber-950" : `${colors.bg} ${colors.border} ${colors.text}`} p-3">
+                <span class="block text-[11px] font-black uppercase tracking-wide">${escapeHtml(positionLabel(position, division))}</span>
+                <select class="mt-2 min-h-11 w-full rounded-xl border border-white/80 bg-white px-3 text-sm font-black text-slate-950 shadow-sm" data-core-assignment="true" data-side="${side}" data-drive-index="${unit?.number ? unit.number - 1 : 0}" data-position="${escapeHtml(position)}">
+                  ${gameDayPlayerSelectOptions(team, playerId)}
+                </select>
+              </label>
+            `;
+          }
+          return `
+            <div class="rounded-2xl border-2 ${missing ? "border-amber-300 bg-amber-50 text-amber-950" : `${colors.bg} ${colors.border} ${colors.text}`} p-3">
+              <p class="text-[11px] font-black uppercase tracking-wide">${escapeHtml(positionLabel(position, division))}</p>
+              <p class="${compact ? "text-sm" : "text-base"} mt-1 font-black">${escapeHtml(player && activeIds.has(playerId) ? playerLabel(player) : "Open spot")}</p>
+            </div>
+          `;
+        }).join("");
+        const benchHtml = bench.length
+          ? bench.map((player) => `<span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">${escapeHtml(playerLabel(player))}</span>`).join("")
+          : '<span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">No bench for this side</span>';
+        return `
+          <div class="grid gap-2 ${compact ? "" : "sm:grid-cols-2"}">
+            ${assignmentHtml}
+          </div>
+          ${!compact ? `<div class="mt-3 flex flex-wrap gap-2"><span class="text-xs font-black uppercase tracking-wide text-slate-500">Sitting:</span>${benchHtml}</div>` : ""}
+        `;
+      }
+
+      function gameDayDriveEditorHtml(team, driveIndex) {
+        const plan = ensureGameDayCorePlan(team);
+        const offense = gameDayUnitFor(team, "offense", driveIndex);
+        const defense = gameDayUnitFor(team, "defense", driveIndex);
+        return `
+          <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Drive ${driveIndex + 1}</p>
+                <h4 class="text-xl font-black text-slate-950">Assignments</h4>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button class="min-h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-40" type="button" data-game-action="core-duplicate-drive" data-drive-index="${driveIndex}" ${driveIndex === 0 ? "disabled aria-disabled=\"true\"" : ""}>Duplicate previous</button>
+                <button class="min-h-10 rounded-full border border-red-100 bg-white px-3 text-xs font-black text-red-700 shadow-sm active:bg-red-50" type="button" data-game-action="core-clear-drive" data-drive-index="${driveIndex}">Clear</button>
+              </div>
+            </div>
+            <div class="mt-4 grid gap-4 lg:grid-cols-2">
+              <section>
+                <p class="mb-2 text-xs font-black uppercase tracking-wide text-emerald-700">Offense</p>
+                ${gameDayAssignmentGridHtml(team, "offense", offense, { editable: true })}
+              </section>
+              <section>
+                <p class="mb-2 text-xs font-black uppercase tracking-wide text-sky-700">Defense</p>
+                ${gameDayAssignmentGridHtml(team, "defense", defense, { editable: true })}
+              </section>
+            </div>
+          </article>
+        `;
+      }
+
+      function gameDayTouchPriority(team) {
+        ensureTouchTracker(team);
+        const players = getActiveGamePlayers(team);
+        const ranked = players
+          .map((player) => ({ player, count: Number(team.touchTracker.counts?.[player.id] || 0) }))
+          .sort((a, b) => a.count - b.count || comparePlayers(a.player, b.player));
+        const totalTouches = ranked.reduce((sum, item) => sum + item.count, 0);
+        const minTouches = ranked.length ? ranked[0].count : 0;
+        const maxTouches = ranked.length ? Math.max(...ranked.map((item) => item.count)) : 0;
+        const zero = ranked.filter((item) => item.count === 0);
+        const lowest = ranked.filter((item) => item.count === minTouches);
+        return { ranked, zero, lowest, minTouches, maxTouches, totalTouches };
+      }
+
+      function gameDayTouchPrioritySummaryHtml(team) {
+        const priority = gameDayTouchPriority(team);
+        const top = priority.ranked.slice(0, 4);
+        const headline = priority.zero.length
+          ? `${priority.zero.length} need first touch`
+          : priority.maxTouches === priority.minTouches
+            ? "Touches are even"
+            : "Spread the ball";
+        return `
+          <article class="rounded-[28px] border border-emerald-100 bg-emerald-50 p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Touch priority</p>
+                <h3 class="mt-1 text-2xl font-black text-slate-950">${escapeHtml(headline)}</h3>
+                <p class="mt-1 text-sm font-bold text-slate-600">${priority.totalTouches} total touches tracked</p>
+              </div>
+              <span class="rounded-2xl bg-white px-3 py-2 text-sm font-black text-emerald-800 shadow-sm">${priority.minTouches}-${priority.maxTouches}</span>
+            </div>
+            <div class="mt-4 grid gap-2">
+              ${top.length ? top.map((item, index) => `
+                <div class="flex items-center justify-between rounded-2xl bg-white/90 px-3 py-2 shadow-sm">
+                  <span class="font-black text-slate-950">${index + 1}. ${escapeHtml(playerLabel(item.player))}</span>
+                  <span class="rounded-full ${item.count === priority.minTouches ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"} px-3 py-1 text-sm font-black">${item.count}</span>
+                </div>
+              `).join("") : '<p class="text-sm font-bold text-slate-600">Mark attendance to see touch priorities.</p>'}
+            </div>
+          </article>
+        `;
+      }
+
+      function gameDayCoreTouchTrackerHtml(team) {
+        const priority = gameDayTouchPriority(team);
+        const players = priority.ranked;
+        return `
+          <article class="rounded-[30px] border border-indigo-100 bg-white/95 p-4 shadow-sm">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-xs font-black uppercase tracking-wide text-indigo-700">Assistant tracker</p>
+                <h3 class="mt-1 text-2xl font-black text-slate-950">Tap who got the ball</h3>
+                <p class="mt-1 text-sm font-bold leading-5 text-slate-600">Counts save separately from the lineup and drive arrows.</p>
+              </div>
+              <button class="min-h-11 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="core-undo-touch">Undo</button>
+            </div>
+            <div class="mt-4 grid gap-2 sm:grid-cols-2">
+              ${players.length ? players.map((item) => {
+                const isLowest = item.count === priority.minTouches && priority.maxTouches > priority.minTouches;
+                const isZero = item.count === 0;
+                const tone = isZero ? "border-red-400 bg-red-50 text-red-950" : isLowest ? "border-orange-300 bg-orange-50 text-orange-950" : "border-emerald-300 bg-emerald-50 text-emerald-950";
+                return `
+                  <button class="min-h-16 rounded-2xl border-2 ${tone} p-3 text-left active:brightness-95" type="button" data-game-action="core-add-touch" data-player-id="${escapeHtml(item.player.id)}">
+                    <span class="flex items-center justify-between gap-3">
+                      <span>
+                        <span class="block text-lg font-black">${escapeHtml(playerLabel(item.player))}</span>
+                        <span class="text-xs font-black uppercase tracking-wide">${isZero ? "Needs first touch" : isLowest ? "Target soon" : "Good"}</span>
+                      </span>
+                      <span class="rounded-xl bg-white px-3 py-2 text-xl font-black shadow-sm">${item.count}</span>
+                    </span>
+                  </button>
+                `;
+              }).join("") : '<div class="empty-state text-sm font-bold">No present players selected yet.</div>'}
+            </div>
+          </article>
+        `;
       }
 
       function currentGameDriveEntry(team) {
@@ -6894,143 +7139,168 @@
         const division = getTeamDivision(team);
         const activePlayers = getActiveGamePlayers(team);
         const missingPlayers = getMissingGamePlayers(team);
-        const touches = gameDayPriorityTouchNames(team);
+        const issues = gameDayLineupIssues(team);
         const enoughPlayers = activePlayers.length >= division.minPlayersToPlay;
         const lineupReady = Boolean(team.lastLineupPlan?.ok);
-        const notesReady = Boolean(team.touchTracker?.gameNotes?.trim());
-        const startLabel = headCoach ? "Start Game" : "Open Live Tracker";
-        const lineupSection = headCoach ? "lineupPlannerSection" : "sharedLineupSection";
-        const checklist = [
-          {
-            label: "Attendance",
-            value: `${activePlayers.length}/${team.roster.length || 0} present`,
-            detail: missingPlayers.length ? `Missing: ${missingPlayers.map((player) => player.name).slice(0, 3).join(", ")}` : "Everyone is marked in.",
-            ready: enoughPlayers,
-            actionLabel: headCoach ? "Set attendance" : "View status",
-            section: headCoach ? "lineupPlannerSection" : ""
-          },
-          {
-            label: "Lineup",
-            value: lineupReady ? "Ready" : "Needs board",
-            detail: lineupReady ? "Shared with assistant coaches." : headCoach ? "Build before kickoff." : "Waiting on head coach.",
-            ready: lineupReady,
-            actionLabel: headCoach ? "Build lineup" : "View lineup",
-            section: lineupSection
-          },
-          {
-            label: "Touch goal",
-            value: touches.noTouchCount ? `${touches.noTouchCount} need first touch` : "Balanced",
-            detail: touches.zeroTouchNames || "Keep touches even as the game moves.",
-            ready: !touches.noTouchCount,
-            actionLabel: "Open tracker",
-            section: "touchTrackerSection"
-          },
-          {
-            label: "Notes",
-            value: notesReady ? "Ready" : "Optional",
-            detail: notesReady ? team.touchTracker.gameNotes.trim().slice(0, 72) : "Add reminders for helpers, matchups, or rotation notes.",
-            ready: true,
-            actionLabel: "Open notes",
-            section: "gameNotesSection"
-          }
-        ];
+        const coreReady = lineupReady && enoughPlayers && issues.length === 0;
+        const attendanceHtml = [...(team.roster || [])].sort(comparePlayers).map((player) => {
+          const checked = activePlayers.some((active) => active.id === player.id) ? "checked" : "";
+          return `
+            <label class="flex min-h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 font-black shadow-sm">
+              <input class="h-6 w-6 accent-emerald-700" type="checkbox" data-core-attendance="true" value="${escapeHtml(player.id)}" ${checked} ${headCoach ? "" : "disabled"} />
+              <span>${escapeHtml(playerLabel(player))}</span>
+            </label>
+          `;
+        }).join("");
+        const driveCount = Math.max(1, gameDayDriveCount(team));
+        const editorHtml = headCoach && lineupReady
+          ? Array.from({ length: driveCount }, (_, index) => gameDayDriveEditorHtml(team, index)).join("")
+          : "";
+        const assistantPreview = !headCoach && lineupReady
+          ? `
+            <div class="grid gap-3">
+              ${gameDayDriveNavigatorHtml(team, false)}
+              <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-sky-700">Shared lineup</p>
+                <h3 class="mt-1 text-xl font-black text-slate-950">Head coach board</h3>
+                <div class="mt-4 grid gap-4 lg:grid-cols-2">
+                  <section>
+                    <p class="mb-2 text-xs font-black uppercase tracking-wide text-emerald-700">Offense</p>
+                    ${gameDayAssignmentGridHtml(team, "offense", team.lastLineupPlan.offense?.[0], { compact: false })}
+                  </section>
+                  <section>
+                    <p class="mb-2 text-xs font-black uppercase tracking-wide text-sky-700">Defense</p>
+                    ${gameDayAssignmentGridHtml(team, "defense", team.lastLineupPlan.defense?.[0], { compact: false })}
+                  </section>
+                </div>
+              </article>
+            </div>
+          `
+          : "";
+        const issueHtml = issues.length
+          ? `<div class="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-black leading-6 text-amber-950">${escapeHtml(issues.slice(0, 3).join(" • "))}${issues.length > 3 ? " ..." : ""}</div>`
+          : '<div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-black text-emerald-950">Lineups are ready.</div>';
 
         return `
           <div class="grid gap-4">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="game-section-pill">Pregame setup</span>
-              <span class="game-section-pill">${escapeHtml(division.divisionName)}</span>
-              <span class="game-section-pill">${division.playersOnField} on field</span>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-              ${checklist.map(gameDayChecklistItemHtml).join("")}
-            </div>
-            <div class="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
-              <article class="rounded-[24px] bg-white/80 p-4 shadow-sm">
-                <div class="flex items-center justify-between gap-3">
+            <article class="game-live-card overflow-hidden p-4 text-white sm:p-5">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Game Day Core</p>
+                  <h3 class="mt-1 text-3xl font-black leading-tight">Pregame setup</h3>
+                  <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">${headCoach ? "Set who is here, build the drive board, then start live mode." : "Waiting on the head coach's board. You will track touches once live."}</p>
+                </div>
+                <span class="rounded-full bg-white/12 px-3 py-2 text-xs font-black text-emerald-100">${activePlayers.length}/${team.roster.length || 0} present</span>
+              </div>
+              <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                <div class="rounded-3xl bg-white/10 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Minimum</p>
+                  <p class="mt-1 text-3xl font-black">${division.minPlayersToPlay}</p>
+                </div>
+                <div class="rounded-3xl bg-white/10 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">On field</p>
+                  <p class="mt-1 text-3xl font-black">${division.playersOnField}</p>
+                </div>
+                <div class="rounded-3xl bg-white/10 p-4">
+                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Board</p>
+                  <p class="mt-1 text-3xl font-black">${lineupReady ? driveCount : 0}</p>
+                </div>
+              </div>
+            </article>
+
+            ${headCoach ? `
+              <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Opening lineup</p>
-                    <h3 class="mt-1 text-xl font-black text-slate-950">Who starts first</h3>
+                    <p class="text-xs font-black uppercase tracking-wide text-emerald-700">1. Attendance</p>
+                    <h3 class="mt-1 text-2xl font-black text-slate-950">Who showed up?</h3>
                   </div>
-                  <button class="min-h-10 rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-game-action="go-section" data-section="${escapeHtml(lineupSection)}">
-                    ${lineupReady ? "View board" : headCoach ? "Build board" : "View"}
-                  </button>
+                  <div class="flex gap-2">
+                    <button class="min-h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="core-mark-all">All</button>
+                    <button class="min-h-10 rounded-full border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="core-mark-none">None</button>
+                  </div>
                 </div>
-                <div class="mt-3">${gameDayLineupChipsHtml(team, "offense")}</div>
+                <div class="mt-4 grid gap-2 sm:grid-cols-2">${attendanceHtml || '<div class="empty-state">Add roster kids on the Team tab first.</div>'}</div>
+                <button class="primary-button mt-4 w-full" type="button" data-game-action="core-build-lineups" ${!enoughPlayers ? "disabled aria-disabled=\"true\"" : ""}>Build drive lineups</button>
+                ${!enoughPlayers ? `<p class="mt-2 text-sm font-black text-red-700">Need at least ${division.minPlayersToPlay} players. You marked ${activePlayers.length}.</p>` : ""}
               </article>
-              <article class="rounded-[24px] bg-white/80 p-4 shadow-sm">
-                <p class="text-xs font-black uppercase tracking-wide text-slate-500">First subs / next up</p>
-                <p class="mt-2 text-base font-black leading-6 text-slate-950">${escapeHtml(gameDayFirstSubsHtml(team))}</p>
-                <p class="mt-3 text-sm font-bold leading-6 text-slate-600">${headCoach ? "Start Game opens a focused sideline view with touch tracking up front." : "Assistant view keeps the shared lineup and live touch tracker easy to reach."}</p>
-                <div class="mt-4 grid gap-2">
-                  ${headCoach && missingPlayers.length
-                    ? '<button class="min-h-11 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-2 text-sm font-black text-emerald-800 shadow-sm active:bg-emerald-50" type="button" data-game-action="late-player">Player arrived</button>'
-                    : ""}
-                  <button class="min-h-12 w-full rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button" data-game-action="start-game-day">
-                    ${escapeHtml(startLabel)}
-                  </button>
+              <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p class="text-xs font-black uppercase tracking-wide text-sky-700">2. Drive board</p>
+                    <h3 class="mt-1 text-2xl font-black text-slate-950">Offense + defense assignments</h3>
+                  </div>
+                  <button class="min-h-12 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-sm active:bg-emerald-800" type="button" data-game-action="start-game-day" ${!coreReady ? "disabled aria-disabled=\"true\"" : ""}>Start Game</button>
                 </div>
+                <div class="mt-3">${issueHtml}</div>
+                <div class="mt-4 grid gap-4">${editorHtml || '<div class="empty-state text-sm font-bold">Build drive lineups after marking attendance.</div>'}</div>
               </article>
-            </div>
+            ` : assistantPreview || `
+              <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-sky-700">Assistant view</p>
+                <h3 class="mt-1 text-2xl font-black text-slate-950">Waiting for lineup</h3>
+                <p class="mt-2 text-sm font-bold leading-6 text-slate-600">The head coach will build and start the game. Your touch tracker appears in live mode.</p>
+              </article>
+            `}
           </div>
         `;
       }
 
       function renderLiveGameMode(team, headCoach) {
         const activePlayers = getActiveGamePlayers(team);
-        const missingPlayers = getMissingGamePlayers(team);
-        const touches = gameDayPriorityTouchNames(team);
         const startedAt = formatGameSessionTime(state.gameSession?.startedAt);
         const roleLabelText = headCoach ? "Head coach controls" : "Assistant tracker";
         const driveEntry = currentGameDriveEntry(team);
         const currentLabel = driveEntry?.label || "No lineup selected";
         const nextDriveLabel = driveEntry?.next?.label || "No next drive generated.";
+        const currentDriveIndex = driveEntry?.index || 0;
+        const currentOffense = team.lastLineupPlan?.offense?.[currentDriveIndex] || null;
+        const currentDefense = team.lastLineupPlan?.defense?.[currentDriveIndex] || null;
+        const nextEntry = driveEntry?.next || null;
+        const nextUnit = nextEntry ? nextEntry.item : null;
         return `
           <div class="grid gap-4">
             <article class="game-live-card overflow-hidden p-4 text-white sm:p-5">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Live game mode</p>
-                  <h3 class="mt-1 text-3xl font-black leading-tight">Sideline board</h3>
+                  <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Live Game Core</p>
+                  <h3 class="mt-1 text-3xl font-black leading-tight">${escapeHtml(currentLabel)}</h3>
                   <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">${escapeHtml(roleLabelText)} - ${escapeHtml(currentLabel)}${startedAt ? ` - started ${escapeHtml(startedAt)}` : ""}</p>
                 </div>
                 <span class="rounded-full bg-white/12 px-3 py-2 text-xs font-black text-emerald-100">${activePlayers.length} active</span>
               </div>
-              <div class="mt-5 grid gap-3 sm:grid-cols-3">
-                <div class="rounded-3xl bg-white/10 p-4">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Total touches</p>
-                  <p class="mt-1 text-4xl font-black">${touches.totalTouches}</p>
-                </div>
-                <div class="rounded-3xl bg-white/10 p-4 sm:col-span-2">
-                  <p class="text-[11px] font-black uppercase tracking-wide text-slate-300">Needs the ball</p>
-                  <p class="mt-1 text-xl font-black">${escapeHtml(touches.lowTouchNames || "Start tracking touches below")}</p>
-                </div>
+              <div class="mt-5">
+                ${gameDayDriveNavigatorHtml(team, headCoach)}
               </div>
-              <div class="mt-4 grid gap-2 sm:grid-cols-${headCoach && missingPlayers.length ? "4" : "3"}">
-                <button class="min-h-12 rounded-2xl bg-emerald-500 px-4 py-3 text-sm font-black text-slate-950 active:bg-emerald-400" type="button" data-game-action="go-section" data-section="touchTrackerSection">Track touch</button>
-                <button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="go-section" data-section="${headCoach ? "lineupPlannerSection" : "sharedLineupSection"}">Current lineup</button>
-                ${
-                  headCoach
-                    ? `${missingPlayers.length ? '<button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="late-player">Player arrived</button>' : ""}<button class="min-h-12 rounded-2xl border border-red-200/50 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="end-game-day">End game</button>`
-                    : '<button class="min-h-12 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="return-pregame">Close live view</button>'
-                }
+              <div class="mt-4 grid gap-2 sm:grid-cols-${headCoach ? "3" : "1"}">
+                ${headCoach ? '<button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="return-pregame">Pregame edits</button>' : ""}
+                <button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="refresh-core">Refresh</button>
+                ${headCoach
+                  ? '<button class="min-h-12 rounded-2xl border border-red-200/50 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="end-game-day">End game</button>'
+                  : ""}
               </div>
             </article>
-            ${gameDayDriveNavigatorHtml(team, headCoach)}
-            <div class="grid gap-3 lg:grid-cols-[1fr_0.9fr]">
-              <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
-                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Now</p>
-                <h3 class="mt-1 text-xl font-black text-slate-950">${escapeHtml(currentLabel)}</h3>
-                <div class="mt-3">${gameDayLineupChipsHtml(team, driveEntry?.side || "offense", driveEntry?.item || null)}</div>
+
+            <div class="grid gap-3 lg:grid-cols-[1fr_1fr]">
+              <article class="rounded-[28px] bg-white/95 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Current drive offense</p>
+                <h3 class="mt-1 text-xl font-black text-slate-950">Drive ${currentDriveIndex + 1}</h3>
+                <div class="mt-3">${gameDayAssignmentGridHtml(team, "offense", currentOffense, { compact: false })}</div>
               </article>
-              <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
-                <p class="text-xs font-black uppercase tracking-wide text-indigo-700">Next</p>
-                <h3 class="mt-1 text-xl font-black text-slate-950">Rotation and notes</h3>
-                <p class="mt-2 text-sm font-bold leading-6 text-slate-600">${escapeHtml(nextDriveLabel)}</p>
-                <p class="mt-2 text-xs font-bold leading-5 text-slate-500">Arrows only change the displayed drive. Touches and stats stay as-is.</p>
-                <button class="mt-4 min-h-11 w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="go-section" data-section="gameNotesSection">Open notes</button>
+              <article class="rounded-[28px] bg-white/95 p-4 shadow-sm">
+                <p class="text-xs font-black uppercase tracking-wide text-sky-700">Current drive defense</p>
+                <h3 class="mt-1 text-xl font-black text-slate-950">Drive ${currentDriveIndex + 1}</h3>
+                <div class="mt-3">${gameDayAssignmentGridHtml(team, "defense", currentDefense, { compact: false })}</div>
               </article>
             </div>
+
+            <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
+              <p class="text-xs font-black uppercase tracking-wide text-indigo-700">Next up</p>
+              <h3 class="mt-1 text-xl font-black text-slate-950">${escapeHtml(nextDriveLabel)}</h3>
+              <div class="mt-3">${nextUnit ? gameDayAssignmentGridHtml(team, nextEntry.side, nextUnit, { compact: true }) : '<div class="empty-state text-sm font-bold">No next drive generated.</div>'}</div>
+            </article>
+
+            ${headCoach ? gameDayTouchPrioritySummaryHtml(team) : gameDayCoreTouchTrackerHtml(team)}
           </div>
         `;
       }
@@ -7082,7 +7352,7 @@
               <article class="rounded-[24px] bg-white/90 p-4 shadow-sm">
                 <div class="flex items-center justify-between gap-3">
                   <h3 class="text-xl font-black text-slate-950">Touch counts</h3>
-                  <button class="min-h-10 rounded-full bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="go-section" data-section="touchTrackerSection">Edit counts</button>
+                  <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">Final</span>
                 </div>
                 <div class="mt-3 grid gap-2">${countsHtml || '<p class="text-sm font-bold text-slate-600">No active players yet.</p>'}</div>
               </article>
@@ -7091,7 +7361,6 @@
                 <p class="mt-2 text-sm font-bold leading-6 text-slate-600">${escapeHtml(notes || "Add notes about what worked, what broke, and what to practice next.")}</p>
                 <p class="mt-3 text-sm font-bold leading-6 text-slate-500">${escapeHtml(missingPlayers.length ? `Missing: ${missingPlayers.map((player) => player.name).join(", ")}` : "No missing players marked.")}</p>
                 <div class="mt-4 grid gap-2">
-                  <button class="min-h-11 rounded-2xl bg-slate-950 px-4 py-2 text-sm font-black text-white active:bg-slate-800" type="button" data-game-action="go-section" data-section="gameNotesSection">Update notes</button>
                   <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="return-pregame">Back to pregame</button>
                 </div>
               </article>
@@ -7124,18 +7393,9 @@
         const headCoach = isHeadCoach(team);
         const mode = getGameDayMode(team);
         const modeLabel = mode === "live" ? "Live" : mode === "recap" ? "Recap" : "Pregame";
-        const canOpenRecap = headCoach && mode === "live";
-        const modeHelper =
-          mode === "pregame"
-            ? "Use Start Game when you are ready for the sideline tracker."
-            : mode === "live"
-              ? headCoach
-                ? "End Game moves this into a recap."
-                : "You can track touches here. The head coach controls ending the game."
-              : "Recap uses the attendance, touches, and notes already tracked.";
         els.gameDayStage.dataset.mode = mode;
-        els.gamePrimaryAction.textContent = mode === "live" ? "Track Touches" : headCoach ? "Build Lineup" : "View Lineup";
-        els.gamePrimaryAction.setAttribute("href", mode === "live" ? "#touchTrackerSection" : headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
+        els.gamePrimaryAction.textContent = mode === "live" ? "Live Board" : headCoach ? "Setup Game" : "View Board";
+        els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
 
         const stageHtml =
           mode === "live"
@@ -7145,29 +7405,211 @@
               : renderPregameSetup(team, headCoach);
 
         els.gameDayStage.innerHTML = `
-          <div class="mb-4 grid gap-2">
-            <div class="grid grid-cols-3 gap-2 rounded-full bg-white/70 p-1 shadow-sm">
-              ${gameModeStepButtonHtml({ label: "Pregame", currentMode: mode, targetMode: "pregame", action: "return-pregame" })}
-              ${gameModeStepButtonHtml({ label: mode === "pregame" ? "Start Live" : "Live", currentMode: mode, targetMode: "live", action: "start-game-day" })}
-              ${gameModeStepButtonHtml({ label: "Recap", currentMode: mode, targetMode: "recap", action: "end-game-day", disabled: !canOpenRecap && mode !== "recap" })}
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="game-section-pill">Core mode: ${escapeHtml(modeLabel)}</span>
+              <span class="game-section-pill">${headCoach ? "Head coach" : "Assistant"}</span>
             </div>
-            <p class="px-2 text-xs font-bold leading-5 text-slate-600">${escapeHtml(modeHelper)} Current mode: ${escapeHtml(modeLabel)}.</p>
+            <span class="game-section-pill">Lineups and touches save separately</span>
           </div>
           ${stageHtml}
         `;
 
-        if (mode === "live") {
-          els.touchTrackerSection.open = true;
-          els.lineupPlannerSection.open = headCoach;
-          els.sharedLineupSection.open = !headCoach;
-          els.gamePlanningSection.open = false;
-          els.gameNotesSection.open = false;
+        els.touchTrackerSection.classList.add("hidden");
+        els.lineupPlannerSection.classList.add("hidden");
+        els.sharedLineupSection.classList.add("hidden");
+        els.gamePlanningSection.classList.add("hidden");
+        els.gameNotesSection.classList.add("hidden");
+        syncGameDayCorePolling();
+      }
+
+      function getCoreAttendanceIdsFromStage() {
+        const inputs = [...els.gameDayStage.querySelectorAll("input[data-core-attendance]")];
+        if (!inputs.length) return getAttendingPlayerIds();
+        return inputs.filter((input) => input.checked).map((input) => input.value);
+      }
+
+      function setCoreAttendanceChecked(checked) {
+        els.gameDayStage.querySelectorAll("input[data-core-attendance]").forEach((input) => {
+          input.checked = checked;
+        });
+        const team = getSelectedTeam();
+        if (!team) return;
+        team.attendance = getCoreAttendanceIdsFromStage();
+        saveState();
+        renderGameDaySummary();
+        renderGameDayExperience();
+        setGameSyncStatus("idle", "Attendance is local until you build drive lineups.");
+      }
+
+      async function saveGameDayCorePlan({ savingMessage = "Saving lineup board...", successMessage = "Lineup board synced." } = {}) {
+        const team = getSelectedTeam();
+        if (!team?.cloudId || !isHeadCoach(team)) return;
+        ensureGameDayCorePlan(team);
+        await updateSelectedCloudTeamFields({
+          attendance: team.attendance || [],
+          lineup_plan: team.lastLineupPlan
+        }, { savingMessage, successMessage });
+      }
+
+      async function buildGameDayCoreLineups() {
+        const team = getSelectedTeam();
+        if (!team || !isHeadCoach(team)) return;
+        if (state.lineupBuildInFlight) return;
+
+        state.lineupBuildInFlight = true;
+        setGameSyncStatus("saving", "Building drive lineups...");
+        try {
+          const attendingIds = getCoreAttendanceIdsFromStage();
+          team.attendance = attendingIds;
+          const plan = generateRotationBoard(team, attendingIds);
+          team.lastLineupPlan = plan;
+          ensureGameDayCorePlan(team);
+          renderLineupResults(plan);
+          renderDefenseAudit(plan);
+          renderGameDaySummary();
+          renderGameDayExperience();
+          await saveGameDayCorePlan({
+            savingMessage: "Saving drive lineups...",
+            successMessage: "Drive lineups synced. Touches unchanged."
+          });
+          if (plan.ok) {
+            setAppStatus("Drive lineups are ready.", "success");
+          } else {
+            setAppStatus(plan.warnings?.[0] || "Coachify could not build drive lineups.", "danger");
+          }
+        } catch (error) {
+          setAppStatus(error.message || "Coachify could not build drive lineups.", "danger");
+          setGameSyncStatus("error", error.message || "Lineup save failed.");
+        } finally {
+          state.lineupBuildInFlight = false;
+          renderGameDayExperience();
+        }
+      }
+
+      async function updateGameDayCoreAssignment(select) {
+        const team = getSelectedTeam();
+        if (!team || !isHeadCoach(team)) return;
+        const side = select.dataset.side === "defense" ? "defense" : "offense";
+        const driveIndex = Number.parseInt(select.dataset.driveIndex, 10);
+        const position = select.dataset.position;
+        if (!Number.isInteger(driveIndex) || !position) return;
+
+        const unit = gameDayUnitFor(team, side, driveIndex);
+        if (select.value) {
+          unit.lineup[position] = select.value;
+        } else {
+          delete unit.lineup[position];
+        }
+        team.lastLineupPlan.ok = true;
+        ensureGameDayCorePlan(team);
+        saveState();
+        renderGameDaySummary();
+        renderGameDayExperience();
+        try {
+          await saveGameDayCorePlan({
+            savingMessage: "Saving assignment...",
+            successMessage: "Assignment synced."
+          });
+        } catch (error) {
+          setAppStatus(error.message || "Coachify could not save that assignment.", "danger");
+        }
+      }
+
+      async function duplicatePreviousGameDayCoreDrive(driveIndex) {
+        const team = getSelectedTeam();
+        if (!team || !isHeadCoach(team) || driveIndex <= 0) return;
+        ensureGameDayCorePlan(team);
+        for (const side of ["offense", "defense"]) {
+          const previous = gameDayUnitFor(team, side, driveIndex - 1);
+          const current = gameDayUnitFor(team, side, driveIndex);
+          current.lineup = { ...(previous.lineup || {}) };
+        }
+        saveState();
+        renderGameDayExperience();
+        await saveGameDayCorePlan({
+          savingMessage: "Duplicating previous drive...",
+          successMessage: "Drive duplicated and synced."
+        }).catch((error) => setAppStatus(error.message || "Coachify could not duplicate that drive.", "danger"));
+      }
+
+      async function clearGameDayCoreDrive(driveIndex) {
+        const team = getSelectedTeam();
+        if (!team || !isHeadCoach(team)) return;
+        if (!confirm(`Clear Drive ${driveIndex + 1} offense and defense assignments?`)) return;
+        ensureGameDayCorePlan(team);
+        for (const side of ["offense", "defense"]) {
+          const unit = gameDayUnitFor(team, side, driveIndex);
+          unit.lineup = {};
+        }
+        saveState();
+        renderGameDayExperience();
+        await saveGameDayCorePlan({
+          savingMessage: "Clearing drive...",
+          successMessage: "Drive cleared and synced."
+        }).catch((error) => setAppStatus(error.message || "Coachify could not clear that drive.", "danger"));
+      }
+
+      async function addGameDayCoreTouch(button) {
+        const team = getSelectedTeam();
+        if (!team) return;
+        const playerId = button.dataset.playerId;
+        if (!playerId) return;
+        button.disabled = true;
+        try {
+          const driveIndex = Number.isInteger(state.gameSession?.driveStepIndex) ? state.gameSession.driveStepIndex : 0;
+          await saveTouchTrackerRpc("add_team_touch", {
+            p_team_id: team.cloudId,
+            p_player_id: playerId
+          }, (tracker) => {
+            tracker.counts[playerId] = (tracker.counts[playerId] || 0) + 1;
+            tracker.history.push({
+              playerId,
+              driveIndex,
+              timestamp: new Date().toISOString(),
+              createdBy: state.user?.id || null
+            });
+          }, {
+            savingMessage: "Saving touch...",
+            successMessage: `${playerLabel(team.roster.find((player) => player.id === playerId) || { name: "Player" })} touch synced.`
+          });
+        } catch (error) {
+          setAppStatus(error.message || "Coachify could not sync that touch. Try again.", "danger");
+        } finally {
+          button.disabled = false;
+        }
+      }
+
+      async function undoGameDayCoreTouch(button) {
+        const team = getSelectedTeam();
+        if (!team) return;
+        button.disabled = true;
+        try {
+          await saveTouchTrackerRpc("undo_team_touch", {
+            p_team_id: team.cloudId
+          }, (tracker) => {
+            const lastTouch = tracker.history.pop();
+            if (!lastTouch) return;
+            tracker.counts[lastTouch.playerId] = Math.max(0, (tracker.counts[lastTouch.playerId] || 0) - 1);
+          }, {
+            savingMessage: "Undoing last touch...",
+            successMessage: "Last touch undone."
+          });
+        } catch (error) {
+          setAppStatus(error.message || "Coachify could not undo that touch. Try refresh.", "danger");
+        } finally {
+          button.disabled = false;
         }
       }
 
       async function ensureLineupReadyForGameStart(team, headCoach) {
         if (!team) return false;
-        if (team.lastLineupPlan?.ok && gameDayDriveSequence(team).length) return true;
+        if (team.lastLineupPlan?.ok && gameDayDriveSequence(team).length) {
+          const issues = gameDayLineupIssues(team);
+          if (!issues.length) return true;
+          setAppStatus(`Finish the lineup first: ${issues[0]}`, "warning");
+          return false;
+        }
 
         if (!headCoach) {
           setAppStatus("Waiting for the head coach to build the lineup before live mode.", "warning");
@@ -7193,6 +7635,13 @@
           if (!plan.ok) {
             setLineupBuildStatus(plan.warnings?.[0] || "Coachify needs a valid lineup before starting live mode.", "danger");
             setAppStatus("Build the lineup before starting live mode.", "warning");
+            return false;
+          }
+
+          const issues = gameDayLineupIssues(team);
+          if (issues.length) {
+            setLineupBuildStatus(issues[0], "danger");
+            setAppStatus(`Finish the lineup first: ${issues[0]}`, "warning");
             return false;
           }
 
@@ -8002,9 +8451,7 @@
             : `${division.playersOnField} on field. Mark attendance first.`;
         const nextCta = !hasRoster ? "Open Team" : snapshot.lineupReady ? "Open Game" : headCoach ? "Build Lineup" : "View Game";
         const nextSection = hasRoster && !snapshot.lineupReady
-          ? headCoach
-            ? "lineupPlannerSection"
-            : "sharedLineupSection"
+          ? "gameDayStage"
           : "";
         const activities = [];
 
@@ -8021,7 +8468,7 @@
 
         activities.push({
           tab: "game",
-          section: headCoach ? "lineupPlannerSection" : "sharedLineupSection",
+          section: "gameDayStage",
           icon: "GM",
           title: snapshot.lineupReady ? "Lineup saved" : "Lineup not built",
           detail: snapshot.lineupReady ? `${presentCount} players ready` : "Open Game when ready",
@@ -8030,7 +8477,7 @@
 
         activities.push({
           tab: "game",
-          section: "touchTrackerSection",
+          section: "gameDayStage",
           icon: "TR",
           title: "Touch tracker",
           detail: `${snapshot.totalTouches} total touches`,
@@ -8086,8 +8533,8 @@
               <h3 class="text-base font-black text-slate-950">Quick actions</h3>
             </div>
             <div class="grid grid-cols-2 gap-3 ${headCoach ? "sm:grid-cols-4" : "sm:grid-cols-3"}">
-              ${homeActionTileHtml({ tab: "game", section: headCoach ? "lineupPlannerSection" : "sharedLineupSection", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
-              ${homeActionTileHtml({ tab: "game", section: "touchTrackerSection", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
+              ${homeActionTileHtml({ tab: "game", section: "gameDayStage", icon: "LN", title: headCoach ? "Build lineup" : "View lineup", detail: headCoach ? "Game board" : "Coach plan", tone: "emerald" })}
+              ${homeActionTileHtml({ tab: "game", section: "gameDayStage", icon: "TR", title: "Track touches", detail: "Live counter", tone: "indigo" })}
               ${homeActionTileHtml({ tab: "practice", icon: "PR", title: "Practice plan", detail: headCoach ? "Build or open" : "Shared plans", tone: "sky" })}
               ${rosterActionHtml}
             </div>
@@ -8130,10 +8577,13 @@
         els.showInviteCardBtn.classList.toggle("hidden", !team.cloudId || !headCoach);
         els.leaveTeamBtn.classList.toggle("hidden", !team.cloudId || !isAssistantCoach(team));
         els.gameDayInviteCard.classList.add("hidden");
-        els.lineupPlannerSection.classList.toggle("hidden", !headCoach);
-        els.sharedLineupSection.classList.toggle("hidden", headCoach);
-        els.gamePrimaryAction.textContent = headCoach ? "Build Lineup" : "View Lineup";
-        els.gamePrimaryAction.setAttribute("href", headCoach ? "#lineupPlannerSection" : "#sharedLineupSection");
+        els.lineupPlannerSection.classList.add("hidden");
+        els.sharedLineupSection.classList.add("hidden");
+        els.touchTrackerSection.classList.add("hidden");
+        els.gamePlanningSection.classList.add("hidden");
+        els.gameNotesSection.classList.add("hidden");
+        els.gamePrimaryAction.textContent = headCoach ? "Setup Game" : "View Board";
+        els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
         els.generateLineupBtn.disabled = !headCoach || state.lineupBuildInFlight;
         els.generateLineupBtn.textContent = state.lineupBuildInFlight ? "Building lineup..." : "Build Lineup";
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
@@ -8302,6 +8752,48 @@
             scrollToSection(control.dataset.section);
             return;
           }
+          if (action === "core-mark-all") {
+            event.preventDefault();
+            setCoreAttendanceChecked(true);
+            return;
+          }
+          if (action === "core-mark-none") {
+            event.preventDefault();
+            setCoreAttendanceChecked(false);
+            return;
+          }
+          if (action === "core-build-lineups") {
+            event.preventDefault();
+            buildGameDayCoreLineups();
+            return;
+          }
+          if (action === "core-duplicate-drive") {
+            event.preventDefault();
+            duplicatePreviousGameDayCoreDrive(Number.parseInt(control.dataset.driveIndex, 10));
+            return;
+          }
+          if (action === "core-clear-drive") {
+            event.preventDefault();
+            clearGameDayCoreDrive(Number.parseInt(control.dataset.driveIndex, 10));
+            return;
+          }
+          if (action === "core-add-touch") {
+            event.preventDefault();
+            addGameDayCoreTouch(control);
+            return;
+          }
+          if (action === "core-undo-touch") {
+            event.preventDefault();
+            undoGameDayCoreTouch(control);
+            return;
+          }
+          if (action === "refresh-core") {
+            event.preventDefault();
+            refreshSelectedGameDayCore().catch((error) => {
+              setAppStatus(error.message || "Coachify could not refresh the game board.", "danger");
+            });
+            return;
+          }
           if (action === "start-game-day") {
             event.preventDefault();
             startGameDaySession();
@@ -8330,6 +8822,26 @@
           if (action === "return-pregame") {
             event.preventDefault();
             returnToPregameSetup();
+          }
+        });
+
+        els.gameDayPanel.addEventListener("change", (event) => {
+          const attendanceInput = event.target.closest("input[data-core-attendance]");
+          if (attendanceInput) {
+            const team = getSelectedTeam();
+            if (!team || !isHeadCoach(team)) return;
+            team.attendance = getCoreAttendanceIdsFromStage();
+            team.lastLineupPlan = null;
+            saveState();
+            renderGameDaySummary();
+            renderGameDayExperience();
+            setGameSyncStatus("idle", "Attendance changed. Build drive lineups to share it.");
+            return;
+          }
+
+          const assignmentSelect = event.target.closest("select[data-core-assignment]");
+          if (assignmentSelect) {
+            updateGameDayCoreAssignment(assignmentSelect);
           }
         });
 
