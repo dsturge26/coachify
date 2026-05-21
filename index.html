@@ -1343,7 +1343,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.20.2";
+      const APP_VERSION = "v0.20.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -7520,8 +7520,15 @@
         const mode = getGameDayMode(team);
         const modeLabel = mode === "live" ? "Live" : mode === "recap" ? "Recap" : "Pregame";
         els.gameDayStage.dataset.mode = mode;
-        els.gamePrimaryAction.textContent = mode === "live" ? "Live Board" : headCoach ? "Setup Game" : "View Board";
-        els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
+        if (mode === "recap" && headCoach) {
+          els.gamePrimaryAction.textContent = "Start new game";
+          els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
+          els.gamePrimaryAction.setAttribute("data-game-action", "start-new-game");
+        } else {
+          els.gamePrimaryAction.textContent = mode === "live" ? "Live Board" : headCoach ? "Setup Game" : "View Board";
+          els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
+          els.gamePrimaryAction.removeAttribute("data-game-action");
+        }
 
         const stageHtml =
           mode === "live"
@@ -8788,8 +8795,16 @@
         els.touchTrackerSection.classList.add("hidden");
         els.gamePlanningSection.classList.add("hidden");
         els.gameNotesSection.classList.add("hidden");
-        els.gamePrimaryAction.textContent = headCoach ? "Setup Game" : "View Board";
-        els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
+        const teamEditorMode = getGameDayMode(team);
+        if (teamEditorMode === "recap" && headCoach) {
+          els.gamePrimaryAction.textContent = "Start new game";
+          els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
+          els.gamePrimaryAction.setAttribute("data-game-action", "start-new-game");
+        } else {
+          els.gamePrimaryAction.textContent = headCoach ? "Setup Game" : "View Board";
+          els.gamePrimaryAction.setAttribute("href", "#gameDayStage");
+          els.gamePrimaryAction.removeAttribute("data-game-action");
+        }
         els.generateLineupBtn.disabled = !headCoach || state.lineupBuildInFlight;
         els.generateLineupBtn.textContent = state.lineupBuildInFlight ? "Building lineup..." : "Build Lineup";
         els.generateLineupBtn.classList.toggle("hidden", !headCoach);
