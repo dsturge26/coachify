@@ -1214,6 +1214,10 @@
             <p class="text-sm text-slate-600">These choices drive lineup colors, positions, and how many kids play at once.</p>
           </div>
           <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div class="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-3 py-2">
+              <span class="text-xs font-black uppercase tracking-wide text-slate-500">Sport</span>
+              <span id="teamSportLabel" class="text-sm font-black text-slate-900">Flag Football</span>
+            </div>
             <label class="block sm:col-span-2">
               <span class="text-sm font-bold text-slate-700">Team name</span>
               <input id="teamNameInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" placeholder="Boys 6U Tigers" required />
@@ -1222,7 +1226,7 @@
               <span class="text-sm font-bold text-slate-700">Division</span>
               <select id="divisionInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 bg-white px-3 text-base" required></select>
             </label>
-            <label class="block">
+            <label id="playersOnFieldField" class="block">
               <span class="text-sm font-bold text-slate-700">Players on field</span>
               <input id="playersOnFieldInput" class="mt-1 min-h-12 w-full rounded-md border border-slate-300 px-3 text-base" type="number" min="4" max="8" value="6" required />
             </label>
@@ -1341,6 +1345,37 @@
       </section>
     </main>
 
+    <dialog id="newTeamSportPicker" class="rounded-3xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-900/60">
+      <form method="dialog" class="w-[min(92vw,28rem)] space-y-4 p-5">
+        <div>
+          <p class="text-xs font-black uppercase tracking-wide text-emerald-700">New team</p>
+          <h2 class="mt-1 text-2xl font-black text-slate-950">Pick a sport</h2>
+          <p class="mt-1 text-sm font-semibold leading-6 text-slate-600">Coachify will load rules, positions, and game-day flow for the sport you pick.</p>
+        </div>
+        <div class="grid gap-3">
+          <button class="grid min-h-16 w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-left active:bg-emerald-100" type="button" data-new-team-sport="flag_football">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-emerald-700 text-sm font-black text-white">FF</span>
+            <span>
+              <span class="block text-base font-black text-slate-950">Flag Football</span>
+              <span class="block text-xs font-semibold text-slate-600">Drives, touches, rotation lineups</span>
+            </span>
+            <span class="text-2xl font-bold text-emerald-700">&rsaquo;</span>
+          </button>
+          <button class="grid min-h-16 w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-left active:bg-sky-100" type="button" data-new-team-sport="softball">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-sky-700 text-sm font-black text-white">SB</span>
+            <span>
+              <span class="block text-base font-black text-slate-950">Softball</span>
+              <span class="block text-xs font-semibold text-slate-600">Innings, fielding rotation, batting order</span>
+            </span>
+            <span class="text-2xl font-bold text-sky-700">&rsaquo;</span>
+          </button>
+        </div>
+        <div class="flex justify-end">
+          <button class="min-h-11 rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 active:bg-slate-100" type="button" data-new-team-sport="cancel">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
       const APP_VERSION = "v0.20.3";
@@ -1353,6 +1388,8 @@
         {
           divisionId: "boys-6u",
           divisionName: "Boys 6U",
+          sport: "flag_football",
+          sportName: "Flag Football",
           playersOnField: 6,
           minPlayersToPlay: 5,
           mustEveryPlayerTouchBall: true,
@@ -1400,6 +1437,8 @@
         {
           divisionId: "girls-10u",
           divisionName: "Girls 10U",
+          sport: "flag_football",
+          sportName: "Flag Football",
           playersOnField: 5,
           minPlayersToPlay: 4,
           mustEveryPlayerTouchBall: false,
@@ -1439,6 +1478,129 @@
           rotationStrategy: {
             offense: "two-play",
             defense: "two-play"
+          }
+        },
+        {
+          divisionId: "softball-7u",
+          divisionName: "7U",
+          sport: "softball",
+          sportName: "Softball",
+          playersOnField: 10,
+          minPlayersToStart: 8,
+          inningsPerGame: 6,
+          minInningsPerPlayer: 2,
+          fieldingPositions: ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "rover"],
+          actionPositions: ["P", "C", "1B", "SS"],
+          pitching: { mode: "coach-pitch", trackInnings: false, maxPerGame: null, maxPerWeek: null },
+          positionColors: {
+            P:  { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-950", badge: "bg-purple-700", badgeText: "text-white" },
+            C:  { bg: "bg-blue-100",   border: "border-blue-300",   text: "text-blue-950",   badge: "bg-blue-700",   badgeText: "text-white" },
+            "1B": { bg: "bg-green-100",  border: "border-green-300",  text: "text-green-950",  badge: "bg-green-700",  badgeText: "text-white" },
+            "2B": { bg: "bg-cyan-100",   border: "border-cyan-300",   text: "text-cyan-950",   badge: "bg-cyan-600",   badgeText: "text-white" },
+            "3B": { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-950", badge: "bg-orange-600", badgeText: "text-white" },
+            SS: { bg: "bg-pink-100",   border: "border-pink-300",   text: "text-pink-950",   badge: "bg-pink-600",   badgeText: "text-white" },
+            LF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            CF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            RF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            rover: { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-950", badge: "bg-amber-600", badgeText: "text-white" }
+          }
+        },
+        {
+          divisionId: "softball-8u",
+          divisionName: "8U",
+          sport: "softball",
+          sportName: "Softball",
+          playersOnField: 10,
+          minPlayersToStart: 8,
+          inningsPerGame: 6,
+          minInningsPerPlayer: 2,
+          fieldingPositions: ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "rover"],
+          actionPositions: ["P", "C", "1B", "SS"],
+          pitching: { mode: "coach-pitch", trackInnings: false, maxPerGame: null, maxPerWeek: null },
+          positionColors: {
+            P:  { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-950", badge: "bg-purple-700", badgeText: "text-white" },
+            C:  { bg: "bg-blue-100",   border: "border-blue-300",   text: "text-blue-950",   badge: "bg-blue-700",   badgeText: "text-white" },
+            "1B": { bg: "bg-green-100",  border: "border-green-300",  text: "text-green-950",  badge: "bg-green-700",  badgeText: "text-white" },
+            "2B": { bg: "bg-cyan-100",   border: "border-cyan-300",   text: "text-cyan-950",   badge: "bg-cyan-600",   badgeText: "text-white" },
+            "3B": { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-950", badge: "bg-orange-600", badgeText: "text-white" },
+            SS: { bg: "bg-pink-100",   border: "border-pink-300",   text: "text-pink-950",   badge: "bg-pink-600",   badgeText: "text-white" },
+            LF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            CF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            RF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            rover: { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-950", badge: "bg-amber-600", badgeText: "text-white" }
+          }
+        },
+        {
+          divisionId: "softball-10u",
+          divisionName: "10U",
+          sport: "softball",
+          sportName: "Softball",
+          playersOnField: 10,
+          minPlayersToStart: 8,
+          inningsPerGame: 6,
+          minInningsPerPlayer: 2,
+          fieldingPositions: ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "rover"],
+          actionPositions: ["P", "C", "1B", "SS"],
+          pitching: { mode: "player-pitch", trackInnings: true, maxPerGame: 3, maxPerWeek: null },
+          positionColors: {
+            P:  { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-950", badge: "bg-purple-700", badgeText: "text-white" },
+            C:  { bg: "bg-blue-100",   border: "border-blue-300",   text: "text-blue-950",   badge: "bg-blue-700",   badgeText: "text-white" },
+            "1B": { bg: "bg-green-100",  border: "border-green-300",  text: "text-green-950",  badge: "bg-green-700",  badgeText: "text-white" },
+            "2B": { bg: "bg-cyan-100",   border: "border-cyan-300",   text: "text-cyan-950",   badge: "bg-cyan-600",   badgeText: "text-white" },
+            "3B": { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-950", badge: "bg-orange-600", badgeText: "text-white" },
+            SS: { bg: "bg-pink-100",   border: "border-pink-300",   text: "text-pink-950",   badge: "bg-pink-600",   badgeText: "text-white" },
+            LF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            CF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            RF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            rover: { bg: "bg-amber-100", border: "border-amber-300", text: "text-amber-950", badge: "bg-amber-600", badgeText: "text-white" }
+          }
+        },
+        {
+          divisionId: "softball-12u",
+          divisionName: "12U",
+          sport: "softball",
+          sportName: "Softball",
+          playersOnField: 9,
+          minPlayersToStart: 8,
+          inningsPerGame: 6,
+          minInningsPerPlayer: 2,
+          fieldingPositions: ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF"],
+          actionPositions: ["P", "C", "1B", "SS"],
+          pitching: { mode: "player-pitch", trackInnings: true, maxPerGame: 3, maxPerWeek: 8 },
+          positionColors: {
+            P:  { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-950", badge: "bg-purple-700", badgeText: "text-white" },
+            C:  { bg: "bg-blue-100",   border: "border-blue-300",   text: "text-blue-950",   badge: "bg-blue-700",   badgeText: "text-white" },
+            "1B": { bg: "bg-green-100",  border: "border-green-300",  text: "text-green-950",  badge: "bg-green-700",  badgeText: "text-white" },
+            "2B": { bg: "bg-cyan-100",   border: "border-cyan-300",   text: "text-cyan-950",   badge: "bg-cyan-600",   badgeText: "text-white" },
+            "3B": { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-950", badge: "bg-orange-600", badgeText: "text-white" },
+            SS: { bg: "bg-pink-100",   border: "border-pink-300",   text: "text-pink-950",   badge: "bg-pink-600",   badgeText: "text-white" },
+            LF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            CF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            RF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" }
+          }
+        },
+        {
+          divisionId: "softball-15u",
+          divisionName: "15U",
+          sport: "softball",
+          sportName: "Softball",
+          playersOnField: 9,
+          minPlayersToStart: 8,
+          inningsPerGame: 6,
+          minInningsPerPlayer: 2,
+          fieldingPositions: ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF"],
+          actionPositions: ["P", "C", "1B", "SS"],
+          pitching: { mode: "player-pitch", trackInnings: true, maxPerGame: 3, maxPerWeek: 8 },
+          positionColors: {
+            P:  { bg: "bg-purple-100", border: "border-purple-300", text: "text-purple-950", badge: "bg-purple-700", badgeText: "text-white" },
+            C:  { bg: "bg-blue-100",   border: "border-blue-300",   text: "text-blue-950",   badge: "bg-blue-700",   badgeText: "text-white" },
+            "1B": { bg: "bg-green-100",  border: "border-green-300",  text: "text-green-950",  badge: "bg-green-700",  badgeText: "text-white" },
+            "2B": { bg: "bg-cyan-100",   border: "border-cyan-300",   text: "text-cyan-950",   badge: "bg-cyan-600",   badgeText: "text-white" },
+            "3B": { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-950", badge: "bg-orange-600", badgeText: "text-white" },
+            SS: { bg: "bg-pink-100",   border: "border-pink-300",   text: "text-pink-950",   badge: "bg-pink-600",   badgeText: "text-white" },
+            LF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            CF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" },
+            RF: { bg: "bg-slate-100",  border: "border-slate-300",  text: "text-slate-950",  badge: "bg-slate-600",  badgeText: "text-white" }
           }
         }
       ];
@@ -1774,6 +1936,7 @@
         setupSentInvitesList: document.querySelector("#setupSentInvitesList"),
         teamStorageBadge: document.querySelector("#teamStorageBadge"),
         newTeamBtn: document.querySelector("#newTeamBtn"),
+        newTeamSportPicker: document.querySelector("#newTeamSportPicker"),
         backToTeamsBtn: document.querySelector("#backToTeamsBtn"),
         deleteTeamBtn: document.querySelector("#deleteTeamBtn"),
         teamSetupSummary: document.querySelector("#teamSetupSummary"),
@@ -1781,6 +1944,8 @@
         teamNameInput: document.querySelector("#teamNameInput"),
         divisionInput: document.querySelector("#divisionInput"),
         playersOnFieldInput: document.querySelector("#playersOnFieldInput"),
+        playersOnFieldField: document.querySelector("#playersOnFieldField"),
+        teamSportLabel: document.querySelector("#teamSportLabel"),
         attendanceOptions: document.querySelector("#attendanceOptions"),
         lineupPlannerSection: document.querySelector("#lineupPlannerSection"),
         sharedLineupSection: document.querySelector("#sharedLineupSection"),
@@ -5903,7 +6068,20 @@
         return divisionConfigs.find((division) => division.divisionId === divisionId) || divisionConfigs[0];
       }
 
+      function getDivisionsForSport(sport) {
+        const normalized = sport || "flag_football";
+        return divisionConfigs.filter((division) => (division.sport || "flag_football") === normalized);
+      }
+
+      function getDefaultDivisionForSport(sport) {
+        return getDivisionsForSport(sport)[0] || divisionConfigs[0];
+      }
+
       function withDivisionSettings(baseDivision, settings = {}) {
+        // Softball divisions have a fixed fielder count by rules; skip the football-only clamp.
+        if ((baseDivision.sport || "flag_football") !== "flag_football") {
+          return baseDivision;
+        }
         const playersOnField = Math.max(4, Math.min(8, Number(settings.playersOnField) || baseDivision.playersOnField));
         return {
           ...baseDivision,
@@ -6069,6 +6247,7 @@
       function teamToCloudPayload(team) {
         return {
           name: team.name || "Untitled Team",
+          sport: team.sport || "flag_football",
           division_id: team.divisionId,
           division_settings: team.divisionSettings || { playersOnField: getTeamDivision(team).playersOnField },
           roster: team.roster || [],
@@ -6084,6 +6263,7 @@
           id: `cloud-${row.id}`,
           cloudId: row.id,
           name: row.name,
+          sport: row.sport || "flag_football",
           divisionId: row.division_id,
           divisionSettings: row.division_settings || {},
           createdBy: row.created_by,
@@ -6223,26 +6403,45 @@
         team.touchTracker.history = team.touchTracker.history.filter((entry) => rosterIds.has(entry.playerId));
       }
 
-      async function createTeam() {
+      function openNewTeamPicker() {
+        const dialog = els.newTeamSportPicker;
+        if (!dialog) {
+          createTeam("flag_football");
+          return;
+        }
+        if (typeof dialog.showModal === "function") {
+          dialog.showModal();
+        } else {
+          // Older browsers without <dialog> support: fall back to a basic prompt.
+          const pick = window.confirm("Create a Flag Football team?\n\nClick Cancel for Softball.");
+          createTeam(pick ? "flag_football" : "softball");
+        }
+      }
+
+      async function createTeam(sport = "flag_football") {
         const session = await requireCloudSession();
         if (!session) {
           els.cloudStatus.textContent = "Sign in or create an account before creating a team.";
+          alert("Sign in or create an account before creating a team.");
           render();
           return;
         }
 
-        const division = divisionConfigs[0];
+        const normalizedSport = sport === "softball" ? "softball" : "flag_football";
+        const division = getDefaultDivisionForSport(normalizedSport);
         const response = await cloud.rpc("create_team_as_head", {
           p_name: "Untitled Team",
           p_division_id: division.divisionId,
           p_roster: [],
           p_touch_tracker: emptyTouchTracker(),
           p_attendance: [],
-          p_lineup_plan: null
+          p_lineup_plan: null,
+          p_sport: normalizedSport
         });
 
         if (response.error) {
           els.cloudStatus.textContent = response.error.message;
+          alert(`Create team failed: ${response.error.message}`);
           return;
         }
 
@@ -6254,6 +6453,7 @@
 
         if (fetchError) {
           els.cloudStatus.textContent = fetchError.message;
+          alert(`Loading the new team failed: ${fetchError.message}`);
           return;
         }
 
@@ -6274,8 +6474,9 @@
         els.teamNameInput.focus();
       }
 
-      function renderDivisionOptions() {
-        els.divisionInput.innerHTML = divisionConfigs
+      function renderDivisionOptions(sport) {
+        const divisions = sport ? getDivisionsForSport(sport) : divisionConfigs;
+        els.divisionInput.innerHTML = divisions
           .map((division) => `<option value="${division.divisionId}">${division.divisionName}</option>`)
           .join("");
       }
@@ -6293,19 +6494,53 @@
       function renderPositionOptions(player = null) {
         const team = getSelectedTeam();
         const division = team ? getSetupDivision() : getDivision(els.divisionInput.value);
+        const isSoftball = (division.sport || "flag_football") === "softball";
+
+        // Defense fieldsets aren't meaningful for softball - hide them and reuse
+        // the offense pair as "preferred fielding" / "cannot fielding".
+        const defenseFieldsets = [
+          els.preferredDefenseOptions?.closest("fieldset"),
+          els.cannotDefenseOptions?.closest("fieldset")
+        ];
+        defenseFieldsets.forEach((fs) => fs?.classList.toggle("hidden", isSoftball));
+
+        const preferredOffenseLegend = els.preferredOffenseOptions?.closest("fieldset")?.querySelector("legend");
+        const cannotOffenseLegend = els.cannotOffenseOptions?.closest("fieldset")?.querySelector("legend");
+        if (preferredOffenseLegend) {
+          preferredOffenseLegend.textContent = isSoftball ? "Preferred fielding positions" : "Preferred offense positions";
+        }
+        if (cannotOffenseLegend) {
+          cannotOffenseLegend.textContent = isSoftball ? "Cannot-play fielding positions" : "Cannot-play offense positions";
+        }
+
+        if (isSoftball) {
+          const positions = division.fieldingPositions || [];
+          const preferred = player?.softballPositions?.preferred || [];
+          const cannot = player?.softballPositions?.cannot || [];
+          els.preferredOffenseOptions.innerHTML = positions
+            .map((position) => checkboxHtml("preferredOffense", position, preferred))
+            .join("");
+          els.cannotOffenseOptions.innerHTML = positions
+            .map((position) => checkboxHtml("cannotOffense", position, cannot))
+            .join("");
+          els.preferredDefenseOptions.innerHTML = "";
+          els.cannotDefenseOptions.innerHTML = "";
+          return;
+        }
+
         const preferred = player?.preferredPositions || { offense: [], defense: [] };
         const cannot = player?.cannotPlayPositions || { offense: [], defense: [] };
 
-        els.preferredOffenseOptions.innerHTML = division.offensePositions
+        els.preferredOffenseOptions.innerHTML = (division.offensePositions || [])
           .map((position) => checkboxHtml("preferredOffense", position, preferred.offense || []))
           .join("");
-        els.cannotOffenseOptions.innerHTML = division.offensePositions
+        els.cannotOffenseOptions.innerHTML = (division.offensePositions || [])
           .map((position) => checkboxHtml("cannotOffense", position, cannot.offense || []))
           .join("");
-        els.preferredDefenseOptions.innerHTML = division.defensePositions
+        els.preferredDefenseOptions.innerHTML = (division.defensePositions || [])
           .map((position) => checkboxHtml("preferredDefense", position, preferred.defense || []))
           .join("");
-        els.cannotDefenseOptions.innerHTML = division.defensePositions
+        els.cannotDefenseOptions.innerHTML = (division.defensePositions || [])
           .map((position) => checkboxHtml("cannotDefense", position, cannot.defense || []))
           .join("");
       }
@@ -6342,6 +6577,10 @@
           cannotPlayPositions: {
             offense: player.cannotPlayPositions?.offense || [],
             defense: player.cannotPlayPositions?.defense || []
+          },
+          softballPositions: {
+            preferred: player.softballPositions?.preferred || [],
+            cannot: player.softballPositions?.cannot || []
           }
         };
       }
@@ -8768,9 +9007,20 @@
         if (!team) return;
 
         renderGameDayTeamSelect();
+        const teamSport = team.sport || "flag_football";
+        renderDivisionOptions(teamSport);
+        const teamDivision = getTeamDivision(team);
+        if (els.teamSportLabel) {
+          els.teamSportLabel.textContent = teamDivision.sportName || (teamSport === "softball" ? "Softball" : "Flag Football");
+        }
+        const showPlayersOnField = teamSport === "flag_football";
+        els.playersOnFieldField?.classList.toggle("hidden", !showPlayersOnField);
+        if (els.playersOnFieldInput) {
+          els.playersOnFieldInput.required = showPlayersOnField;
+        }
         els.teamNameInput.value = team.name;
         els.divisionInput.value = team.divisionId;
-        els.playersOnFieldInput.value = getTeamDivision(team).playersOnField;
+        els.playersOnFieldInput.value = teamDivision.playersOnField;
         if (!els.practiceExpectedKidsInput.value) {
           els.practiceExpectedKidsInput.placeholder = `${team.roster.length || 0}`;
         }
@@ -8874,7 +9124,20 @@
       }
 
       function bindEvents() {
-        els.newTeamBtn.addEventListener("click", createTeam);
+        els.newTeamBtn.addEventListener("click", openNewTeamPicker);
+
+        if (els.newTeamSportPicker) {
+          els.newTeamSportPicker.addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-new-team-sport]");
+            if (!button) return;
+            event.preventDefault();
+            const choice = button.dataset.newTeamSport;
+            els.newTeamSportPicker.close();
+            if (choice === "flag_football" || choice === "softball") {
+              createTeam(choice);
+            }
+          });
+        }
 
         els.headerSignInBtn.addEventListener("click", signInToCloud);
         els.headerSignUpBtn.addEventListener("click", signUpToCloud);
@@ -9267,7 +9530,7 @@
           if (!button) return;
 
           if (button.dataset.action === "new-team") {
-            createTeam();
+            openNewTeamPicker();
           }
 
           if (button.dataset.action === "open-team") {
@@ -9291,7 +9554,11 @@
 
           const previousDivisionId = team.divisionId;
           const previousPlayersOnField = getTeamDivision(team).playersOnField;
-          const nextPlayersOnField = Math.max(4, Math.min(8, Number(els.playersOnFieldInput.value) || getDivision(els.divisionInput.value).playersOnField));
+          const nextDivision = getDivision(els.divisionInput.value);
+          const isFootball = (nextDivision.sport || "flag_football") === "flag_football";
+          const nextPlayersOnField = isFootball
+            ? Math.max(4, Math.min(8, Number(els.playersOnFieldInput.value) || nextDivision.playersOnField))
+            : nextDivision.playersOnField;
           team.name = els.teamNameInput.value.trim();
           team.divisionId = els.divisionInput.value;
           team.divisionSettings = {
@@ -9495,18 +9762,25 @@
             return;
           }
 
+          const teamSport = team.sport || "flag_football";
           const playerData = {
             name: els.playerNameInput.value.trim(),
             jersey: els.jerseyInput.value.trim(),
             skill,
             preferredPositions: {
-              offense: getCheckedValues("preferredOffense"),
-              defense: getCheckedValues("preferredDefense")
+              offense: teamSport === "softball" ? [] : getCheckedValues("preferredOffense"),
+              defense: teamSport === "softball" ? [] : getCheckedValues("preferredDefense")
             },
             cannotPlayPositions: {
-              offense: getCheckedValues("cannotOffense"),
-              defense: getCheckedValues("cannotDefense")
+              offense: teamSport === "softball" ? [] : getCheckedValues("cannotOffense"),
+              defense: teamSport === "softball" ? [] : getCheckedValues("cannotDefense")
             },
+            softballPositions: teamSport === "softball"
+              ? {
+                  preferred: getCheckedValues("preferredOffense"),
+                  cannot: getCheckedValues("cannotOffense")
+                }
+              : undefined,
             notes: els.notesInput.value.trim()
           };
 

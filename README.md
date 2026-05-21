@@ -26,6 +26,7 @@ Production app: https://coachify-app.com/
 - `supabase_delete_teams.sql` - head-coach team deletion policy
 - `supabase_practice_plans.sql` - saved AI-generated practice plans
 - `supabase_practice_plan_shares.sql` - head-to-assistant practice plan sharing
+- `supabase_softball_module.sql` - softball sport: `teams.sport` column, softball game/lineup/batting/pitch/stats tables and RLS
 
 ## Deploy
 
