@@ -1343,7 +1343,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.19.2";
+      const APP_VERSION = "v0.19.3";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -6771,6 +6771,8 @@
       async function saveSharedGameSession(team, status = state.gameDayMode || "live") {
         if (!team || !isHeadCoach(team)) return;
         const liveGame = buildSharedLiveGameState(status);
+        ensureTouchTracker(team);
+        team.touchTracker.liveGame = liveGame;
         try {
           await saveTouchTrackerRpc("set_team_live_game", {
             p_team_id: team.cloudId,
@@ -7885,6 +7887,8 @@
             updatedAt: new Date().toISOString(),
             updatedBy: state.user?.id || null
           };
+          ensureTouchTracker(team);
+          team.touchTracker.liveGame = liveGame;
           saveTouchTrackerRpc("set_team_live_game", {
             p_team_id: team.cloudId,
             p_live_game: liveGame
