@@ -1,0 +1,17 @@
+{
+  "name": "coachify-qa",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Playwright stress-tests for Coachify Game Day Core freeze fixes",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.6.3"
+  }
+}

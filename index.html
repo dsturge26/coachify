@@ -486,6 +486,12 @@
         scroll-margin-top: 6.5rem;
       }
 
+      [data-live-region="touch"][data-pending="true"] {
+        opacity: 0.55;
+        pointer-events: none;
+        transition: opacity 0.15s ease-out;
+      }
+
       .empty-state {
         border: 1px dashed rgba(203, 213, 225, 0.95);
         border-radius: 20px;
@@ -1670,6 +1676,10 @@
         lastSignOutTapAt: 0,
         lifecycleHandlersBound: false
       };
+
+      let touchLock = false;
+      let driveSwitchLock = 0;
+      let lastRealtimeAt = 0;
 
       const els = {
         appHeader: document.querySelector("#appHeader"),
@@ -2870,7 +2880,7 @@
         if (renderAfter) {
           renderTouchTracker();
           renderGameDaySummary();
-          renderGameDayExperience();
+          renderTouchView();
           renderHomePanel();
         }
       }
@@ -2882,7 +2892,7 @@
         if (renderAfter) {
           renderTouchTracker();
           renderGameDaySummary();
-          renderGameDayExperience();
+          renderTouchView();
           renderHomePanel();
         }
       }
@@ -5798,6 +5808,7 @@
             "postgres_changes",
             { event: "UPDATE", schema: "public", table: "teams", filter: `id=eq.${team.cloudId}` },
             (payload) => {
+              lastRealtimeAt = Date.now();
               applyCloudTeamRowUpdate(payload.new);
             }
           )
@@ -5832,7 +5843,32 @@
         if (wasSelected) state.selectedTeamId = updatedTeam.id;
         saveState();
         setGameSyncStatus(status, syncMessage);
-        if (renderAfter) render();
+
+        if (!renderAfter) return;
+
+        if (!wasSelected || normalizeTeamTab(state.activeTeamTab) !== "game") {
+          render();
+          return;
+        }
+
+        const prevTracker = previousTeam?.touchTracker || {};
+        const nextTracker = updatedTeam?.touchTracker || {};
+        const prevStatus = prevTracker.liveGame?.status || null;
+        const nextStatus = nextTracker.liveGame?.status || null;
+        const prevDrive = prevTracker.liveGame?.driveStepIndex;
+        const nextDrive = nextTracker.liveGame?.driveStepIndex;
+        const countsChanged = JSON.stringify(prevTracker.counts || {}) !== JSON.stringify(nextTracker.counts || {});
+        const lineupChanged = JSON.stringify(previousTeam?.lastLineupPlan || null) !== JSON.stringify(updatedTeam.lastLineupPlan || null);
+        const attendanceChanged = JSON.stringify(previousTeam?.attendance || []) !== JSON.stringify(updatedTeam.attendance || []);
+        const rosterChanged = JSON.stringify(previousTeam?.roster || []) !== JSON.stringify(updatedTeam.roster || []);
+
+        if (prevStatus !== nextStatus || lineupChanged || attendanceChanged || rosterChanged) {
+          render();
+          return;
+        }
+
+        if (prevDrive !== nextDrive) renderDriveView();
+        if (countsChanged) renderTouchView();
       }
 
       async function refreshSelectedGameDayCore({ renderAfter = true } = {}) {
@@ -5855,6 +5891,7 @@
         const mode = getGameDayMode(team);
         if (!team?.cloudId || normalizeTeamTab(state.activeTeamTab) !== "game" || mode !== "live") return;
         state.gameDayPollTimer = window.setInterval(() => {
+          if (Date.now() - lastRealtimeAt < 30000) return;
           refreshSelectedGameDayCore({ renderAfter: true }).catch(() => {});
         }, 10000);
       }
@@ -5901,6 +5938,30 @@
 
       function getSelectedTeam() {
         return state.teams.find((team) => team.id === state.selectedTeamId) || null;
+      }
+
+      function getGameView() {
+        const team = getSelectedTeam();
+        if (!team) return null;
+        ensureTouchTracker(team);
+        const sessionStart = state.gameSession?.startedAt ? Date.parse(state.gameSession.startedAt) : 0;
+        const history = Array.isArray(team.touchTracker.history) ? team.touchTracker.history : [];
+        const touchCounts = {};
+        for (const entry of history) {
+          if (!entry?.playerId) continue;
+          const t = entry.timestamp ? Date.parse(entry.timestamp) : 0;
+          if (sessionStart && t < sessionStart) continue;
+          touchCounts[entry.playerId] = (touchCounts[entry.playerId] || 0) + 1;
+        }
+        return {
+          selectedTeamId: team.id,
+          selectedGameId: state.gameSession?.id || null,
+          presentPlayers: getActiveGamePlayers(team),
+          driveLineups: gameDayDriveSequence(team),
+          activeDriveIndex: Number.isInteger(state.gameSession?.driveStepIndex) ? state.gameSession.driveStepIndex : 0,
+          touchCounts,
+          gameMode: getGameDayMode(team)
+        };
       }
 
       function normalizeTeamTab(tab) {
@@ -6922,11 +6983,25 @@
         `;
       }
 
-      function gameDayTouchPriority(team) {
+      function sessionTouchCounts(team) {
         ensureTouchTracker(team);
+        const sessionStart = state.gameSession?.startedAt ? Date.parse(state.gameSession.startedAt) : 0;
+        const history = Array.isArray(team.touchTracker.history) ? team.touchTracker.history : [];
+        const counts = {};
+        for (const entry of history) {
+          if (!entry?.playerId) continue;
+          const t = entry.timestamp ? Date.parse(entry.timestamp) : 0;
+          if (sessionStart && t < sessionStart) continue;
+          counts[entry.playerId] = (counts[entry.playerId] || 0) + 1;
+        }
+        return counts;
+      }
+
+      function gameDayTouchPriority(team) {
         const players = getActiveGamePlayers(team);
+        const counts = sessionTouchCounts(team);
         const ranked = players
-          .map((player) => ({ player, count: Number(team.touchTracker.counts?.[player.id] || 0) }))
+          .map((player) => ({ player, count: Number(counts[player.id] || 0) }))
           .sort((a, b) => a.count - b.count || comparePlayers(a.player, b.player));
         const totalTouches = ranked.reduce((sum, item) => sum + item.count, 0);
         const minTouches = ranked.length ? ranked[0].count : 0;
@@ -6989,7 +7064,7 @@
                     <span class="flex items-center justify-between gap-3">
                       <span>
                         <span class="block text-lg font-black">${escapeHtml(playerLabel(item.player))}</span>
-                        <span class="text-xs font-black uppercase tracking-wide">${isZero ? "Needs first touch" : isLowest ? "Target soon" : "Good"}</span>
+                        <span class="text-xs font-black uppercase tracking-wide">${isZero ? "No touches yet" : isLowest ? "Lowest touches" : "Good"}</span>
                       </span>
                       <span class="rounded-xl bg-white px-3 py-2 text-xl font-black shadow-sm">${item.count}</span>
                     </span>
@@ -7050,13 +7125,13 @@
       }
 
       function gameDayPriorityTouchNames(team) {
-        ensureTouchTracker(team);
         const players = getActiveGamePlayers(team);
         if (!players.length) return { totalTouches: 0, zeroTouchNames: "", lowTouchNames: "", noTouchCount: 0 };
-        const counts = players.map((player) => team.touchTracker.counts[player.id] || 0);
+        const sessionCounts = sessionTouchCounts(team);
+        const counts = players.map((player) => sessionCounts[player.id] || 0);
         const minTouches = Math.min(...counts);
-        const zeroTouchPlayers = players.filter((player) => (team.touchTracker.counts[player.id] || 0) === 0);
-        const lowTouchPlayers = players.filter((player) => (team.touchTracker.counts[player.id] || 0) === minTouches);
+        const zeroTouchPlayers = players.filter((player) => (sessionCounts[player.id] || 0) === 0);
+        const lowTouchPlayers = players.filter((player) => (sessionCounts[player.id] || 0) === minTouches);
         return {
           totalTouches: counts.reduce((sum, count) => sum + count, 0),
           noTouchCount: zeroTouchPlayers.length,
@@ -7092,10 +7167,24 @@
         const sideClasses = entry.side === "offense"
           ? "bg-emerald-50 text-emerald-800"
           : "bg-sky-50 text-sky-800";
+
+        if (!canControl) {
+          return `
+            <article class="rounded-[26px] bg-white/90 p-4 text-slate-950 shadow-sm">
+              <div class="text-center">
+                <span class="inline-flex rounded-full ${sideClasses} px-3 py-1 text-[11px] font-black uppercase tracking-wide">${entry.side}</span>
+                <h3 class="mt-2 truncate text-2xl font-black leading-tight">${escapeHtml(entry.label)}</h3>
+                <p class="mt-1 text-xs font-bold text-slate-500">Step ${entry.stepIndex + 1} of ${entry.totalSteps}</p>
+                <p class="mt-3 text-xs font-bold leading-5 text-slate-500">Head coach controls the shared drive. This view follows along.</p>
+              </div>
+            </article>
+          `;
+        }
+
         return `
           <article class="rounded-[26px] bg-white/90 p-4 text-slate-950 shadow-sm">
             <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3">
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="previous-drive" ${!canControl || entry.stepIndex === 0 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Previous drive">
+              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="previous-drive" ${entry.stepIndex === 0 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Previous drive">
                 &lsaquo;
               </button>
               <div class="min-w-0 text-center">
@@ -7103,12 +7192,12 @@
                 <h3 class="mt-2 truncate text-2xl font-black leading-tight">${escapeHtml(entry.label)}</h3>
                 <p class="mt-1 text-xs font-bold text-slate-500">Step ${entry.stepIndex + 1} of ${entry.totalSteps}</p>
               </div>
-              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="next-drive" ${!canControl || entry.stepIndex >= entry.totalSteps - 1 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Next drive">
+              <button class="grid h-12 w-12 place-items-center rounded-full border border-slate-200 bg-white text-2xl font-black text-slate-800 shadow-sm active:bg-slate-50 disabled:opacity-35" type="button" data-game-action="next-drive" ${entry.stepIndex >= entry.totalSteps - 1 ? "disabled aria-disabled=\"true\"" : ""} aria-label="Next drive">
                 &rsaquo;
               </button>
             </div>
             <p class="mt-3 text-center text-xs font-bold leading-5 text-slate-500">
-              ${canControl ? (entry.next ? `Next: ${escapeHtml(entry.next.label)}` : "Last generated drive in the board.") : "Head coach controls the shared drive. This view follows along."}
+              ${entry.next ? `Next: ${escapeHtml(entry.next.label)}` : "Last generated drive in the board."}
             </p>
           </article>
         `;
@@ -7250,27 +7339,16 @@
         const activePlayers = getActiveGamePlayers(team);
         const startedAt = formatGameSessionTime(state.gameSession?.startedAt);
         const roleLabelText = headCoach ? "Head coach controls" : "Assistant tracker";
-        const driveEntry = currentGameDriveEntry(team);
-        const currentLabel = driveEntry?.label || "No lineup selected";
-        const nextDriveLabel = driveEntry?.next?.label || "No next drive generated.";
-        const currentDriveIndex = driveEntry?.index || 0;
-        const currentOffense = team.lastLineupPlan?.offense?.[currentDriveIndex] || null;
-        const currentDefense = team.lastLineupPlan?.defense?.[currentDriveIndex] || null;
-        const nextEntry = driveEntry?.next || null;
-        const nextUnit = nextEntry ? nextEntry.item : null;
         return `
           <div class="grid gap-4">
             <article class="game-live-card overflow-hidden p-4 text-white sm:p-5">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p class="text-xs font-black uppercase tracking-wide text-emerald-200">Live Game Core</p>
-                  <h3 class="mt-1 text-3xl font-black leading-tight">${escapeHtml(currentLabel)}</h3>
-                  <p class="mt-2 text-sm font-semibold leading-6 text-slate-300">${escapeHtml(roleLabelText)} - ${escapeHtml(currentLabel)}${startedAt ? ` - started ${escapeHtml(startedAt)}` : ""}</p>
+                  <h3 class="mt-1 text-2xl font-black leading-tight">${escapeHtml(roleLabelText)}</h3>
+                  ${startedAt ? `<p class="mt-2 text-sm font-semibold leading-6 text-slate-300">Started ${escapeHtml(startedAt)}</p>` : ""}
                 </div>
                 <span class="rounded-full bg-white/12 px-3 py-2 text-xs font-black text-emerald-100">${activePlayers.length} active</span>
-              </div>
-              <div class="mt-5">
-                ${gameDayDriveNavigatorHtml(team, headCoach)}
               </div>
               <div class="mt-4 grid gap-2 sm:grid-cols-${headCoach ? "3" : "1"}">
                 ${headCoach ? '<button class="min-h-12 rounded-2xl bg-white/12 px-4 py-3 text-sm font-black text-white active:bg-white/20" type="button" data-game-action="return-pregame">Pregame edits</button>' : ""}
@@ -7281,6 +7359,23 @@
               </div>
             </article>
 
+            <div data-live-region="drive">${driveBodyHtml(team, headCoach)}</div>
+            <div data-live-region="touch">${touchBodyHtml(team, headCoach)}</div>
+          </div>
+        `;
+      }
+
+      function driveBodyHtml(team, headCoach) {
+        const driveEntry = currentGameDriveEntry(team);
+        const currentDriveIndex = driveEntry?.index || 0;
+        const currentOffense = team.lastLineupPlan?.offense?.[currentDriveIndex] || null;
+        const currentDefense = team.lastLineupPlan?.defense?.[currentDriveIndex] || null;
+        const nextEntry = driveEntry?.next || null;
+        const nextUnit = nextEntry ? nextEntry.item : null;
+        const nextDriveLabel = driveEntry?.next?.label || "No next drive generated.";
+        return `
+          <div class="grid gap-3">
+            <div>${gameDayDriveNavigatorHtml(team, headCoach)}</div>
             <div class="grid gap-3 lg:grid-cols-[1fr_1fr]">
               <article class="rounded-[28px] bg-white/95 p-4 shadow-sm">
                 <p class="text-xs font-black uppercase tracking-wide text-emerald-700">Current drive offense</p>
@@ -7293,22 +7388,47 @@
                 <div class="mt-3">${gameDayAssignmentGridHtml(team, "defense", currentDefense, { compact: false })}</div>
               </article>
             </div>
-
             <article class="rounded-[28px] border border-slate-200 bg-white/95 p-4 shadow-sm">
               <p class="text-xs font-black uppercase tracking-wide text-indigo-700">Next up</p>
               <h3 class="mt-1 text-xl font-black text-slate-950">${escapeHtml(nextDriveLabel)}</h3>
               <div class="mt-3">${nextUnit ? gameDayAssignmentGridHtml(team, nextEntry.side, nextUnit, { compact: true }) : '<div class="empty-state text-sm font-bold">No next drive generated.</div>'}</div>
             </article>
-
-            ${headCoach ? gameDayTouchPrioritySummaryHtml(team) : gameDayCoreTouchTrackerHtml(team)}
           </div>
         `;
       }
 
+      function touchBodyHtml(team, headCoach) {
+        return headCoach ? gameDayTouchPrioritySummaryHtml(team) : gameDayCoreTouchTrackerHtml(team);
+      }
+
+      function renderDriveView() {
+        const team = getSelectedTeam();
+        if (!team || !els.gameDayStage) return;
+        const target = els.gameDayStage.querySelector('[data-live-region="drive"]');
+        if (!target) return;
+        target.innerHTML = driveBodyHtml(team, isHeadCoach(team));
+      }
+
+      function renderTouchView() {
+        const team = getSelectedTeam();
+        if (!team || !els.gameDayStage) return;
+        const target = els.gameDayStage.querySelector('[data-live-region="touch"]');
+        if (!target) return;
+        target.innerHTML = touchBodyHtml(team, isHeadCoach(team));
+        if (touchLock) target.setAttribute("data-pending", "true");
+        else target.removeAttribute("data-pending");
+      }
+
       function renderPostgameRecap(team, headCoach) {
+        ensureTouchTracker(team);
         const activePlayers = getActiveGamePlayers(team);
         const missingPlayers = getMissingGamePlayers(team);
-        const touches = gameDayPriorityTouchNames(team);
+        const cumulativeCounts = team.touchTracker?.counts || {};
+        const cumulativeList = activePlayers.map((player) => Number(cumulativeCounts[player.id] || 0));
+        const touches = {
+          totalTouches: cumulativeList.reduce((sum, count) => sum + count, 0),
+          noTouchCount: cumulativeList.filter((count) => count === 0).length
+        };
         const countsHtml = activePlayers
           .map((player) => {
             const count = team.touchTracker?.counts?.[player.id] || 0;
@@ -7550,12 +7670,21 @@
         }).catch((error) => setAppStatus(error.message || "Coachify could not clear that drive.", "danger"));
       }
 
+      function setTouchPendingState(pending) {
+        const target = els.gameDayStage?.querySelector('[data-live-region="touch"]');
+        if (!target) return;
+        if (pending) target.setAttribute("data-pending", "true");
+        else target.removeAttribute("data-pending");
+      }
+
       async function addGameDayCoreTouch(button) {
+        if (touchLock) return;
         const team = getSelectedTeam();
         if (!team) return;
         const playerId = button.dataset.playerId;
         if (!playerId) return;
-        button.disabled = true;
+        touchLock = true;
+        setTouchPendingState(true);
         try {
           const driveIndex = Number.isInteger(state.gameSession?.driveStepIndex) ? state.gameSession.driveStepIndex : 0;
           await saveTouchTrackerRpc("add_team_touch", {
@@ -7576,14 +7705,17 @@
         } catch (error) {
           setAppStatus(error.message || "Coachify could not sync that touch. Try again.", "danger");
         } finally {
-          button.disabled = false;
+          touchLock = false;
+          setTouchPendingState(false);
         }
       }
 
       async function undoGameDayCoreTouch(button) {
+        if (touchLock) return;
         const team = getSelectedTeam();
         if (!team) return;
-        button.disabled = true;
+        touchLock = true;
+        setTouchPendingState(true);
         try {
           await saveTouchTrackerRpc("undo_team_touch", {
             p_team_id: team.cloudId
@@ -7598,7 +7730,8 @@
         } catch (error) {
           setAppStatus(error.message || "Coachify could not undo that touch. Try refresh.", "danger");
         } finally {
-          button.disabled = false;
+          touchLock = false;
+          setTouchPendingState(false);
         }
       }
 
@@ -7703,10 +7836,9 @@
         const nextIndex = Math.max(0, Math.min(sequence.length - 1, currentIndex + direction));
         if (nextIndex === currentIndex) return;
 
-        if (direction > 0) {
-          const nextLabel = sequence[nextIndex]?.label || "the next drive";
-          if (!confirm(`Move to ${nextLabel}?`)) return;
-        }
+        const now = Date.now();
+        if (now - driveSwitchLock < 250) return;
+        driveSwitchLock = now;
 
         state.gameSession = {
           ...(state.gameSession || { id: `game-${Date.now()}`, teamId: team.id, startedAt: new Date().toISOString() }),
@@ -7715,7 +7847,7 @@
           shared: true
         };
         saveSharedGameSession(team, "live");
-        renderGameDayExperience();
+        renderDriveView();
       }
 
       function endGameDaySession() {
