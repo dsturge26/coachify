@@ -1343,7 +1343,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.20.0";
+      const APP_VERSION = "v0.20.1";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -7300,9 +7300,6 @@
                   <p class="mt-1 text-3xl font-black">${lineupReady ? driveCount : 0}</p>
                 </div>
               </div>
-              ${headCoach ? `
-                <button class="mt-4 min-h-12 w-full rounded-2xl border border-red-200/40 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="start-new-game">Start new game (clears lineup &amp; touches)</button>
-              ` : ""}
             </article>
 
             ${headCoach ? `
@@ -7490,6 +7487,7 @@
                 <p class="mt-3 text-sm font-bold leading-6 text-slate-500">${escapeHtml(missingPlayers.length ? `Missing: ${missingPlayers.map((player) => player.name).join(", ")}` : "No missing players marked.")}</p>
                 <div class="mt-4 grid gap-2">
                   <button class="min-h-11 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 shadow-sm active:bg-slate-50" type="button" data-game-action="return-pregame">Back to pregame</button>
+                  ${headCoach ? `<button class="min-h-11 rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-black text-red-800 shadow-sm active:bg-red-100" type="button" data-game-action="start-new-game">Start new game (clears lineup &amp; touches)</button>` : ""}
                 </div>
               </article>
             </div>
