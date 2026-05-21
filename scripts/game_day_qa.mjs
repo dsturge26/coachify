@@ -254,7 +254,7 @@ async function runGameDayQa() {
   record("End game/recap state is visible to assistant", true, { status: team.touch_tracker.liveGame.status, endedAt: Boolean(team.touch_tracker.liveGame.endedAt) });
 
   const indexHtml = await (await fetch("https://www.coachify-app.com/", { cache: "no-store" })).text();
-  assert(indexHtml.includes("v0.18.5") || indexHtml.includes("v0.18.6"), "Published app version is not current enough");
+  assert(indexHtml.includes("v0.18.13"), "Published app version is not current enough");
   record("Published app is current enough for game-day reliability", true, {});
 
   return {
