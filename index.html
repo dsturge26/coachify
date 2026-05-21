@@ -1343,7 +1343,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.19.3";
+      const APP_VERSION = "v0.20.0";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -5825,7 +5825,7 @@
             roster: previousTeam.roster
           };
         }
-        if (!updatedTeam.lastLineupPlan?.ok && previousTeam?.lastLineupPlan?.ok) {
+        if (!updatedTeam.lastLineupPlan?.ok && !updatedTeam.lastLineupPlan?.cleared && previousTeam?.lastLineupPlan?.ok) {
           updatedTeam = {
             ...updatedTeam,
             lastLineupPlan: previousTeam.lastLineupPlan
@@ -7300,6 +7300,9 @@
                   <p class="mt-1 text-3xl font-black">${lineupReady ? driveCount : 0}</p>
                 </div>
               </div>
+              ${headCoach ? `
+                <button class="mt-4 min-h-12 w-full rounded-2xl border border-red-200/40 bg-white/10 px-4 py-3 text-sm font-black text-red-50 active:bg-red-500/20" type="button" data-game-action="start-new-game">Start new game (clears lineup &amp; touches)</button>
+              ` : ""}
             </article>
 
             ${headCoach ? `
@@ -7905,6 +7908,69 @@
         renderGameDayExperience();
         renderGameDaySummary();
         window.requestAnimationFrame(() => scrollToSection("gameDayStage"));
+      }
+
+      async function startNewGameSession() {
+        const team = getSelectedTeam();
+        if (!team) return;
+        if (!isHeadCoach(team)) return;
+        if (!confirm("Start a brand new game?\n\nThis clears the current lineup and resets touch counts for everyone on the team.")) return;
+
+        ensureTouchTracker(team);
+        const resetTracker = emptyTouchTracker();
+        team.touchTracker.counts = resetTracker.counts;
+        team.touchTracker.history = resetTracker.history;
+        const clearedLineup = { ok: false, cleared: true, clearedAt: new Date().toISOString() };
+        team.lastLineupPlan = clearedLineup;
+        team.manualStartingLineup = emptyManualLineup();
+        const liveGame = {
+          id: `game-${Date.now()}`,
+          status: "pregame",
+          startedAt: null,
+          endedAt: null,
+          driveStepIndex: 0,
+          updatedAt: new Date().toISOString(),
+          updatedBy: state.user?.id || null
+        };
+        team.touchTracker.liveGame = liveGame;
+        state.gameDayMode = "pregame";
+        state.gameSession = null;
+        saveState();
+        render();
+
+        try {
+          await saveTouchTrackerRpc("reset_team_touches", {
+            p_team_id: team.cloudId
+          }, (tracker) => {
+            const reset = emptyTouchTracker();
+            tracker.counts = reset.counts;
+            tracker.history = reset.history;
+          }, {
+            renderAfter: false,
+            savingMessage: "Starting new game...",
+            successMessage: "Touches cleared."
+          });
+
+          await updateSelectedCloudTeamFields({ lineup_plan: clearedLineup }, {
+            savingMessage: "Starting new game...",
+            successMessage: "Lineup cleared."
+          });
+
+          await saveTouchTrackerRpc("set_team_live_game", {
+            p_team_id: team.cloudId,
+            p_live_game: liveGame
+          }, (tracker) => {
+            tracker.liveGame = liveGame;
+          }, {
+            renderAfter: false,
+            savingMessage: "Starting new game...",
+            successMessage: "New game ready."
+          });
+
+          setGameSyncStatus("synced", "New game ready.");
+        } catch (error) {
+          setAppStatus(error.message || "Coachify could not start a new game. Try refresh.", "danger");
+        }
       }
 
       async function handleLatePlayerArrival() {
@@ -8961,6 +9027,11 @@
           if (action === "return-pregame") {
             event.preventDefault();
             returnToPregameSetup();
+            return;
+          }
+          if (action === "start-new-game") {
+            event.preventDefault();
+            startNewGameSession();
           }
         });
 
