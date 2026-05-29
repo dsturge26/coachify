@@ -1,0 +1,49 @@
+name: Supabase keep-alive
+
+# Free-tier Supabase projects auto-pause after 7 days of inactivity.
+# This pings the project's REST API on a schedule so it never goes idle.
+# Runs every 2 days (comfortably inside the 7-day window) and can also be
+# triggered manually from the Actions tab.
+
+on:
+  schedule:
+    - cron: "0 6 */2 * *" # 06:00 UTC, every 2nd day
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          # Defaults match the project hardcoded in the app (index.html).
+          # Override via repo secrets to rotate without code changes.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || 'https://uyquscyllwfykylbypzs.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::error::SUPABASE_ANON_KEY secret is not set. Add it under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          # A lightweight read against a known table. RLS may return an empty
+          # array, but the request still reaches the database and counts as
+          # activity — which is all we need to prevent the auto-pause.
+          url="${SUPABASE_URL}/rest/v1/teams?select=id&limit=1"
+          echo "Pinging ${url}"
+
+          status=$(curl -sS -o /tmp/resp.txt -w '%{http_code}' \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${url}")
+
+          echo "HTTP ${status}"
+          echo "Response: $(cat /tmp/resp.txt)"
+
+          # Any 2xx means the project is awake and responding.
+          case "${status}" in
+            2*) echo "Keep-alive succeeded — project is active." ;;
+            *)  echo "::error::Keep-alive ping failed with HTTP ${status}. The project may be paused or the key may be invalid."; exit 1 ;;
+          esac
