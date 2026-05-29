@@ -1,0 +1,101 @@
+name: Game-day health check (one-shot)
+
+# Runs on GitHub's runners (which have open internet, unlike the Claude
+# sandbox) to verify game-day readiness against the live Supabase project and
+# production app, then publishes a human-readable report to the
+# `claude/healthcheck-results` branch so it can be read back.
+#
+# Triggers when this file is pushed, or manually via the Actions tab.
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - ".github/workflows/healthcheck.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run game-day health checks
+        env:
+          # Public publishable key — same one already hardcoded in index.html.
+          SUPABASE_URL: https://uyquscyllwfykylbypzs.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0
+        run: |
+          set +e
+          R="$RUNNER_TEMP/health-report.md"
+          {
+            echo "# Coachify game-day health check"
+            echo "_Generated $(date -u '+%Y-%m-%d %H:%M:%S UTC') on GitHub Actions_"
+            echo
+            echo "## 1. Is the Supabase project awake?"
+          } > "$R"
+
+          code=$(curl -s -m 20 -o "$RUNNER_TEMP/sb.txt" -w '%{http_code}' \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/teams?select=id&limit=1")
+          {
+            echo "- REST ping HTTP status: \`$code\`"
+            echo "- Response (truncated): \`$(head -c 300 "$RUNNER_TEMP/sb.txt" | tr '\n' ' ')\`"
+            if [ "${code:0:1}" = "2" ]; then
+              echo "- **Verdict: AWAKE** — project is responding."
+            else
+              echo "- **Verdict: NOT 2xx** — likely still paused/restoring, or the key is invalid."
+            fi
+            echo
+            echo "## 2. Production app version"
+          } >> "$R"
+
+          src_ver=$(grep -o 'APP_VERSION *= *"[^"]*"' index.html | head -1 | sed 's/.*"\(.*\)"/\1/')
+          pcode=$(curl -s -m 20 -o "$RUNNER_TEMP/prod.html" -w '%{http_code}' https://www.coachify-app.com/)
+          prod_ver=$(grep -o 'APP_VERSION *= *"[^"]*"' "$RUNNER_TEMP/prod.html" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          {
+            echo "- Source (index.html) version: \`$src_ver\`"
+            echo "- Live prod fetch HTTP: \`$pcode\`, detected version: \`${prod_ver:-not found}\`"
+            if [ -n "$prod_ver" ] && [ "$src_ver" = "$prod_ver" ]; then
+              echo "- **Verdict: IN SYNC** — prod matches source, no deploy needed."
+            else
+              echo "- **Verdict: MISMATCH** — prod (\`${prod_ver:-?}\`) differs from source (\`$src_ver\`). Deploy before the game if source is the build you want live."
+            fi
+            echo
+            echo "## 3. Full game-day reliability suite (scripts/game_day_qa.mjs)"
+            echo "_Exercises head+assistant access, lineup build, late-kid rebuild, concurrent live-game + touches, RLS lockdowns, undo/reset/recap._"
+            echo
+            echo '```json'
+          } >> "$R"
+
+          node scripts/game_day_qa.mjs >> "$R" 2>&1
+          qa_exit=$?
+          {
+            echo '```'
+            if [ "$qa_exit" -eq 0 ]; then
+              echo "- **Suite exit 0 — all checks passed.**"
+            else
+              echo "- **Suite exit $qa_exit — one or more checks failed (see JSON above).**"
+            fi
+          } >> "$R"
+
+          cp "$R" "$GITHUB_WORKSPACE/health-report.md"
+          cat "$R"
+
+      - name: Publish report to results branch
+        if: always()
+        run: |
+          git config user.name "coachify-ci"
+          git config user.email "coachify-ci@users.noreply.github.com"
+          git checkout --orphan results-tmp
+          git rm -rf . >/dev/null 2>&1 || true
+          cp "$RUNNER_TEMP/health-report.md" health-report.md
+          git add health-report.md
+          git commit -m "Game-day health check report"
+          git push -f origin HEAD:claude/healthcheck-results
