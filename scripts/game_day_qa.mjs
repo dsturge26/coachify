@@ -1,5 +1,20 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
 const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
 const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
+
+// Derive the expected version from the source of truth (index.html's
+// APP_VERSION) so this check self-updates every release and never false-alarms
+// when the version is bumped.
+function expectedAppVersion() {
+  const here = dirname(fileURLToPath(import.meta.url));
+  const indexHtml = readFileSync(join(here, "..", "index.html"), "utf8");
+  const match = indexHtml.match(/APP_VERSION\s*=\s*["']([^"']+)["']/);
+  if (!match) throw new Error("Could not find APP_VERSION in index.html");
+  return match[1];
+}
 
 const results = [];
 let cleanup = null;
@@ -253,9 +268,13 @@ async function runGameDayQa() {
   assert(team.touch_tracker.liveGame?.status === "recap" && team.touch_tracker.liveGame?.endedAt, "Recap state not visible to assistant");
   record("End game/recap state is visible to assistant", true, { status: team.touch_tracker.liveGame.status, endedAt: Boolean(team.touch_tracker.liveGame.endedAt) });
 
+  const expectedVersion = expectedAppVersion();
   const indexHtml = await (await fetch("https://www.coachify-app.com/", { cache: "no-store" })).text();
-  assert(indexHtml.includes("v0.19.0"), "Published app version is not current enough");
-  record("Published app is current enough for game-day reliability", true, {});
+  assert(
+    indexHtml.includes(expectedVersion),
+    `Published app version is behind: expected ${expectedVersion} (from index.html) to be live, but it was not found in the deployed app. Deploy before game day.`
+  );
+  record("Published app matches the current source version", true, { expectedVersion });
 
   return {
     stamp,
