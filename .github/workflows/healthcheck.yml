@@ -68,6 +68,22 @@ jobs:
               echo "- **Verdict: MISMATCH** — prod (\`${prod_ver:-?}\`) differs from source (\`$src_ver\`). Deploy before the game if source is the build you want live."
             fi
             echo
+            echo "## 2b. Drive-board floor live in prod"
+          } >> "$R"
+
+          # The 8-drive change lives in the deployed index.html itself. Grep the
+          # live HTML for the floor expression to prove the new build is serving.
+          src_floor=$(grep -o 'Math.max([0-9]*, Math.ceil(players.length' index.html | head -1 | grep -o '[0-9]*' | head -1)
+          prod_floor=$(grep -o 'Math.max([0-9]*, Math.ceil(players.length' "$RUNNER_TEMP/prod.html" | head -1 | grep -o '[0-9]*' | head -1)
+          {
+            echo "- Source drive floor per side: \`${src_floor:-?}\`"
+            echo "- Live prod drive floor per side: \`${prod_floor:-not found}\`"
+            if [ -n "$prod_floor" ] && [ "$prod_floor" -ge 6 ] && [ "$src_floor" = "$prod_floor" ]; then
+              echo "- **Verdict: LIVE** — prod is serving the ${prod_floor}-drive board (offense and defense)."
+            else
+              echo "- **Verdict: NOT LIVE YET** — prod floor is \`${prod_floor:-?}\`, expected \`${src_floor:-?}\`. Deploy may still be propagating."
+            fi
+            echo
             echo "## 3. Full game-day reliability suite (scripts/game_day_qa.mjs)"
             echo "_Exercises head+assistant access, lineup build, late-kid rebuild, concurrent live-game + touches, RLS lockdowns, undo/reset/recap._"
             echo
