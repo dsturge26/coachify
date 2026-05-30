@@ -99,6 +99,22 @@ jobs:
             else
               echo "- **Suite exit $qa_exit — one or more checks failed (see JSON above).**"
             fi
+            echo
+            echo "## 4. Concurrency STRESS test (scripts/game_day_stress.mjs)"
+            echo "_Fires 60+ simultaneous head+assistant writes to expose race conditions: lost touches, touch-tracker resets, live-game/notes clobbering, and rebuild-under-load._"
+            echo
+            echo '```json'
+          } >> "$R"
+
+          node scripts/game_day_stress.mjs >> "$R" 2>&1
+          stress_exit=$?
+          {
+            echo '```'
+            if [ "$stress_exit" -eq 0 ]; then
+              echo "- **Stress exit 0 — no touches lost, no resets, sync held under load.**"
+            else
+              echo "- **Stress exit $stress_exit — a race condition surfaced (see JSON above).**"
+            fi
           } >> "$R"
 
           cp "$R" "$GITHUB_WORKSPACE/health-report.md"
