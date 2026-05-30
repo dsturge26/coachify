@@ -1378,7 +1378,7 @@
 
     <script>
       const STORAGE_KEY = "flagFootballLineupTool.v1";
-      const APP_VERSION = "v0.20.3";
+      const APP_VERSION = "v0.20.4";
       const CANONICAL_ORIGIN = "https://coachify-app.com";
       const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
       const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
@@ -6746,8 +6746,8 @@
         const offensePositions = division.offensePositions.slice(0, Math.min(division.playersOnField, players.length));
         const defensePositions = division.defensePositions.slice(0, Math.min(division.playersOnField, players.length));
         const lockedOffensePositions = (division.lockedOffensePositions || []).filter((position) => offensePositions.includes(position));
-        const offensePreviewCount = Math.max(4, Math.ceil(players.length / Math.max(1, players.length - offensePositions.length)) + 1);
-        const defensePreviewCount = Math.max(4, Math.ceil(players.length / Math.max(1, players.length - defensePositions.length)) + 1);
+        const offensePreviewCount = Math.max(6, Math.ceil(players.length / Math.max(1, players.length - offensePositions.length)) + 1);
+        const defensePreviewCount = Math.max(6, Math.ceil(players.length / Math.max(1, players.length - defensePositions.length)) + 1);
         const lockedRolePlayerCounts = {};
         let unitIndex = 0;
 
