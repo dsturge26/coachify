@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Coachify Lite</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --ink:#f1f5f9; --mut:#94a3b8;
+            --accent:#10b981; --accent2:#059669; --warn:#f59e0b; --danger:#ef4444; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+           background:var(--bg); color:var(--ink); padding-bottom:env(safe-area-inset-bottom); }
+    header { position:sticky; top:0; background:var(--bg); border-bottom:1px solid var(--line);
+             padding:12px 16px; display:flex; align-items:center; justify-content:space-between; z-index:10; }
+    h1 { font-size:18px; margin:0; font-weight:800; }
+    .ver { font-size:11px; color:var(--mut); }
+    main { padding:16px; max-width:680px; margin:0 auto; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-bottom:14px; }
+    label { display:block; font-size:12px; font-weight:700; color:var(--mut); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em; }
+    input, select { width:100%; padding:12px; border-radius:12px; border:1px solid var(--line);
+                    background:#0b1220; color:var(--ink); font-size:16px; }
+    button { font-size:16px; font-weight:800; border:none; border-radius:12px; padding:13px 16px; cursor:pointer; }
+    .btn { background:var(--accent); color:#04221a; width:100%; }
+    .btn:active { background:var(--accent2); }
+    .btn.ghost { background:transparent; color:var(--ink); border:1px solid var(--line); }
+    .btn.danger { background:var(--danger); color:#fff; }
+    .btn.sm { width:auto; padding:8px 12px; font-size:14px; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .nav { display:flex; gap:6px; padding:8px; position:sticky; bottom:0; background:var(--bg); border-top:1px solid var(--line); }
+    .nav button { flex:1; background:transparent; color:var(--mut); font-size:12px; padding:10px 4px; border-radius:10px; }
+    .nav button.active { background:var(--card); color:var(--ink); }
+    .muted { color:var(--mut); font-size:13px; }
+    .hidden { display:none !important; }
+    .pill { display:inline-block; padding:3px 9px; border-radius:999px; font-size:11px; font-weight:800; }
+    .pill.live { background:rgba(16,185,129,.18); color:var(--accent); }
+    .pill.off { background:rgba(148,163,184,.15); color:var(--mut); }
+    .player { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); }
+    .player:last-child { border-bottom:none; }
+    .jersey { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:8px;
+              background:#0b1220; border:1px solid var(--line); font-weight:800; font-size:13px; margin-right:10px; }
+    .touchbtns { display:flex; gap:6px; align-items:center; }
+    .count { min-width:34px; text-align:center; font-size:20px; font-weight:900; }
+    .tap { width:46px; height:46px; border-radius:12px; font-size:22px; background:var(--accent); color:#04221a; }
+    .minus { width:40px; height:40px; border-radius:10px; background:transparent; border:1px solid var(--line); color:var(--ink); font-size:20px; }
+    .sync { font-size:11px; padding:4px 8px; border-radius:8px; }
+    .sync.ok { color:var(--accent); } .sync.stale { color:var(--warn); } .sync.err { color:var(--danger); }
+    .att { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+    .att input { width:22px; height:22px; }
+    .drivebar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .drivebar button { width:52px; height:52px; border-radius:14px; background:var(--card); border:1px solid var(--line); color:var(--ink); font-size:24px; }
+    .drivebar button:disabled { opacity:.3; }
+    .pos { display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); }
+    .pos:last-child { border-bottom:none; }
+    .err { color:var(--danger); font-size:13px; margin-top:8px; }
+    .ok { color:var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <div><h1>Coachify <span style="color:var(--accent)">Lite</span></h1></div>
+    <div style="text-align:right">
+      <div id="syncStatus" class="sync"></div>
+      <div class="ver" id="verBadge"></div>
+    </div>
+  </header>
+  <main id="app"></main>
+  <nav class="nav hidden" id="nav">
+    <button data-tab="roster">Roster</button>
+    <button data-tab="attendance">Here</button>
+    <button data-tab="drives">Drives</button>
+    <button data-tab="live">Live</button>
+  </nav>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function () {
+    "use strict";
+    const APP_VERSION = "lite-v1.0.0";
+    const SUPABASE_URL = "https://uyquscyllwfykylbypzs.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_mHS5AD4JIHTOWevqBB3LGg_XuT5IVq0";
+    const POLL_MS = 2000; // always-on polling. This is the sync. No realtime.
+
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    document.getElementById("verBadge").textContent = APP_VERSION;
+
+    const state = {
+      user: null, role: null, team: null, tab: "roster",
+      pollTimer: null, lastSyncAt: 0, lastError: null, localDirtyUntil: 0
+    };
+
+    const $app = document.getElementById("app");
+    const $nav = document.getElementById("nav");
+    const $sync = document.getElementById("syncStatus");
+
+    // ---------- helpers ----------
+    function setSync(kind, msg) { $sync.className = "sync " + kind; $sync.textContent = msg; }
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+    function tracker() { return state.team?.touch_tracker || { counts:{}, history:[], liveGame:null }; }
+    function roster() { return Array.isArray(state.team?.roster) ? state.team.roster : []; }
+    function attendance() { return Array.isArray(state.team?.attendance) ? state.team.attendance : []; }
+    function plan() { return state.team?.lineup_plan || null; }
+    function isHead() { return state.role === "head"; }
+
+    async function rpc(name, args) {
+      const { data, error } = await sb.rpc(name, args);
+      if (error) throw new Error(error.message);
+      return data;
+    }
+
+    // ---------- auth ----------
+    async function init() {
+      const { data } = await sb.auth.getSession();
+      if (data.session) { state.user = data.session.user; await loadTeams(); }
+      render();
+    }
+
+    async function signIn(email, password) {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        const up = await sb.auth.signUp({ email, password });
+        if (up.error) throw new Error(up.error.message);
+        state.user = up.data.user || up.data.session?.user;
+      } else { state.user = data.user; }
+      await loadTeams();
+      render();
+    }
+    async function signOut() {
+      stopPolling();
+      await sb.auth.signOut();
+      state.user = null; state.team = null; state.role = null;
+      render();
+    }
+
+    async function loadTeams() {
+      // Find the team this user belongs to (head or assistant) via team_members.
+      const { data: mems, error } = await sb.from("team_members")
+        .select("team_id, role").eq("user_id", state.user.id);
+      if (error) { state.lastError = error.message; return; }
+      if (!mems || !mems.length) { state.team = null; state.role = null; return; }
+      // single-team app: take the first membership
+      state.role = mems[0].role;
+      await fetchTeam(mems[0].team_id, { initial:true });
+    }
+
+    // ---------- the SYNC: poll the team row ----------
+    async function fetchTeam(teamId, { initial=false } = {}) {
+      const { data, error } = await sb.from("teams").select("*").eq("id", teamId).single();
+      if (error) {
+        state.lastError = error.message;
+        setSync("err", "Sync error — retrying");
+        return;
+      }
+      state.lastError = null;
+      state.lastSyncAt = Date.now();
+      // Don't stomp a local optimistic change that hasn't round-tripped yet.
+      const fresh = data;
+      const incomingUpdated = new Date(fresh.updated_at || 0).getTime();
+      if (Date.now() < state.localDirtyUntil && state.team &&
+          incomingUpdated <= new Date(state.team.updated_at || 0).getTime()) {
+        // our newer local write hasn't shown up server-side yet; keep ours
+      } else {
+        state.team = fresh;
+      }
+      const age = ((Date.now() - state.lastSyncAt) / 1000) | 0;
+      setSync("ok", "Synced");
+      if (!initial) renderIfLive();
+    }
+
+    function startPolling() {
+      stopPolling();
+      if (!state.team) return;
+      const id = state.team.id;
+      state.pollTimer = setInterval(() => {
+        fetchTeam(id).catch(() => {});
+        const age = Date.now() - state.lastSyncAt;
+        if (age > 8000) setSync("stale", "Reconnecting…");
+      }, POLL_MS);
+    }
+    function stopPolling() { if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; } }
+
+    // re-poll immediately when app returns to foreground
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && state.team) fetchTeam(state.team.id).catch(() => {});
+    });
+
+    // Only re-render the parts that change live, so taps don't flicker the whole screen.
+    function renderIfLive() {
+      if (state.tab === "live") renderLive(true);
+      else if (state.tab === "drives") renderDrives(true);
+    }
+
+    // ---------- lineup builder (simple, fair rotation) ----------
+    function buildPlan() {
+      const present = roster().filter(p => attendance().includes(p.id));
+      const onField = Math.min(6, present.length);
+      const DRIVES = 8;
+      const off = [], def = [];
+      let cursor = 0;
+      for (let d = 0; d < DRIVES; d++) {
+        const offLine = [], defLine = [];
+        for (let i = 0; i < onField; i++) { offLine.push(present[(cursor + i) % present.length].id); }
+        cursor += onField;
+        for (let i = 0; i < onField; i++) { defLine.push(present[(cursor + i) % present.length].id); }
+        cursor += onField;
+        off.push(offLine); def.push(defLine);
+      }
+      return { ok:true, drives:DRIVES, onField, offense:off, defense:def, builtAt:new Date().toISOString() };
+    }
+
+    async function saveTeam(patch) {
+      state.team = { ...state.team, ...patch, updated_at:new Date().toISOString() };
+      state.localDirtyUntil = Date.now() + 4000;
+      const { error } = await sb.from("teams").update(patch).eq("id", state.team.id);
+      if (error) { state.lastError = error.message; setSync("err", "Save failed"); throw new Error(error.message); }
+      setSync("ok", "Saved");
+    }
+
+    // ---------- rendering ----------
+    function render() {
+      if (!state.user) return renderLogin();
+      if (!state.team) return renderNoTeam();
+      $nav.classList.remove("hidden");
+      [...$nav.children].forEach(b => b.classList.toggle("active", b.dataset.tab === state.tab));
+      startPolling();
+      if (state.tab === "roster") renderRoster();
+      else if (state.tab === "attendance") renderAttendance();
+      else if (state.tab === "drives") renderDrives();
+      else if (state.tab === "live") renderLive();
+    }
+
+    function renderLogin() {
+      $nav.classList.add("hidden"); stopPolling();
+      $app.innerHTML = `
+        <div class="card">
+          <label>Email</label><input id="email" type="email" autocomplete="email" />
+          <label style="margin-top:12px">Password</label><input id="pw" type="password" autocomplete="current-password" />
+          <button class="btn" style="margin-top:16px" id="loginBtn">Sign in / Sign up</button>
+          <div class="err hidden" id="loginErr"></div>
+        </div>
+        <p class="muted">One account works on every coach's phone. Head coach creates the team; assistants join it.</p>`;
+      document.getElementById("loginBtn").onclick = async () => {
+        const e = document.getElementById("email").value.trim();
+        const p = document.getElementById("pw").value;
+        try { await signIn(e, p); }
+        catch (err) { const el = document.getElementById("loginErr"); el.textContent = err.message; el.classList.remove("hidden"); }
+      };
+    }
+
+    function renderNoTeam() {
+      $nav.classList.add("hidden"); stopPolling();
+      $app.innerHTML = `
+        <div class="card">
+          <h2 style="margin-top:0">Create your team</h2>
+          <label>Team name</label><input id="teamName" placeholder="Redbirds 6U" />
+          <button class="btn" style="margin-top:14px" id="createBtn">Create team</button>
+        </div>
+        <div class="card">
+          <h2 style="margin-top:0">Or join as assistant</h2>
+          <label>Team ID (ask the head coach)</label><input id="joinId" placeholder="team uuid" />
+          <button class="btn ghost" style="margin-top:14px" id="joinBtn">Join team</button>
+          <div class="err hidden" id="teamErr"></div>
+        </div>
+        <button class="btn ghost" style="margin-top:8px" id="signout">Sign out</button>`;
+      document.getElementById("createBtn").onclick = async () => {
+        const name = document.getElementById("teamName").value.trim() || "My Team";
+        try {
+          const id = await rpc("create_team_as_head", { p_name:name, p_division_id:"boys-6u" });
+          state.role = "head"; await fetchTeam(id, { initial:true }); state.tab = "roster"; render();
+        } catch (e) { showTeamErr(e.message); }
+      };
+      document.getElementById("joinBtn").onclick = async () => {
+        const id = document.getElementById("joinId").value.trim();
+        try {
+          const { error } = await sb.from("team_members").insert({ team_id:id, user_id:state.user.id, role:"assistant" });
+          if (error) throw new Error(error.message);
+          state.role = "assistant"; await fetchTeam(id, { initial:true }); state.tab = "live"; render();
+        } catch (e) { showTeamErr(e.message); }
+      };
+      document.getElementById("signout").onclick = signOut;
+    }
+    function showTeamErr(m) { const el = document.getElementById("teamErr"); el.textContent = m; el.classList.remove("hidden"); }
+
+    function renderRoster() {
+      const r = roster();
+      $app.innerHTML = `
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <h2 style="margin:0">Roster (${r.length})</h2>
+            <span class="muted">Team ID: tap to copy</span>
+          </div>
+          <p class="muted" id="copyId" style="cursor:pointer;word-break:break-all">${esc(state.team.id)}</p>
+        </div>
+        ${isHead() ? `<div class="card">
+          <label>Add player</label>
+          <div class="row"><input id="pName" placeholder="Name" /><input id="pNum" placeholder="#" style="width:70px" /></div>
+          <button class="btn sm" style="margin-top:10px" id="addP">Add</button>
+        </div>` : ""}
+        <div class="card">
+          ${r.length ? r.map(p => `<div class="player">
+            <div class="row"><span class="jersey">${esc(p.jersey||"")}</span>${esc(p.name)}</div>
+            ${isHead() ? `<button class="minus" data-del="${esc(p.id)}">×</button>` : ""}
+          </div>`).join("") : `<p class="muted">No players yet.</p>`}
+        </div>`;
+      document.getElementById("copyId").onclick = () => navigator.clipboard?.writeText(state.team.id);
+      if (isHead()) {
+        document.getElementById("addP").onclick = async () => {
+          const name = document.getElementById("pName").value.trim(); if (!name) return;
+          const jersey = document.getElementById("pNum").value.trim();
+          const next = [...roster(), { id:"p-"+Date.now().toString(36), name, jersey }];
+          await saveTeam({ roster: next }); renderRoster();
+        };
+        $app.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+          await saveTeam({ roster: roster().filter(p => p.id !== b.dataset.del) }); renderRoster();
+        });
+      }
+    }
+
+    function renderAttendance() {
+      const present = new Set(attendance());
+      $app.innerHTML = `
+        <div class="card">
+          <h2 style="margin-top:0">Who's here? (${present.size})</h2>
+          ${roster().length ? roster().map(p => `<label class="att">
+            <input type="checkbox" data-att="${esc(p.id)}" ${present.has(p.id)?"checked":""} ${isHead()?"":"disabled"} />
+            <span class="jersey">${esc(p.jersey||"")}</span>${esc(p.name)}
+          </label>`).join("") : `<p class="muted">Add players on the Roster tab first.</p>`}
+        </div>
+        ${isHead() && roster().length ? `<button class="btn" id="buildBtn">Build 8 drives →</button>` : ""}`;
+      if (isHead()) {
+        $app.querySelectorAll("[data-att]").forEach(c => c.onchange = async () => {
+          const ids = [...$app.querySelectorAll("[data-att]:checked")].map(x => x.dataset.att);
+          await saveTeam({ attendance: ids });
+        });
+        const bb = document.getElementById("buildBtn");
+        if (bb) bb.onclick = async () => {
+          await saveTeam({ lineup_plan: buildPlan() });
+          state.tab = "drives"; render();
+        };
+      }
+    }
+
+    function nameOf(id) { const p = roster().find(x => x.id === id); return p ? (p.jersey ? "#"+p.jersey+" "+p.name : p.name) : "—"; }
+
+    function renderDrives(liveUpdate) {
+      const pl = plan();
+      if (!pl?.ok) { $app.innerHTML = `<div class="card"><p class="muted">No drives built yet. ${isHead()?"Go to <b>Here</b> and build drives.":"Waiting for the head coach to build drives."}</p></div>`; return; }
+      const lg = tracker().liveGame;
+      const idx = Number.isInteger(lg?.driveStepIndex) ? lg.driveStepIndex : 0;
+      const driveNum = (idx >> 1); // two halves (off/def) per visual drive? keep simple: idx is the step
+      const total = pl.drives;
+      const cur = Math.min(idx, total - 1);
+      $app.innerHTML = `
+        <div class="card">
+          <div class="drivebar">
+            <button id="prev" ${cur<=0?"disabled":""}>‹</button>
+            <div style="text-align:center"><div class="muted">DRIVE</div><div style="font-size:30px;font-weight:900">${cur+1} / ${total}</div></div>
+            <button id="next" ${cur>=total-1?"disabled":""}>›</button>
+          </div>
+          <h3 class="ok">Offense</h3>
+          ${pl.offense[cur].map(id => `<div class="pos">${esc(nameOf(id))}</div>`).join("")}
+          <h3 style="color:#f59e0b">Defense</h3>
+          ${pl.defense[cur].map(id => `<div class="pos">${esc(nameOf(id))}</div>`).join("")}
+          ${!isHead()?`<p class="muted" style="margin-top:12px">Head coach controls the drive. This follows along.</p>`:""}
+        </div>`;
+      if (isHead()) {
+        document.getElementById("prev").onclick = () => moveDrive(cur - 1);
+        document.getElementById("next").onclick = () => moveDrive(cur + 1);
+      }
+    }
+
+    async function moveDrive(toIdx) {
+      const lg = tracker().liveGame || { id:"g-"+Date.now().toString(36), status:"live", startedAt:new Date().toISOString() };
+      const next = { ...lg, status:"live", driveStepIndex: Math.max(0, toIdx), updatedAt:new Date().toISOString(), updatedBy: state.user.id };
+      try {
+        const updated = await rpc("set_team_live_game", { p_team_id: state.team.id, p_live_game: next });
+        state.team = { ...state.team, touch_tracker: updated, updated_at:new Date().toISOString() };
+        state.localDirtyUntil = Date.now() + 4000;
+        renderDrives();
+      } catch (e) { setSync("err", "Drive change failed"); }
+    }
+
+    function renderLive(liveUpdate) {
+      const counts = tracker().counts || {};
+      const present = roster().filter(p => attendance().includes(p.id));
+      const list = present.length ? present : roster();
+      const lg = tracker().liveGame;
+      const live = lg?.status === "live";
+      $app.innerHTML = `
+        <div class="card">
+          <div class="row" style="justify-content:space-between">
+            <h2 style="margin:0">Touches</h2>
+            <span class="pill ${live?"live":"off"}">${live?"● LIVE":"not live"}</span>
+          </div>
+          ${live ? `<p class="muted">Drive ${(lg.driveStepIndex||0)+1}</p>` : (isHead()?`<button class="btn" id="startG" style="margin-top:10px">Start live game</button>`:`<p class="muted">Waiting for head coach to start.</p>`)}
+        </div>
+        <div class="card">
+          ${list.length ? list.map(p => `<div class="player">
+            <div class="row"><span class="jersey">${esc(p.jersey||"")}</span>${esc(p.name)}</div>
+            <div class="touchbtns">
+              <button class="minus" data-minus="${esc(p.id)}">−</button>
+              <span class="count">${counts[p.id]||0}</span>
+              <button class="tap" data-tap="${esc(p.id)}">+</button>
+            </div>
+          </div>`).join("") : `<p class="muted">No players present. Mark attendance first.</p>`}
+        </div>
+        ${isHead()?`<button class="btn danger" id="resetT">Reset touches</button>`:""}`;
+      const sg = document.getElementById("startG");
+      if (sg) sg.onclick = () => moveDrive(0);
+      $app.querySelectorAll("[data-tap]").forEach(b => b.onclick = () => tapTouch(b.dataset.tap, +1));
+      $app.querySelectorAll("[data-minus]").forEach(b => b.onclick = () => tapTouch(b.dataset.minus, -1));
+      const rt = document.getElementById("resetT");
+      if (rt) rt.onclick = async () => {
+        if (!confirm("Reset all touch counts to zero?")) return;
+        try { const u = await rpc("reset_team_touches", { p_team_id: state.team.id });
+          state.team = { ...state.team, touch_tracker:u }; renderLive(); } catch(e){ setSync("err","Reset failed (head only)"); }
+      };
+    }
+
+    // Optimistic tap: update the number instantly, write via locked RPC, reconcile on next poll.
+    async function tapTouch(playerId, dir) {
+      const t = tracker();
+      const counts = { ...(t.counts||{}) };
+      counts[playerId] = Math.max(0, (counts[playerId]||0) + dir);
+      state.team = { ...state.team, touch_tracker: { ...t, counts }, updated_at:new Date().toISOString() };
+      state.localDirtyUntil = Date.now() + 4000;
+      renderLive(true);
+      try {
+        const fn = dir > 0 ? "add_team_touch" : "undo_team_touch";
+        const args = dir > 0 ? { p_team_id: state.team.id, p_player_id: playerId } : { p_team_id: state.team.id };
+        const updated = await rpc(fn, args);
+        state.team = { ...state.team, touch_tracker: updated };
+        renderLive(true);
+      } catch (e) { setSync("err", "Tap failed — will retry on sync"); }
+    }
+
+    // nav
+    $nav.querySelectorAll("button").forEach(b => b.onclick = () => { state.tab = b.dataset.tab; render(); });
+
+    init();
+    window.__coachifyLite = { state, fetchTeam }; // for diagnostics
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+name: Coachify Lite — cross-client sync test
+
+# Runs the two-phone sync test on GitHub's runners (open internet) against the
+# live Supabase project, and publishes the result to the
+# claude/lite-sync-results branch so it can be read back. This is the test that
+# actually exercises the layer that failed on game day: does a second phone SEE
+# the first phone's changes (touches + current drive) via polling?
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "scripts/lite_sync_test.mjs"
+      - ".github/workflows/lite-sync.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run cross-client sync test
+        run: |
+          set +e
+          R="$RUNNER_TEMP/lite-sync.md"
+          {
+            echo "# Coachify Lite — cross-client sync test"
+            echo "_Generated $(date -u '+%Y-%m-%d %H:%M:%S UTC') on GitHub Actions_"
+            echo
+            echo "_Two separate authenticated clients (head + assistant). The assistant"
+            echo "only learns of changes by POLLING — exactly like the Lite app. Verifies"
+            echo "the assistant sees live game, current drive, and touch counts, plus"
+            echo "bidirectional sync and no lost touches under concurrency._"
+            echo
+            echo '```json'
+          } > "$R"
+          node scripts/lite_sync_test.mjs >> "$R" 2>&1
+          code=$?
+          {
+            echo '```'
+            if [ "$code" -eq 0 ]; then
+              echo "- **PASS — both phones stayed in sync (touches + current drive).**"
+            else
+              echo "- **FAIL (exit $code) — a sync gap surfaced (see JSON above).**"
+            fi
+          } >> "$R"
+          cat "$R"
+          cp "$R" "$RUNNER_TEMP/out.md"
+
+      - name: Publish result
+        if: always()
+        run: |
+          git config user.name "coachify-ci"
+          git config user.email "coachify-ci@users.noreply.github.com"
+          git checkout --orphan res-tmp
+          git rm -rf . >/dev/null 2>&1 || true
+          cp "$RUNNER_TEMP/out.md" lite-sync-report.md
+          git add lite-sync-report.md
+          git commit -m "Lite cross-client sync test report"
+          git push -f origin HEAD:claude/lite-sync-results
