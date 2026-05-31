@@ -35,11 +35,13 @@ jobs:
             echo
             echo "## Page deployed & reachable on prod?"
           } > "$R"
-          pc=$(curl -s -m 20 -o "$RUNNER_TEMP/lite.html" -w '%{http_code}' https://www.coachify-app.com/coachify-lite.html)
+          # -L follows the www->apex (or http->https) 308 redirect Cloudflare issues.
+          page_url="https://coachify-app.com/coachify-lite.html"
+          pc=$(curl -sL -m 20 -o "$RUNNER_TEMP/lite.html" -w '%{http_code}' "$page_url")
           lver=$(grep -o 'APP_VERSION *= *"[^"]*"' "$RUNNER_TEMP/lite.html" | head -1 | sed 's/.*"\(.*\)"/\1/')
           {
-            echo "- URL: https://www.coachify-app.com/coachify-lite.html"
-            echo "- HTTP: \`$pc\`, version detected: \`${lver:-not found}\`"
+            echo "- URL: $page_url"
+            echo "- HTTP (following redirects): \`$pc\`, version detected: \`${lver:-not found}\`"
             if [ "$pc" = "200" ] && [ -n "$lver" ]; then
               echo "- **LIVE — open this URL on two phones to dry-run.**"
             else
