@@ -33,13 +33,28 @@ jobs:
             echo "# Coachify Lite — cross-client sync test"
             echo "_Generated $(date -u '+%Y-%m-%d %H:%M:%S UTC') on GitHub Actions_"
             echo
+            echo "## Page deployed & reachable on prod?"
+          } > "$R"
+          pc=$(curl -s -m 20 -o "$RUNNER_TEMP/lite.html" -w '%{http_code}' https://www.coachify-app.com/coachify-lite.html)
+          lver=$(grep -o 'APP_VERSION *= *"[^"]*"' "$RUNNER_TEMP/lite.html" | head -1 | sed 's/.*"\(.*\)"/\1/')
+          {
+            echo "- URL: https://www.coachify-app.com/coachify-lite.html"
+            echo "- HTTP: \`$pc\`, version detected: \`${lver:-not found}\`"
+            if [ "$pc" = "200" ] && [ -n "$lver" ]; then
+              echo "- **LIVE — open this URL on two phones to dry-run.**"
+            else
+              echo "- **NOT LIVE YET — Cloudflare may still be deploying (retry in a minute).**"
+            fi
+            echo
+            echo "## Cross-client sync test"
+            echo
             echo "_Two separate authenticated clients (head + assistant). The assistant"
             echo "only learns of changes by POLLING — exactly like the Lite app. Verifies"
             echo "the assistant sees live game, current drive, and touch counts, plus"
             echo "bidirectional sync and no lost touches under concurrency._"
             echo
             echo '```json'
-          } > "$R"
+          } >> "$R"
           node scripts/lite_sync_test.mjs >> "$R" 2>&1
           code=$?
           {
